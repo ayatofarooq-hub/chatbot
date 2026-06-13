@@ -1,0 +1,210 @@
+"""Build the persistent ChromaDB index from prepared legal text chunks."""
+
+import json
+import sys
+from pathlib import Path
+
+import chromadb
+import httpx
+import ollama
+from chromadb.errors import NotFoundError
+from tqdm import tqdm
+
+try:
+    from .config import (
+        CHROMA_FOLDER,
+        EMBEDDING_MODEL,
+        OLLAMA_KEEP_ALIVE,
+        OLLAMA_REQUEST_TIMEOUT_SECONDS,
+        PROJECT_ROOT,
+    )
+    from .ollama_client import client as ollama_client
+except ImportError:
+    # Support direct execution with: python app/build_index.py
+    from config import (
+        CHROMA_FOLDER,
+        EMBEDDING_MODEL,
+        OLLAMA_KEEP_ALIVE,
+        OLLAMA_REQUEST_TIMEOUT_SECONDS,
+        PROJECT_ROOT,
+    )
+    from ollama_client import client as ollama_client
+
+
+CHUNKS_FILE = PROJECT_ROOT / "data" / "chunks.jsonl"
+COLLECTION_NAME = "iraqi_legal_documents"
+EMBEDDING_BATCH_SIZE = 16
+CHROMA_BATCH_SIZE = 100
+REQUIRED_FIELDS = {
+    "id",
+    "source_file",
+    "page_number",
+    "chunk_index",
+    "text",
+}
+
+
+def load_chunks(file_path: Path) -> list[dict]:
+    """Read and validate chunk records from a JSON Lines file."""
+
+    chunks = []
+
+    with file_path.open("r", encoding="utf-8") as input_file:
+        for line_number, line in enumerate(input_file, start=1):
+            if not line.strip():
+                continue
+
+            try:
+                chunk = json.loads(line)
+            except json.JSONDecodeError as error:
+                raise ValueError(
+                    f"Invalid JSON on line {line_number}: {error.msg}"
+                ) from error
+
+            missing_fields = REQUIRED_FIELDS - chunk.keys()
+            if missing_fields:
+                missing = ", ".join(sorted(missing_fields))
+                raise ValueError(
+                    f"Line {line_number} is missing required fields: {missing}"
+                )
+
+            if not chunk["id"] or not chunk["text"]:
+                raise ValueError(
+                    f"Line {line_number} contains an empty id or text field."
+                )
+
+            chunks.append(chunk)
+
+    if not chunks:
+        raise ValueError("The chunks file does not contain any chunk records.")
+
+    chunk_ids = [chunk["id"] for chunk in chunks]
+    if len(chunk_ids) != len(set(chunk_ids)):
+        raise ValueError("Chunk IDs must be unique before indexing.")
+
+    return chunks
+
+
+def create_embeddings(chunks: list[dict]) -> list[list[float]]:
+    """Generate one Ollama embedding for every legal text chunk."""
+
+    embeddings = []
+
+    for start in tqdm(
+        range(0, len(chunks), EMBEDDING_BATCH_SIZE),
+        desc="Generating embeddings",
+        unit="batch",
+    ):
+        batch = chunks[start : start + EMBEDDING_BATCH_SIZE]
+        response = ollama_client.embed(
+            model=EMBEDDING_MODEL,
+            input=[chunk["text"] for chunk in batch],
+            keep_alive=OLLAMA_KEEP_ALIVE,
+        )
+        batch_embeddings = response["embeddings"]
+
+        if len(batch_embeddings) != len(batch):
+            raise RuntimeError(
+                "Ollama returned a different number of embeddings than requested."
+            )
+
+        embeddings.extend(batch_embeddings)
+
+    return embeddings
+
+
+def reset_collection(client):
+    """Delete the old collection, if present, and create an empty replacement."""
+
+    try:
+        client.delete_collection(COLLECTION_NAME)
+    except NotFoundError:
+        # The first index build has no existing collection to delete.
+        pass
+
+    return client.create_collection(
+        name=COLLECTION_NAME,
+        metadata={"embedding_model": EMBEDDING_MODEL},
+        embedding_function=None,
+    )
+
+
+def add_chunks(collection, chunks: list[dict], embeddings: list[list[float]]) -> None:
+    """Store chunk documents, metadata, and embeddings in ChromaDB."""
+
+    for start in tqdm(
+        range(0, len(chunks), CHROMA_BATCH_SIZE),
+        desc="Saving to ChromaDB",
+        unit="batch",
+    ):
+        batch = chunks[start : start + CHROMA_BATCH_SIZE]
+        batch_embeddings = embeddings[start : start + CHROMA_BATCH_SIZE]
+
+        collection.add(
+            ids=[chunk["id"] for chunk in batch],
+            documents=[chunk["text"] for chunk in batch],
+            metadatas=[
+                {
+                    "source_file": chunk["source_file"],
+                    "page_number": chunk["page_number"],
+                    "chunk_index": chunk["chunk_index"],
+                }
+                for chunk in batch
+            ],
+            embeddings=batch_embeddings,
+        )
+
+
+def main() -> None:
+    """Build a fresh persistent legal-document collection."""
+
+    try:
+        if not CHUNKS_FILE.exists():
+            raise FileNotFoundError(
+                f"Chunks file not found: {CHUNKS_FILE}. "
+                "Run python app/chunk_text.py first."
+            )
+
+        chunks = load_chunks(CHUNKS_FILE)
+        print(f"Loaded {len(chunks)} chunks from {CHUNKS_FILE.name}.")
+        print(f"Embedding model: {EMBEDDING_MODEL}")
+
+        # Generate embeddings before resetting the collection. If Ollama is
+        # unavailable, an existing working index remains untouched.
+        embeddings = create_embeddings(chunks)
+
+        CHROMA_FOLDER.mkdir(parents=True, exist_ok=True)
+        client = chromadb.PersistentClient(path=str(CHROMA_FOLDER))
+        collection = reset_collection(client)
+        add_chunks(collection, chunks, embeddings)
+
+        print(
+            f"Indexed {collection.count()} chunks in "
+            f"'{COLLECTION_NAME}' at {CHROMA_FOLDER}."
+        )
+    except FileNotFoundError as error:
+        print(f"Index build failed: {error}")
+        sys.exit(1)
+    except ValueError as error:
+        print(f"Index build failed: {error}")
+        sys.exit(1)
+    except ConnectionError:
+        print("Index build failed: could not connect to Ollama.")
+        print("Make sure the Ollama service is running.")
+        sys.exit(1)
+    except httpx.TimeoutException:
+        print(
+            "Index build failed: Ollama timed out after "
+            f"{OLLAMA_REQUEST_TIMEOUT_SECONDS} seconds."
+        )
+        sys.exit(1)
+    except ollama.ResponseError as error:
+        print(f"Index build failed: Ollama request error: {error}")
+        sys.exit(1)
+    except Exception as error:
+        print(f"Index build failed: {error}")
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()
