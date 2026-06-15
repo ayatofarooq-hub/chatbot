@@ -129,16 +129,43 @@ def split_page(page_text: str) -> list[str]:
 def build_chunks(file_path: Path) -> list[dict]:
     """Build serializable chunks for one extracted text file."""
 
+    return build_chunks_from_content(
+        source_file=file_path.name,
+        content=file_path.read_text(encoding="utf-8"),
+    )
+
+
+def build_chunks_from_content(source_file: str, content: str) -> list[dict]:
+    """Build chunks from API-provided page-separated document content."""
+
     chunks = []
     chunk_index = 0
-    source_id = file_path.stem
+    source_id = Path(source_file).stem
+    separators = list(PAGE_SEPARATOR_PATTERN.finditer(content))
 
-    for page_number, page_text in read_pages(file_path):
+    if not separators:
+        content = f"--- PAGE 1 ---\n{content}"
+        separators = list(PAGE_SEPARATOR_PATTERN.finditer(content))
+
+    pages = []
+    for index, separator in enumerate(separators):
+        page_number = int(separator.group(1))
+        page_start = separator.end()
+        page_end = (
+            separators[index + 1].start()
+            if index + 1 < len(separators)
+            else len(content)
+        )
+        page_text = normalize_whitespace(content[page_start:page_end])
+        if page_text:
+            pages.append((page_number, page_text))
+
+    for page_number, page_text in pages:
         for chunk_text in split_page(page_text):
             chunks.append(
                 {
                     "id": f"{source_id}-page-{page_number}-chunk-{chunk_index}",
-                    "source_file": file_path.name,
+                    "source_file": source_file,
                     "page_number": page_number,
                     "chunk_index": chunk_index,
                     "text": chunk_text,

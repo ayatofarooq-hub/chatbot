@@ -5,6 +5,7 @@ import re
 import sys
 import time
 from collections.abc import Callable
+from dataclasses import dataclass
 
 import httpx
 import ollama
@@ -80,6 +81,14 @@ THANKS_WORDS = {
     "thanks",
     "thank you",
 }
+
+
+@dataclass(frozen=True)
+class AnswerResult:
+    """Generated answer and any citation-vetting warnings."""
+
+    content: str
+    warnings: list[str]
 
 
 def get_question() -> str:
@@ -289,7 +298,7 @@ def generate_answer(
     question: str,
     results: dict,
     status_callback: Callable[[str], None] | None = None,
-) -> str:
+) -> AnswerResult:
     """Generate a grounded answer with the configured Ollama chat model."""
 
     def report(message: str) -> None:
@@ -298,7 +307,10 @@ def generate_answer(
 
     context = build_context(results)
     if not context:
-        return f"{INSUFFICIENT_CONTEXT_MESSAGE}\n\n{FINAL_WARNING}"
+        return AnswerResult(
+            content=f"{INSUFFICIENT_CONTEXT_MESSAGE}\n\n{FINAL_WARNING}",
+            warnings=[],
+        )
 
     report("جارٍ توليد الإجابة من المقاطع المسترجعة...")
     messages = [
@@ -325,13 +337,19 @@ def generate_answer(
         answer = call_chat_model(messages, status_callback=status_callback)
         validation_errors = validate_answer(answer, context, results)
 
-    if validation_errors:
-        raise ValueError(
-            "لم يلتزم النموذج بقواعد الاستشهاد بعد محاولة التصحيح: "
-            + " | ".join(validation_errors)
-        )
+    return AnswerResult(content=answer, warnings=validation_errors)
 
-    return answer
+
+def print_vetting_warnings(warnings: list[str]) -> None:
+    """Print citation-vetting warnings below a terminal answer."""
+
+    if not warnings:
+        return
+
+    print()
+    print("تحذيرات التحقق من الاستشهادات:")
+    for warning in warnings:
+        print(f"- {warning}")
 
 
 def main() -> None:
@@ -360,14 +378,15 @@ def main() -> None:
         if retrieved_context_debug:
             print_retrieved_context(build_context(results))
 
-        answer = generate_answer(
+        answer_result = generate_answer(
             question,
             results,
             status_callback=lambda message: print(message, flush=True),
         )
 
         print()
-        print(answer)
+        print(answer_result.content)
+        print_vetting_warnings(answer_result.warnings)
     except (EOFError, KeyboardInterrupt):
         print("\nتم إلغاء العملية.")
         sys.exit(1)

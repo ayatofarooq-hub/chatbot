@@ -1,7 +1,9 @@
 """Diagnostic search for testing retrieval quality in the legal index."""
 
 import argparse
+import re
 import sys
+import unicodedata
 
 import chromadb
 import httpx
@@ -28,7 +30,37 @@ except ImportError:
 
 
 RESULT_COUNT = 5
+CANDIDATE_COUNT = 20
 TEXT_PREVIEW_LENGTH = 500
+ARABIC_DIACRITICS_PATTERN = re.compile(r"[\u0610-\u061a\u064b-\u065f\u0670\u06d6-\u06ed]")
+TOKEN_PATTERN = re.compile(r"[\u0600-\u06ff]+|[0-9\u0660-\u0669]+")
+ARABIC_INDIC_DIGITS = str.maketrans("٠١٢٣٤٥٦٧٨٩", "0123456789")
+STOP_WORDS = {
+    "اجابه",
+    "اريد",
+    "الجريمه",
+    "القانون",
+    "العقوبه",
+    "إلى",
+    "الى",
+    "أو",
+    "او",
+    "عن",
+    "على",
+    "في",
+    "جريمه",
+    "رقم",
+    "سنه",
+    "عقوبه",
+    "قانون",
+    "لسنه",
+    "ما",
+    "من",
+    "هل",
+    "هو",
+    "هي",
+    "و",
+}
 
 
 def get_question() -> str:
@@ -54,8 +86,124 @@ def get_question() -> str:
     return question
 
 
+def normalize_for_search(text: str) -> str:
+    """Normalize Arabic variants for ranking without changing indexed text."""
+
+    text = unicodedata.normalize("NFKC", text).translate(ARABIC_INDIC_DIGITS)
+    text = ARABIC_DIACRITICS_PATTERN.sub("", text)
+    text = text.replace("ـ", "")
+    text = re.sub(r"[أإآٱ]", "ا", text)
+    text = text.replace("ى", "ي").replace("ؤ", "و").replace("ئ", "ي")
+    return re.sub(r"\s+", " ", text).strip().lower()
+
+
+def tokenize_for_search(text: str) -> set[str]:
+    """Return meaningful normalized Arabic and numeric search tokens."""
+
+    normalized = normalize_for_search(text)
+    tokens = {
+        token
+        for token in TOKEN_PATTERN.findall(normalized)
+        if token not in STOP_WORDS and (token.isdigit() or len(token) > 1)
+    }
+    # PyMuPDF can reverse digit sequences in right-to-left PDF text. Keep both
+    # forms for ranking so a query for 13/2005 matches extracted 31/5002.
+    reversed_numbers = {
+        token[::-1]
+        for token in tokens
+        if token.isdigit() and len(token) > 1
+    }
+    return tokens | reversed_numbers
+
+
+def lexical_relevance(question: str, document: str) -> float:
+    """Score exact legal terms and numbers that vector search can underweight."""
+
+    question_tokens = tokenize_for_search(question)
+    if not question_tokens:
+        return 0.0
+
+    document_tokens = tokenize_for_search(document)
+    matched_weight = 0.0
+    total_weight = 0.0
+
+    for token in question_tokens:
+        weight = 3.0 if token.isdigit() else 1.0
+        total_weight += weight
+        if token in document_tokens:
+            matched_weight += weight
+
+    score = matched_weight / total_weight
+    normalized_question = normalize_for_search(question)
+    normalized_document = normalize_for_search(document)
+    if len(normalized_question) >= 8 and normalized_question in normalized_document:
+        score += 0.2
+
+    return min(score, 1.0)
+
+
+def rerank_results(results: dict, result_count: int = RESULT_COUNT) -> dict:
+    """Combine semantic and lexical relevance and remove near duplicates."""
+
+    documents = results.get("documents", [[]])[0]
+    metadatas = results.get("metadatas", [[]])[0]
+    distances = results.get("distances", [[]])[0]
+    question = results.get("_question", "")
+
+    ranked = []
+    for index, (document, metadata) in enumerate(zip(documents, metadatas)):
+        distance = distances[index] if index < len(distances) else float("inf")
+        semantic_score = 1.0 / (1.0 + max(float(distance), 0.0))
+        lexical_score = lexical_relevance(question, document)
+        ranked.append(
+            {
+                "document": document,
+                "metadata": metadata,
+                "distance": distance,
+                "score": (0.7 * semantic_score) + (0.3 * lexical_score),
+                "tokens": tokenize_for_search(document),
+            }
+        )
+
+    ranked.sort(key=lambda item: item["score"], reverse=True)
+    selected = []
+    for candidate in ranked:
+        is_near_duplicate = False
+        for existing in selected:
+            union = candidate["tokens"] | existing["tokens"]
+            overlap = (
+                len(candidate["tokens"] & existing["tokens"]) / len(union)
+                if union
+                else 0.0
+            )
+            if overlap >= 0.85:
+                is_near_duplicate = True
+                break
+
+        if not is_near_duplicate:
+            selected.append(candidate)
+        if len(selected) == result_count:
+            break
+
+    if len(selected) < result_count:
+        selected_ids = {id(item) for item in selected}
+        selected.extend(
+            item
+            for item in ranked
+            if id(item) not in selected_ids
+        )
+        selected = selected[:result_count]
+
+    return {
+        "documents": [[item["document"] for item in selected]],
+        "metadatas": [[item["metadata"] for item in selected]],
+        "distances": [[item["distance"] for item in selected]],
+        "relevance_scores": [[item["score"] for item in selected]],
+    }
+
+
 def search(question: str) -> dict:
-    """Embed the question and return the closest indexed chunks."""
+    """Retrieve broad semantic candidates, then rerank exact legal matches."""
 
     embedding_response = ollama_client.embed(
         model=EMBEDDING_MODEL,
@@ -73,11 +221,13 @@ def search(question: str) -> dict:
     if collection.count() == 0:
         raise ValueError("The legal document collection is empty.")
 
-    return collection.query(
+    candidate_results = collection.query(
         query_embeddings=[question_embedding],
-        n_results=min(RESULT_COUNT, collection.count()),
+        n_results=min(CANDIDATE_COUNT, collection.count()),
         include=["documents", "metadatas", "distances"],
     )
+    candidate_results["_question"] = question
+    return rerank_results(candidate_results)
 
 
 def print_results(results: dict) -> None:

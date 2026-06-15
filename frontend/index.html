@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#145a38">
+  <title>المساعد القانوني العراقي</title>
+  <link rel="stylesheet" href="/assets/styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="primary-nav" id="primary-nav">
+      <div class="brand-lockup">
+        <div class="brand-icon" aria-hidden="true">✓</div>
+        <div>
+          <span>مجلس الوزراء</span>
+          <strong>نظام إدارة القرارات</strong>
+        </div>
+      </div>
+
+      <nav class="main-menu" aria-label="التنقل الرئيسي">
+        <button class="nav-item active" type="button">
+          <span class="nav-icon">▣</span>
+          <span>المساعد الذكي</span>
+          <span class="nav-arrow">‹</span>
+        </button>
+        <button class="nav-item" id="new-chat-button" type="button">
+          <span class="nav-icon">⊕</span>
+          <span>محادثة جديدة</span>
+          <span class="nav-arrow">‹</span>
+        </button>
+      </nav>
+
+      <div class="nav-footer">
+        <button type="button">؟ <span>مركز الدعم</span></button>
+        <button class="logout" type="button">↪ <span>تسجيل الخروج</span></button>
+      </div>
+    </aside>
+
+    <main class="application">
+      <header class="global-header">
+        <button class="mobile-menu" id="mobile-menu" type="button" aria-label="فتح القائمة">☰</button>
+        <div class="header-title">مجلس الوزراء - إدارة القرارات</div>
+        <label class="global-search">
+          <span aria-hidden="true">⌕</span>
+          <input type="search" placeholder="البحث في القرارات والتشريعات..." disabled>
+        </label>
+        <div class="header-actions" aria-hidden="true">
+          <span>◎</span><span>⚙</span><span>♧</span>
+        </div>
+        <div class="profile">
+          <div>
+            <strong>المستخدم الداخلي</strong>
+            <span>الدائرة القانونية</span>
+          </div>
+          <div class="avatar">ق</div>
+          <i></i>
+        </div>
+      </header>
+
+      <div class="workspace-grid">
+        <aside class="history-panel panel">
+          <div class="panel-header">
+            <strong>سجل المحادثات</strong>
+            <button id="new-chat-inline" type="button" aria-label="محادثة جديدة">＋</button>
+          </div>
+          <label class="panel-search">
+            <span>⌕</span>
+            <input id="history-search" type="search" placeholder="بحث في المحفوظات...">
+          </label>
+          <div class="section-label">الأحدث</div>
+          <div class="history-list" id="history-list"></div>
+          <button class="clear-history" id="clear-history" type="button">
+            <span>↻</span> مسح سجل المحادثة
+          </button>
+        </aside>
+
+        <section class="chat-panel panel">
+          <div class="chat-toolbar">
+            <div class="chat-identity">
+              <div class="chat-symbol">▣</div>
+              <div>
+                <strong id="conversation-title">محادثة قانونية جديدة</strong>
+                <span><i></i> نشط الآن · ذكاء اصطناعي محلي</span>
+              </div>
+            </div>
+            <div class="toolbar-buttons">
+              <button type="button" disabled>⇩ تصدير الاستجابة</button>
+              <button type="button" disabled>▽ تصفية</button>
+            </div>
+          </div>
+
+          <div class="chat-scroll" id="chat-scroll">
+            <section class="welcome" id="welcome">
+              <div class="welcome-shield">✓</div>
+              <h1>مرحباً بك في المساعد القانوني</h1>
+              <p>
+                أنا مساعدك الذكي لتحليل القوانين واللوائح والوثائق العراقية.
+                كيف يمكنني مساعدتك اليوم؟
+              </p>
+            </section>
+
+            <div class="messages" id="messages" aria-live="polite"></div>
+
+            <div class="suggestions" id="suggestions">
+              <button type="button">لخص أهم الأحكام القانونية ذات الصلة</button>
+              <button type="button">قارن بين النصوص والوثائق المسترجعة</button>
+              <button type="button">ما هي الجهات أو الأطراف المعنية؟</button>
+              <button type="button">استخرج الالتزامات والإجراءات المطلوبة</button>
+            </div>
+          </div>
+
+          <form class="composer" id="question-form">
+            <button class="attach" type="button" disabled aria-label="إرفاق ملف">⌕</button>
+            <textarea id="question-input" rows="1" placeholder="اسأل عن أي قانون أو لائحة أو وثيقة عراقية..." required></textarea>
+            <button class="voice" type="button" disabled aria-label="إدخال صوتي">♩</button>
+            <button class="send" id="send-button" type="submit" aria-label="إرسال">←</button>
+          </form>
+          <p class="legal-note">
+            تذكّر: الذكاء الاصطناعي يدعم اتخاذ القرار. يرجى دائماً مراجعة المراجع القانونية المرفقة.
+          </p>
+        </section>
+
+        <aside class="evidence-panel panel">
+          <div class="panel-header">
+            <strong>قرارات ووثائق ذات صلة</strong>
+            <span class="reference-count" id="reference-count">0 مراجع</span>
+          </div>
+          <div class="section-label">الوثائق الرسمية</div>
+          <div class="source-list" id="source-list">
+            <div class="empty-panel">ستظهر المراجع المسترجعة هنا بعد طرح السؤال.</div>
+          </div>
+          <div class="section-label">التحليل السياقي المرتبط</div>
+          <section class="insight-card" id="insight-card">
+            <div class="insight-title"><span>✓</span> رؤى التحقق الآلي</div>
+            <ul id="insight-list">
+              <li>ستظهر نتائج التحقق والاستشهادات هنا بعد إنشاء الإجابة.</li>
+            </ul>
+          </section>
+          <div class="section-label">أدوات إضافية</div>
+          <button class="upload-card" type="button" disabled>
+            <span>⇩</span>
+            <strong>تحميل الوثائق</strong>
+            <small>تتم إدارة الوثائق حالياً عبر API</small>
+          </button>
+        </aside>
+      </div>
+    </main>
+  </div>
+
+  <div class="toast" id="toast" role="alert"></div>
+  <script src="/assets/app.js" defer></script>
+</body>
+</html>

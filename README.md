@@ -1,8 +1,8 @@
 # Offline Arabic Legal RAG Chatbot
 
-This repository is the initial Python scaffold for an offline Arabic legal
-retrieval-augmented generation (RAG) chatbot. The chatbot itself, document
-processing, retrieval, and user interface have not been implemented yet.
+This repository contains an offline Arabic legal retrieval-augmented
+generation (RAG) chatbot with terminal, browser, API, and Streamlit
+interfaces.
 
 ## Project Structure
 
@@ -119,15 +119,74 @@ This command recreates the `iraqi_legal_documents` collection in
 model, and stores each chunk with its source file, page number, and chunk
 index. It does not call the chat model.
 
-## Planned Development
+## Ask Questions
 
-Future stages can add:
+Run one question from the terminal:
 
-1. Arabic PDF text extraction and cleaning.
-2. Text chunking and embeddings.
-3. Storage and search with Chroma.
-4. Legal question answering with source references.
-5. A local user interface.
+```powershell
+python app/rag_answer.py "اكتب سؤالك القانوني هنا"
+```
+
+Start the API and primary browser interface:
+
+```powershell
+python -m uvicorn app.api:app --host 127.0.0.1 --port 8000
+```
+
+Then open `http://127.0.0.1:8000/`. The standalone browser frontend is the
+primary interface and is served by the same Starlette process as the API.
+
+The Streamlit implementation remains available as a fallback:
+
+```powershell
+python -m streamlit run app/ui.py
+```
+
+Send a `POST` request to `http://127.0.0.1:8000/ask` with:
+
+```json
+{
+  "question": "ما هي عقوبة جريمة الإرهاب في القانون العراقي؟",
+  "include_snippets": true
+}
+```
+
+Use `GET http://127.0.0.1:8000/health` to check that the API process is
+running. Ollama must also be running, and the Chroma index must already exist.
+
+Manage indexed text documents with these endpoints:
+
+- `GET /documents` lists documents.
+- `POST /documents` inserts a document.
+- `PUT /documents/{filename}` replaces a document.
+- `DELETE /documents/{filename}` deletes a document.
+
+Insert request:
+
+```json
+{
+  "filename": "new-law.txt",
+  "content": "--- PAGE 1 ---\nThe legal text for page one."
+}
+```
+
+Update requests use the same `content` field. Plain text without page markers
+is automatically stored as page 1. These endpoints update both
+`data/extracted_text` and the Chroma collection; Ollama must be available to
+embed inserted or updated content.
+
+All interfaces use the same retrieval, answer generation, correction, and
+citation-vetting flow. If the model answer still fails citation vetting after
+the correction attempt, the answer remains visible and the validation
+warnings are shown below it.
+
+## Further Development
+
+Possible future work includes:
+
+1. OCR support for scanned PDFs.
+2. Retrieval quality evaluation.
+3. Automated answer-grounding benchmarks.
 
 This project is intended for local development. Legal documents, extracted
 text, and vector database files are excluded from Git.
