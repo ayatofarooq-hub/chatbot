@@ -149,12 +149,21 @@ def build_context(results: dict) -> str:
     ):
         source_file = metadata.get("source_file", "غير معروف")
         page_number = metadata.get("page_number", "غير معروف")
+        legal_reference = metadata.get("legal_reference", "")
+        document_title = metadata.get("document_title", "")
+        metadata_lines = [
+            f"المصدر: {source_file}",
+            f"الصفحة: {page_number}",
+        ]
+        if document_title:
+            metadata_lines.append(f"عنوان الوثيقة: {document_title}")
+        if legal_reference:
+            metadata_lines.append(f"المرجع القانوني: {legal_reference}")
         context_sections.append(
             "\n".join(
                 [
                     f"[المقطع {rank}]",
-                    f"المصدر: {source_file}",
-                    f"الصفحة: {page_number}",
+                    *metadata_lines,
                     "النص:",
                     document,
                 ]

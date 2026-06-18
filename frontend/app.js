@@ -1,9 +1,20 @@
 const storageKey = "iraqi-legal-assistant-conversations";
+const decisionDraftKey = "iraqi-legal-assistant-decision-draft";
 
 const elements = {
+  assistantNav: document.querySelector("#assistant-nav-button"),
+  assistantView: document.querySelector("#assistant-view"),
   chatScroll: document.querySelector("#chat-scroll"),
   clearHistory: document.querySelector("#clear-history"),
   conversationTitle: document.querySelector("#conversation-title"),
+  decisionContent: document.querySelector("#decision-content"),
+  decisionDropzone: document.querySelector("#decision-dropzone"),
+  decisionFile: document.querySelector("#decision-file"),
+  decisionForm: document.querySelector("#decision-form"),
+  decisionMinistry: document.querySelector("#decision-ministry"),
+  decisionNav: document.querySelector("#new-decision-button"),
+  decisionTitle: document.querySelector("#decision-title"),
+  decisionView: document.querySelector("#decision-view"),
   form: document.querySelector("#question-form"),
   historyList: document.querySelector("#history-list"),
   historySearch: document.querySelector("#history-search"),
@@ -12,19 +23,26 @@ const elements = {
   messages: document.querySelector("#messages"),
   mobileMenu: document.querySelector("#mobile-menu"),
   nav: document.querySelector("#primary-nav"),
-  newChat: document.querySelector("#new-chat-button"),
   newChatInline: document.querySelector("#new-chat-inline"),
+  priorityOptions: document.querySelector("#priority-options"),
   referenceCount: document.querySelector("#reference-count"),
+  removeFile: document.querySelector("#remove-file"),
+  saveDraft: document.querySelector("#save-draft"),
   sendButton: document.querySelector("#send-button"),
   sourceList: document.querySelector("#source-list"),
   suggestions: document.querySelector("#suggestions"),
   toast: document.querySelector("#toast"),
+  uploadedFile: document.querySelector("#uploaded-file"),
+  uploadedFileMeta: document.querySelector("#uploaded-file-meta"),
+  uploadedFileName: document.querySelector("#uploaded-file-name"),
   welcome: document.querySelector("#welcome"),
+  wordCount: document.querySelector("#word-count"),
 };
 
 let conversations = loadConversations();
 let activeConversationId = conversations[0]?.id ?? null;
 let pending = false;
+let selectedPriority = "عالية";
 
 function loadConversations() {
   try {
@@ -53,6 +71,21 @@ function createConversation() {
   render();
   elements.input.focus();
   return conversation;
+}
+
+function showView(viewName) {
+  const showAssistant = viewName === "assistant";
+  elements.assistantView.hidden = !showAssistant;
+  elements.decisionView.hidden = showAssistant;
+  elements.assistantNav.classList.toggle("active", showAssistant);
+  elements.decisionNav.classList.toggle("active", !showAssistant);
+  elements.nav.classList.remove("open");
+  document.body.classList.toggle("decision-mode", !showAssistant);
+  if (showAssistant) {
+    elements.input.focus();
+  } else {
+    elements.decisionTitle.focus();
+  }
 }
 
 function activeConversation() {
@@ -246,6 +279,67 @@ function normalizeWhitespace(value = "") {
   return String(value).replace(/\s+/g, " ").trim();
 }
 
+function countWords(value) {
+  const normalized = normalizeWhitespace(value);
+  return normalized ? normalized.split(" ").length : 0;
+}
+
+function updateWordCount() {
+  elements.wordCount.textContent =
+    `عدد الكلمات: ${countWords(elements.decisionContent.value)} كلمة`;
+}
+
+function currentDecisionDraft() {
+  return {
+    ministry: elements.decisionMinistry.value,
+    priority: selectedPriority,
+    title: elements.decisionTitle.value,
+    content: elements.decisionContent.value,
+  };
+}
+
+function saveDecisionDraft(showConfirmation = true) {
+  localStorage.setItem(decisionDraftKey, JSON.stringify(currentDecisionDraft()));
+  if (showConfirmation) {
+    showToast("تم حفظ مسودة القرار محلياً.");
+  }
+}
+
+function loadDecisionDraft() {
+  try {
+    const draft = JSON.parse(localStorage.getItem(decisionDraftKey) || "null");
+    if (!draft) return;
+    elements.decisionMinistry.value = draft.ministry || elements.decisionMinistry.value;
+    elements.decisionTitle.value = draft.title || "";
+    elements.decisionContent.value = draft.content || "";
+    selectedPriority = draft.priority || "عالية";
+    elements.priorityOptions.querySelectorAll("button").forEach((button) => {
+      button.classList.toggle(
+        "selected",
+        button.dataset.priority === selectedPriority,
+      );
+    });
+    updateWordCount();
+  } catch {
+    localStorage.removeItem(decisionDraftKey);
+  }
+}
+
+function formatFileSize(bytes) {
+  if (bytes < 1024 * 1024) {
+    return `${Math.max(1, Math.round(bytes / 1024))} كيلوبايت`;
+  }
+  return `${(bytes / (1024 * 1024)).toFixed(1)} ميغابايت`;
+}
+
+function displayAttachment(file) {
+  if (!file) return;
+  elements.uploadedFileName.textContent = file.name;
+  elements.uploadedFileMeta.textContent =
+    `${formatFileSize(file.size)} · جاهز للمراجعة`;
+  elements.uploadedFile.classList.remove("hidden");
+}
+
 function setPending(value) {
   pending = value;
   elements.sendButton.disabled = value;
@@ -349,7 +443,8 @@ elements.suggestions.addEventListener("click", (event) => {
   if (button) submitQuestion(button.textContent);
 });
 
-elements.newChat.addEventListener("click", createConversation);
+elements.assistantNav.addEventListener("click", () => showView("assistant"));
+elements.decisionNav.addEventListener("click", () => showView("decision"));
 elements.newChatInline.addEventListener("click", createConversation);
 elements.clearHistory.addEventListener("click", removeAllConversations);
 elements.historySearch.addEventListener("input", renderHistory);
@@ -357,4 +452,54 @@ elements.mobileMenu.addEventListener("click", () =>
   elements.nav.classList.toggle("open"),
 );
 
+elements.priorityOptions.addEventListener("click", (event) => {
+  const button = event.target.closest("button[data-priority]");
+  if (!button) return;
+  selectedPriority = button.dataset.priority;
+  elements.priorityOptions.querySelectorAll("button").forEach((option) => {
+    option.classList.toggle("selected", option === button);
+  });
+});
+
+elements.decisionContent.addEventListener("input", updateWordCount);
+elements.saveDraft.addEventListener("click", () => saveDecisionDraft());
+
+elements.decisionForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  if (
+    !elements.decisionTitle.value.trim() ||
+    !elements.decisionContent.value.trim()
+  ) {
+    showToast("يرجى إدخال عنوان القرار ونصه الكامل.");
+    return;
+  }
+  saveDecisionDraft(false);
+  showToast("واجهة رفع القرار جاهزة. لم يتم إرسال بيانات إلى الخادم.");
+});
+
+elements.decisionFile.addEventListener("change", () => {
+  displayAttachment(elements.decisionFile.files[0]);
+});
+
+elements.decisionDropzone.addEventListener("dragover", (event) => {
+  event.preventDefault();
+  elements.decisionDropzone.classList.add("dragging");
+});
+
+elements.decisionDropzone.addEventListener("dragleave", () => {
+  elements.decisionDropzone.classList.remove("dragging");
+});
+
+elements.decisionDropzone.addEventListener("drop", (event) => {
+  event.preventDefault();
+  elements.decisionDropzone.classList.remove("dragging");
+  displayAttachment(event.dataTransfer.files[0]);
+});
+
+elements.removeFile.addEventListener("click", () => {
+  elements.decisionFile.value = "";
+  elements.uploadedFile.classList.add("hidden");
+});
+
+loadDecisionDraft();
 render();

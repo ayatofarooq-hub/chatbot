@@ -19,14 +19,14 @@
       </div>
 
       <nav class="main-menu" aria-label="التنقل الرئيسي">
-        <button class="nav-item active" type="button">
+        <button class="nav-item active" id="assistant-nav-button" type="button">
           <span class="nav-icon">▣</span>
           <span>المساعد الذكي</span>
           <span class="nav-arrow">‹</span>
         </button>
-        <button class="nav-item" id="new-chat-button" type="button">
+        <button class="nav-item" id="new-decision-button" type="button">
           <span class="nav-icon">⊕</span>
-          <span>محادثة جديدة</span>
+          <span>قرار جديد</span>
           <span class="nav-arrow">‹</span>
         </button>
       </nav>
@@ -58,7 +58,7 @@
         </div>
       </header>
 
-      <div class="workspace-grid">
+      <div class="workspace-grid app-view active" id="assistant-view">
         <aside class="history-panel panel">
           <div class="panel-header">
             <strong>سجل المحادثات</strong>
@@ -145,6 +145,168 @@
           </button>
         </aside>
       </div>
+
+      <section class="decision-view app-view" id="decision-view" hidden>
+        <div class="decision-layout">
+          <aside class="decision-analysis">
+            <div class="analysis-heading">
+              <div>
+                <span>✦</span>
+                <strong>لوحة التحليل الذكي</strong>
+              </div>
+              <span class="ai-badge">مساعد AI</span>
+            </div>
+
+            <div class="analysis-body">
+              <section class="analysis-section">
+                <h3><span>▤</span> الملخص</h3>
+                <p>
+                  يتضمن القرار المقترح إجراءات تشغيلية ومالية تؤثر على الميزانية
+                  العامة. يُنصح بمشاورة وزارة المالية قبل الإصدار النهائي لضمان
+                  التوافق مع رؤية 2030.
+                </p>
+              </section>
+
+              <section class="analysis-section">
+                <h3><span class="gold-icon">△</span> المخاطر المحددة</h3>
+                <ul class="risk-list">
+                  <li>تأثير مالي متوسط يستلزم الموافقة المسبقة من ديوان الرقابة العامة.</li>
+                  <li>ضرورة التنسيق مع 3 جهات حكومية على الأقل لتجنب تضارب الصلاحيات.</li>
+                </ul>
+              </section>
+
+              <section class="analysis-section">
+                <h3><span>♧</span> الجهات المقترحة</h3>
+                <div class="entity-tags">
+                  <span>وزارة المالية</span>
+                  <span>ديوان الرقابة</span>
+                  <span>مجلس الخدمة المدنية</span>
+                </div>
+              </section>
+
+              <section class="analysis-section related-decisions">
+                <h3><span>⌕</span> قرارات ذات صلة</h3>
+                <a href="#" aria-label="قرار Q-2024-0745">
+                  <strong>Q-2024-0745</strong><span>12 يونيو 2024</span>
+                </a>
+                <a href="#" aria-label="قرار Q-2024-0612">
+                  <strong>Q-2024-0612</strong><span>05 مايو 2024</span>
+                </a>
+                <a href="#" aria-label="قرار Q-2023-1102">
+                  <strong>Q-2023-1102</strong><span>18 ديسمبر 2023</span>
+                </a>
+              </section>
+
+              <section class="recommendation-card">
+                <h3><span>ⓘ</span> التوصية النهائية</h3>
+                <p>
+                  أولوية عالية - يُنصح بالمراجعة خلال 7 أيام عمل لضمان سرعة
+                  التنفيذ التشغيلي.
+                </p>
+              </section>
+            </div>
+
+            <section class="quality-card">
+              <div class="quality-ring"><strong>85%</strong></div>
+              <div>
+                <strong>مؤشر جودة القرار</strong>
+                <span>بناءً على المعايير القانونية</span>
+              </div>
+            </section>
+          </aside>
+
+          <form class="decision-form" id="decision-form">
+            <section class="decision-card">
+              <div class="decision-card-header">
+                <h2>معلومات القرار الأساسية</h2>
+                <span class="draft-badge">مسودة مسجلة</span>
+              </div>
+              <div class="decision-card-body">
+                <div class="decision-fields-row">
+                  <label class="decision-field ministry-field">
+                    <span>الوزارة المعنية <b>*</b></span>
+                    <select id="decision-ministry">
+                      <option>وزارة المالية</option>
+                      <option>وزارة التخطيط</option>
+                      <option>وزارة العدل</option>
+                      <option>الأمانة العامة لمجلس الوزراء</option>
+                    </select>
+                  </label>
+
+                  <fieldset class="priority-field">
+                    <legend>مستوى الأولوية <b>*</b></legend>
+                    <div class="priority-options" id="priority-options">
+                      <button type="button" data-priority="منخفضة">منخفضة</button>
+                      <button type="button" data-priority="متوسطة">متوسطة</button>
+                      <button class="selected" type="button" data-priority="عالية">عالية</button>
+                      <button type="button" data-priority="حرجة">حرجة</button>
+                    </div>
+                  </fieldset>
+                </div>
+
+                <label class="decision-field full-field">
+                  <span>عنوان القرار <b>*</b></span>
+                  <input id="decision-title" type="text" placeholder="أدخل عنواناً وصفياً وواضحاً للقرار...">
+                </label>
+              </div>
+            </section>
+
+            <section class="decision-card content-card">
+              <div class="decision-card-header">
+                <h2>محتوى القرار</h2>
+              </div>
+              <div class="decision-card-body">
+                <label class="decision-field editor-field">
+                  <span>
+                    نص القرار الكامل <b>*</b>
+                    <small id="word-count">عدد الكلمات: 0 كلمة</small>
+                  </span>
+                  <textarea id="decision-content" placeholder="أدخل نص القرار كاملاً بما يشمل البنود والإجراءات التفصيلية..."></textarea>
+                </label>
+                <div class="editor-toolbar" aria-label="أدوات تنسيق النص">
+                  <button type="button"><b>B</b></button>
+                  <button type="button"><i>I</i></button>
+                  <button type="button"><u>U</u></button>
+                  <span></span>
+                  <button type="button">List</button>
+                  <button type="button">Link</button>
+                </div>
+              </div>
+            </section>
+
+            <section class="decision-card attachments-card">
+              <div class="decision-card-header">
+                <h2>المرفقات والوثائق المساندة</h2>
+              </div>
+              <div class="decision-card-body">
+                <label class="decision-dropzone" id="decision-dropzone">
+                  <input id="decision-file" type="file" accept=".pdf,.doc,.docx,.xls,.xlsx">
+                  <span class="upload-symbol">↥</span>
+                  <strong>اسحب الملفات هنا أو تصفح</strong>
+                  <small>حتى 25 ميغابايت لكل ملف PDF, DOCX, XLSX</small>
+                </label>
+                <div class="uploaded-file" id="uploaded-file">
+                  <div class="file-symbol">▤</div>
+                  <div>
+                    <strong id="uploaded-file-name">دراسة_الجدوى_المالية.pdf</strong>
+                    <span id="uploaded-file-meta">1.2 ميغابايت · تمت المراجعة</span>
+                  </div>
+                  <button id="remove-file" type="button">حذف</button>
+                </div>
+              </div>
+            </section>
+
+            <div class="decision-actions">
+              <button class="submit-decision" type="submit">➤ <span>رفع القرار</span></button>
+              <button class="save-draft" id="save-draft" type="button">▣ <span>حفظ كمسودة</span></button>
+              <button class="analysis-complete" type="button" disabled>✦ <span>تم التحليل</span></button>
+            </div>
+          </form>
+        </div>
+        <footer class="decision-footer">
+          جميع الحقوق محفوظة لوزارة الحكومة الرقمية | Government Copilot © 2024
+        </footer>
+      </section>
     </main>
   </div>
 

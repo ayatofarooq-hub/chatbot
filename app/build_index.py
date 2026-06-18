@@ -11,27 +11,30 @@ from chromadb.errors import NotFoundError
 from tqdm import tqdm
 
 try:
+    from .chunk_text import CHUNKS_FILE, build_chunks_from_document
     from .config import (
         CHROMA_FOLDER,
         EMBEDDING_MODEL,
+        LEGAL_DOCUMENTS_FOLDER,
         OLLAMA_KEEP_ALIVE,
         OLLAMA_REQUEST_TIMEOUT_SECONDS,
-        PROJECT_ROOT,
     )
+    from .document_loaders import load_documents
     from .ollama_client import client as ollama_client
 except ImportError:
     # Support direct execution with: python app/build_index.py
+    from chunk_text import CHUNKS_FILE, build_chunks_from_document
     from config import (
         CHROMA_FOLDER,
         EMBEDDING_MODEL,
+        LEGAL_DOCUMENTS_FOLDER,
         OLLAMA_KEEP_ALIVE,
         OLLAMA_REQUEST_TIMEOUT_SECONDS,
-        PROJECT_ROOT,
     )
+    from document_loaders import load_documents
     from ollama_client import client as ollama_client
 
 
-CHUNKS_FILE = PROJECT_ROOT / "data" / "chunks.jsonl"
 COLLECTION_NAME = "iraqi_legal_documents"
 EMBEDDING_BATCH_SIZE = 16
 CHROMA_BATCH_SIZE = 100
@@ -124,9 +127,24 @@ def reset_collection(client):
 
     return client.create_collection(
         name=COLLECTION_NAME,
-        metadata={"embedding_model": EMBEDDING_MODEL},
+        metadata={
+            "embedding_model": EMBEDDING_MODEL,
+            "schema_version": 2,
+            "primary_source_format": "docx",
+        },
         embedding_function=None,
     )
+
+
+def chunk_metadata(chunk: dict) -> dict:
+    """Return Chroma-compatible scalar metadata for one chunk."""
+
+    return {
+        key: value
+        for key, value in chunk.items()
+        if key not in {"id", "text"}
+        and isinstance(value, (str, int, float, bool))
+    }
 
 
 def add_chunks(collection, chunks: list[dict], embeddings: list[list[float]]) -> None:
@@ -143,30 +161,46 @@ def add_chunks(collection, chunks: list[dict], embeddings: list[list[float]]) ->
         collection.add(
             ids=[chunk["id"] for chunk in batch],
             documents=[chunk["text"] for chunk in batch],
-            metadatas=[
-                {
-                    "source_file": chunk["source_file"],
-                    "page_number": chunk["page_number"],
-                    "chunk_index": chunk["chunk_index"],
-                }
-                for chunk in batch
-            ],
+            metadatas=[chunk_metadata(chunk) for chunk in batch],
             embeddings=batch_embeddings,
         )
 
 
+def load_source_chunks() -> list[dict]:
+    """Load and chunk all DOCX/TXT legal sources."""
+
+    documents = load_documents(LEGAL_DOCUMENTS_FOLDER)
+    if not documents:
+        raise FileNotFoundError(
+            f"No DOCX or TXT files found in: {LEGAL_DOCUMENTS_FOLDER}"
+        )
+
+    chunks = []
+    for document in documents:
+        document_chunks = build_chunks_from_document(document)
+        chunks.extend(document_chunks)
+        print(f"{document.source_file}: {len(document_chunks)} chunks")
+
+    if not chunks:
+        raise ValueError("The source documents did not produce any chunks.")
+    return chunks
+
+
+def save_chunks(chunks: list[dict]) -> None:
+    """Save generated chunks for inspection and repeatable diagnostics."""
+
+    with CHUNKS_FILE.open("w", encoding="utf-8") as output_file:
+        for chunk in chunks:
+            output_file.write(json.dumps(chunk, ensure_ascii=False) + "\n")
+
+
 def main() -> None:
-    """Build a fresh persistent legal-document collection."""
+    """Build a fresh Chroma collection from DOCX/TXT legal sources."""
 
     try:
-        if not CHUNKS_FILE.exists():
-            raise FileNotFoundError(
-                f"Chunks file not found: {CHUNKS_FILE}. "
-                "Run python app/chunk_text.py first."
-            )
-
-        chunks = load_chunks(CHUNKS_FILE)
-        print(f"Loaded {len(chunks)} chunks from {CHUNKS_FILE.name}.")
+        chunks = load_source_chunks()
+        save_chunks(chunks)
+        print(f"Prepared {len(chunks)} chunks from legal source documents.")
         print(f"Embedding model: {EMBEDDING_MODEL}")
 
         # Generate embeddings before resetting the collection. If Ollama is

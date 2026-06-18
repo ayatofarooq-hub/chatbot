@@ -9,7 +9,7 @@ from app.config import (
     CHROMA_FOLDER,
     EMBEDDING_MODEL,
     EXTRACTED_TEXT_FOLDER,
-    PDF_FOLDER,
+    LEGAL_DOCUMENTS_FOLDER,
     create_data_directories,
 )
 
@@ -20,7 +20,7 @@ def main() -> None:
     create_data_directories()
 
     print("Offline Arabic legal chatbot project is ready for development.")
-    print(f"PDF folder: {PDF_FOLDER}")
+    print(f"Legal documents folder: {LEGAL_DOCUMENTS_FOLDER}")
     print(f"Extracted text folder: {EXTRACTED_TEXT_FOLDER}")
     print(f"Chroma folder: {CHROMA_FOLDER}")
     print(f"Chat model: {CHAT_MODEL}")

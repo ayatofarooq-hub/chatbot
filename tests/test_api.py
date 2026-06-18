@@ -34,6 +34,11 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(script_response.status_code, 200)
         self.assertIn('fetch("/ask"', script_response.text)
 
+    def test_favicon_request_is_acknowledged(self):
+        response = self.client.get("/favicon.ico")
+
+        self.assertEqual(response.status_code, 204)
+
     def test_ask_rejects_empty_question(self):
         response = self.client.post("/ask", json={"question": "  "})
 

@@ -104,6 +104,11 @@ def extract_snippets(results: dict) -> list[dict]:
                 "rank": index,
                 "source_file": metadata.get("source_file", "غير معروف"),
                 "page_number": metadata.get("page_number", "غير معروف"),
+                "document_title": metadata.get("document_title", ""),
+                "legal_reference": metadata.get("legal_reference", ""),
+                "article_reference": metadata.get("article_reference", ""),
+                "section_title": metadata.get("section_title", ""),
+                "source_type": metadata.get("source_type", ""),
                 "distance": (
                     distances[index - 1] if index <= len(distances) else None
                 ),
@@ -148,9 +153,13 @@ def render_snippets(snippets: list[dict]) -> None:
             st.caption("لا توجد نصوص مسترجعة.")
             return
         for snippet in snippets:
+            reference = snippet.get("legal_reference")
+            reference_label = (
+                f" · {reference}" if reference else ""
+            )
             st.markdown(
                 f"**المقطع {snippet['rank']} · {snippet['source_file']} · "
-                f"الصفحة {snippet['page_number']}**"
+                f"الصفحة {snippet['page_number']}{reference_label}**"
             )
             if snippet["distance"] is not None:
                 st.caption(f"المسافة: {snippet['distance']:.6f}")

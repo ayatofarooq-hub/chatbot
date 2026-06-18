@@ -33,8 +33,13 @@ dist/
 Thumbs.db
 
 # Source legal documents and generated text
+data/legal_documents/*
+!data/legal_documents/.gitkeep
+# Keep legacy local source folders private during migration.
 data/raw_pdfs/*
 !data/raw_pdfs/.gitkeep
+data/raw_DOCs/*
+!data/raw_DOCs/.gitkeep
 data/extracted_text/*
 !data/extracted_text/.gitkeep
 

@@ -255,6 +255,10 @@ def print_results(results: dict) -> None:
         print(f"Rank: {rank}")
         print(f"Source file: {metadata.get('source_file', 'Unknown')}")
         print(f"Page number: {metadata.get('page_number', 'Unknown')}")
+        if metadata.get("document_title"):
+            print(f"Document title: {metadata['document_title']}")
+        if metadata.get("legal_reference"):
+            print(f"Legal reference: {metadata['legal_reference']}")
         if distance is not None:
             print(f"Distance: {distance:.6f}")
         print("Text preview:")

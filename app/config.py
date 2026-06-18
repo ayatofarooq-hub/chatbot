@@ -8,8 +8,9 @@ from pathlib import Path
 # the directory from which Python is started.
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
-# Local data directories.
-PDF_FOLDER = PROJECT_ROOT / "data" / "raw_pdfs"
+# Local data directories. DOCX is the primary source format; TXT remains
+# available for plain-text laws and for the existing document-management API.
+LEGAL_DOCUMENTS_FOLDER = PROJECT_ROOT / "data" / "legal_documents"
 EXTRACTED_TEXT_FOLDER = PROJECT_ROOT / "data" / "extracted_text"
 CHROMA_FOLDER = PROJECT_ROOT / "data" / "chroma"
 
@@ -35,5 +36,9 @@ retrieved_context_debug = False
 def create_data_directories() -> None:
     """Create the local data directories if they do not already exist."""
 
-    for directory in (PDF_FOLDER, EXTRACTED_TEXT_FOLDER, CHROMA_FOLDER):
+    for directory in (
+        LEGAL_DOCUMENTS_FOLDER,
+        EXTRACTED_TEXT_FOLDER,
+        CHROMA_FOLDER,
+    ):
         directory.mkdir(parents=True, exist_ok=True)

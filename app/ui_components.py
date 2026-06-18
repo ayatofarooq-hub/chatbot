@@ -603,12 +603,18 @@ def render_source_cards(snippets: list[dict]) -> None:
         summary = text if len(text) <= 115 else f"{text[:112]}..."
         source_file = str(snippet.get("source_file", "غير معروف"))
         page_number = str(snippet.get("page_number", "غير معروف"))
+        legal_reference = str(snippet.get("legal_reference", "")).strip()
+        source_meta = (
+            legal_reference
+            if legal_reference
+            else f"الصفحة {page_number}"
+        )
         st.markdown(
             f"""
             <article class="source-card">
                 <div class="source-file">{escape(source_file)}</div>
                 <div class="source-title">{escape(summary)}</div>
-                <div class="source-meta">الصفحة {escape(page_number)}</div>
+                <div class="source-meta">{escape(source_meta)}</div>
             </article>
             """,
             unsafe_allow_html=True,

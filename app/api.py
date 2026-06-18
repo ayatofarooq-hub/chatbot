@@ -8,7 +8,7 @@ from chromadb.errors import NotFoundError
 from starlette.applications import Starlette
 from starlette.concurrency import run_in_threadpool
 from starlette.requests import Request
-from starlette.responses import FileResponse, JSONResponse
+from starlette.responses import FileResponse, JSONResponse, Response
 from starlette.routing import Mount, Route
 from starlette.staticfiles import StaticFiles
 
@@ -75,6 +75,11 @@ def extract_snippets(results: dict) -> list[dict]:
                 "rank": index,
                 "source_file": metadata.get("source_file"),
                 "page_number": metadata.get("page_number"),
+                "document_title": metadata.get("document_title"),
+                "legal_reference": metadata.get("legal_reference"),
+                "article_reference": metadata.get("article_reference"),
+                "section_title": metadata.get("section_title"),
+                "source_type": metadata.get("source_type"),
                 "distance": (
                     distances[index - 1]
                     if index <= len(distances)
@@ -126,6 +131,12 @@ async def frontend(_: Request) -> FileResponse:
     """Serve the standalone browser frontend."""
 
     return FileResponse(FRONTEND_FOLDER / "index.html")
+
+
+async def favicon(_: Request) -> Response:
+    """Acknowledge the browser's default favicon request."""
+
+    return Response(status_code=204)
 
 
 async def ask(request: Request) -> JSONResponse:
@@ -286,6 +297,7 @@ app = Starlette(
     debug=False,
     routes=[
         Route("/", frontend, methods=["GET"]),
+        Route("/favicon.ico", favicon, methods=["GET"]),
         Route("/health", health, methods=["GET"]),
         Route("/ask", ask, methods=["POST"]),
         Route("/documents", documents, methods=["GET"]),
