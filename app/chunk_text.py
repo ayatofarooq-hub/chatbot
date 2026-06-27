@@ -9,6 +9,7 @@ from pathlib import Path
 
 try:
     from .config import LEGAL_DOCUMENTS_FOLDER, PROJECT_ROOT
+    from .document_classifier import classify_document
     from .document_loaders import (
         DocumentBlock,
         LoadedDocument,
@@ -17,6 +18,7 @@ try:
     )
 except ImportError:
     from config import LEGAL_DOCUMENTS_FOLDER, PROJECT_ROOT
+    from document_classifier import classify_document
     from document_loaders import (
         DocumentBlock,
         LoadedDocument,
@@ -166,6 +168,7 @@ def build_chunks_from_document(document: LoadedDocument) -> list[dict]:
                 "id": _chunk_id(document.source_file, chunk_index),
                 "source_file": document.source_file,
                 "source_type": document.source_type,
+                "document_type": document.document_type,
                 "document_title": document.title,
                 "page_number": block.page_number,
                 "chunk_index": chunk_index,
@@ -221,11 +224,17 @@ def build_chunks_from_content(source_file: str, content: str) -> list[dict]:
                 DocumentBlock(text=page_text, page_number=page_number)
             )
 
+    document_type, scores = classify_document(normalized)
     document = LoadedDocument(
         source_file=source_file,
         source_type="txt",
         title=Path(source_file).stem,
         blocks=blocks,
+        document_type=document_type,
+        metadata={
+            "classification_law_score": str(scores["law_score"]),
+            "classification_decision_score": str(scores["decision_score"]),
+        },
     )
     return build_chunks_from_document(document)
 

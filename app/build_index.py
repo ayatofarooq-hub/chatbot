@@ -11,6 +11,7 @@ from chromadb.errors import NotFoundError
 from tqdm import tqdm
 
 try:
+    from .citation_registry import save_registry
     from .chunk_text import CHUNKS_FILE, build_chunks_from_document
     from .config import (
         CHROMA_FOLDER,
@@ -23,6 +24,7 @@ try:
     from .ollama_client import client as ollama_client
 except ImportError:
     # Support direct execution with: python app/build_index.py
+    from citation_registry import save_registry
     from chunk_text import CHUNKS_FILE, build_chunks_from_document
     from config import (
         CHROMA_FOLDER,
@@ -139,12 +141,14 @@ def reset_collection(client):
 def chunk_metadata(chunk: dict) -> dict:
     """Return Chroma-compatible scalar metadata for one chunk."""
 
-    return {
+    metadata = {
         key: value
         for key, value in chunk.items()
         if key not in {"id", "text"}
         and isinstance(value, (str, int, float, bool))
     }
+    metadata["chunk_id"] = chunk["id"]
+    return metadata
 
 
 def add_chunks(collection, chunks: list[dict], embeddings: list[list[float]]) -> None:
@@ -211,6 +215,7 @@ def main() -> None:
         client = chromadb.PersistentClient(path=str(CHROMA_FOLDER))
         collection = reset_collection(client)
         add_chunks(collection, chunks, embeddings)
+        save_registry(chunks)
 
         print(
             f"Indexed {collection.count()} chunks in "

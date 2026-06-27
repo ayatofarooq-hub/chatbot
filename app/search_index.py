@@ -1,6 +1,7 @@
 """Diagnostic search for testing retrieval quality in the legal index."""
 
 import argparse
+import math
 import re
 import sys
 import unicodedata
@@ -116,6 +117,72 @@ def tokenize_for_search(text: str) -> set[str]:
     return tokens | reversed_numbers
 
 
+def tokenize_bm25(text: str) -> list[str]:
+    """Return normalized tokens for BM25 scoring."""
+
+    normalized = normalize_for_search(text)
+    tokens = [
+        token
+        for token in TOKEN_PATTERN.findall(normalized)
+        if token not in STOP_WORDS and (token.isdigit() or len(token) > 1)
+    ]
+    expanded = []
+    for token in tokens:
+        expanded.append(token)
+        if token.isdigit() and len(token) > 1:
+            expanded.append(token[::-1])
+    return expanded
+
+
+def bm25_scores(question: str, documents: list[str]) -> list[float]:
+    """Score candidate documents with BM25 without requiring extra packages."""
+
+    query_tokens = tokenize_bm25(question)
+    tokenized_documents = [tokenize_bm25(document) for document in documents]
+    if not query_tokens or not tokenized_documents:
+        return [0.0 for _ in documents]
+
+    average_length = sum(len(tokens) for tokens in tokenized_documents) / len(
+        tokenized_documents
+    )
+    if average_length == 0:
+        return [0.0 for _ in documents]
+
+    document_frequency = {}
+    for tokens in tokenized_documents:
+        for token in set(tokens):
+            document_frequency[token] = document_frequency.get(token, 0) + 1
+
+    k1 = 1.5
+    b = 0.75
+    total_documents = len(tokenized_documents)
+    scores = []
+
+    for tokens in tokenized_documents:
+        term_frequency = {}
+        for token in tokens:
+            term_frequency[token] = term_frequency.get(token, 0) + 1
+
+        score = 0.0
+        document_length = len(tokens)
+        for token in query_tokens:
+            frequency = term_frequency.get(token, 0)
+            if not frequency:
+                continue
+            df = document_frequency.get(token, 0)
+            idf = math.log(1 + (total_documents - df + 0.5) / (df + 0.5))
+            denominator = frequency + k1 * (
+                1 - b + b * document_length / average_length
+            )
+            score += idf * (frequency * (k1 + 1)) / denominator
+        scores.append(score)
+
+    max_score = max(scores) if scores else 0.0
+    if max_score <= 0:
+        return [0.0 for _ in documents]
+    return [score / max_score for score in scores]
+
+
 def lexical_relevance(question: str, document: str) -> float:
     """Score exact legal terms and numbers that vector search can underweight."""
 
@@ -149,18 +216,29 @@ def rerank_results(results: dict, result_count: int = RESULT_COUNT) -> dict:
     metadatas = results.get("metadatas", [[]])[0]
     distances = results.get("distances", [[]])[0]
     question = results.get("_question", "")
+    bm25_score_values = bm25_scores(question, documents)
 
     ranked = []
     for index, (document, metadata) in enumerate(zip(documents, metadatas)):
         distance = distances[index] if index < len(distances) else float("inf")
         semantic_score = 1.0 / (1.0 + max(float(distance), 0.0))
         lexical_score = lexical_relevance(question, document)
+        bm25_score = (
+            bm25_score_values[index]
+            if index < len(bm25_score_values)
+            else 0.0
+        )
         ranked.append(
             {
                 "document": document,
                 "metadata": metadata,
                 "distance": distance,
-                "score": (0.7 * semantic_score) + (0.3 * lexical_score),
+                "score": (
+                    (0.55 * semantic_score)
+                    + (0.30 * bm25_score)
+                    + (0.15 * lexical_score)
+                ),
+                "bm25_score": bm25_score,
                 "tokens": tokenize_for_search(document),
             }
         )
@@ -199,6 +277,7 @@ def rerank_results(results: dict, result_count: int = RESULT_COUNT) -> dict:
         "metadatas": [[item["metadata"] for item in selected]],
         "distances": [[item["distance"] for item in selected]],
         "relevance_scores": [[item["score"] for item in selected]],
+        "bm25_scores": [[item["bm25_score"] for item in selected]],
     }
 
 

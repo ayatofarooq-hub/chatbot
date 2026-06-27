@@ -151,10 +151,13 @@ def build_context(results: dict) -> str:
         page_number = metadata.get("page_number", "غير معروف")
         legal_reference = metadata.get("legal_reference", "")
         document_title = metadata.get("document_title", "")
+        document_type = metadata.get("document_type", "")
         metadata_lines = [
             f"المصدر: {source_file}",
             f"الصفحة: {page_number}",
         ]
+        if document_type:
+            metadata_lines.append(f"نوع الوثيقة: {document_type}")
         if document_title:
             metadata_lines.append(f"عنوان الوثيقة: {document_title}")
         if legal_reference:

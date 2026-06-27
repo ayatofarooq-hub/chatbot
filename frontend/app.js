@@ -1,40 +1,44 @@
+import { createUploadManager } from "./components/upload/useUploadManager.js";
+
 const storageKey = "iraqi-legal-assistant-conversations";
 const decisionDraftKey = "iraqi-legal-assistant-decision-draft";
 
 const elements = {
   assistantNav: document.querySelector("#assistant-nav-button"),
   assistantView: document.querySelector("#assistant-view"),
+  capacityRoot: document.querySelector("#file-capacity"),
   chatScroll: document.querySelector("#chat-scroll"),
   clearHistory: document.querySelector("#clear-history"),
   conversationTitle: document.querySelector("#conversation-title"),
+  countRoot: document.querySelector("#upload-count"),
   decisionContent: document.querySelector("#decision-content"),
-  decisionDropzone: document.querySelector("#decision-dropzone"),
-  decisionFile: document.querySelector("#decision-file"),
   decisionForm: document.querySelector("#decision-form"),
   decisionMinistry: document.querySelector("#decision-ministry"),
   decisionNav: document.querySelector("#new-decision-button"),
   decisionTitle: document.querySelector("#decision-title"),
   decisionView: document.querySelector("#decision-view"),
+  dropzoneRoot: document.querySelector("#upload-dropzone-root"),
+  errorsRoot: document.querySelector("#upload-errors"),
   form: document.querySelector("#question-form"),
   historyList: document.querySelector("#history-list"),
   historySearch: document.querySelector("#history-search"),
   input: document.querySelector("#question-input"),
   insightList: document.querySelector("#insight-list"),
+  listRoot: document.querySelector("#upload-file-list"),
   messages: document.querySelector("#messages"),
   mobileMenu: document.querySelector("#mobile-menu"),
   nav: document.querySelector("#primary-nav"),
   newChatInline: document.querySelector("#new-chat-inline"),
   priorityOptions: document.querySelector("#priority-options"),
+  qualityCountRoot: document.querySelector("#upload-quality-count"),
+  qualityLabelRoot: document.querySelector("#upload-quality-label"),
   referenceCount: document.querySelector("#reference-count"),
-  removeFile: document.querySelector("#remove-file"),
   saveDraft: document.querySelector("#save-draft"),
   sendButton: document.querySelector("#send-button"),
   sourceList: document.querySelector("#source-list"),
+  statsRoot: document.querySelector("#upload-stats-root"),
   suggestions: document.querySelector("#suggestions"),
   toast: document.querySelector("#toast"),
-  uploadedFile: document.querySelector("#uploaded-file"),
-  uploadedFileMeta: document.querySelector("#uploaded-file-meta"),
-  uploadedFileName: document.querySelector("#uploaded-file-name"),
   welcome: document.querySelector("#welcome"),
   wordCount: document.querySelector("#word-count"),
 };
@@ -43,6 +47,18 @@ let conversations = loadConversations();
 let activeConversationId = conversations[0]?.id ?? null;
 let pending = false;
 let selectedPriority = "عالية";
+
+const uploadManager = createUploadManager({
+  dropzoneRoot: elements.dropzoneRoot,
+  errorsRoot: elements.errorsRoot,
+  listRoot: elements.listRoot,
+  statsRoot: elements.statsRoot,
+  countRoot: elements.countRoot,
+  capacityRoot: elements.capacityRoot,
+  qualityCountRoot: elements.qualityCountRoot,
+  qualityLabelRoot: elements.qualityLabelRoot,
+  showToast,
+});
 
 function loadConversations() {
   try {
@@ -84,7 +100,7 @@ function showView(viewName) {
   if (showAssistant) {
     elements.input.focus();
   } else {
-    elements.decisionTitle.focus();
+    elements.dropzoneRoot.querySelector(".upload-dropzone")?.focus();
   }
 }
 
@@ -137,9 +153,7 @@ function renderHistory() {
   );
 
   if (!filtered.length) {
-    elements.historyList.append(
-      makeElement("div", "empty-panel", "لا توجد محادثات محفوظة."),
-    );
+    elements.historyList.append(makeElement("div", "empty-panel", "لا توجد محادثات محفوظة."));
     return;
   }
 
@@ -149,16 +163,17 @@ function renderHistory() {
       `history-entry${conversation.id === activeConversationId ? " active" : ""}`,
     );
     button.type = "button";
-    const title = makeElement("strong", "", truncate(conversation.title, 45));
-    const date = makeElement(
-      "span",
-      "",
-      new Intl.DateTimeFormat("ar-IQ", {
-        day: "numeric",
-        month: "short",
-      }).format(new Date(conversation.createdAt)),
+    button.append(
+      makeElement("strong", "", truncate(conversation.title, 45)),
+      makeElement(
+        "span",
+        "",
+        new Intl.DateTimeFormat("ar-IQ", {
+          day: "numeric",
+          month: "short",
+        }).format(new Date(conversation.createdAt)),
+      ),
     );
-    button.append(title, date);
     button.addEventListener("click", () => selectConversation(conversation.id));
     elements.historyList.append(button);
   });
@@ -167,8 +182,7 @@ function renderHistory() {
 function renderConversation() {
   const conversation = activeConversation();
   elements.messages.replaceChildren();
-  elements.conversationTitle.textContent =
-    conversation?.title ?? "محادثة قانونية جديدة";
+  elements.conversationTitle.textContent = conversation?.title ?? "محادثة قانونية جديدة";
 
   const hasMessages = Boolean(conversation?.messages.length);
   elements.welcome.hidden = hasMessages;
@@ -178,14 +192,11 @@ function renderConversation() {
 
   conversation.messages.forEach((message) => {
     const article = makeElement("article", `message ${message.role}`);
-    const content = makeElement("div", "message-content", message.content);
-    article.append(content);
+    article.append(makeElement("div", "message-content", message.content));
 
     if (message.warnings?.length) {
       const warningBox = makeElement("div", "warnings");
-      warningBox.append(
-        makeElement("strong", "", "تحذيرات التحقق من الاستشهادات"),
-      );
+      warningBox.append(makeElement("strong", "", "تحذيرات التحقق من الاستشهادات"));
       const list = document.createElement("ul");
       message.warnings.forEach((warning) => {
         list.append(makeElement("li", "", warning));
@@ -200,19 +211,14 @@ function renderConversation() {
       citations.append(
         document.createTextNode(
           message.citations
-            .map(
-              ({ source_file, page_number }) =>
-                `${source_file}، الصفحة ${page_number}`,
-            )
+            .map((citation) => citation.legal_reference || `${citation.source_file}، الصفحة ${citation.page_number}`)
             .join(" · "),
         ),
       );
       article.append(citations);
     }
 
-    article.append(
-      makeElement("span", "message-meta", message.time || formatTime()),
-    );
+    article.append(makeElement("span", "message-meta", message.time || formatTime()));
     elements.messages.append(article);
   });
 
@@ -232,28 +238,15 @@ function renderEvidence() {
   elements.sourceList.replaceChildren();
 
   if (!evidence.snippets.length) {
-    elements.sourceList.append(
-      makeElement(
-        "div",
-        "empty-panel",
-        "ستظهر المراجع المسترجعة هنا بعد طرح السؤال.",
-      ),
-    );
+    elements.sourceList.append(makeElement("div", "empty-panel", "ستظهر المراجع المسترجعة هنا بعد طرح السؤال."));
   } else {
     evidence.snippets.slice(0, 3).forEach((snippet) => {
       const card = makeElement("article", "source-card");
+      const reference = snippet.legal_reference || snippet.article_reference || `الصفحة ${snippet.page_number ?? "غير معروف"}`;
       card.append(
-        makeElement(
-          "div",
-          "source-name",
-          snippet.source_file || "مصدر غير معروف",
-        ),
+        makeElement("div", "source-name", snippet.document_title || snippet.source_file || "مصدر غير معروف"),
         makeElement("p", "", truncate(normalizeWhitespace(snippet.text), 135)),
-        makeElement(
-          "small",
-          "",
-          `الصفحة ${snippet.page_number ?? "غير معروف"}`,
-        ),
+        makeElement("small", "", reference),
       );
       elements.sourceList.append(card);
     });
@@ -261,18 +254,10 @@ function renderEvidence() {
 
   elements.insightList.replaceChildren();
   const insights = [];
-  if (evidence.citations.length) {
-    insights.push(`تم العثور على ${evidence.citations.length} استشهادات.`);
-  }
-  if (evidence.warnings.length) {
-    insights.push(`توجد ${evidence.warnings.length} ملاحظات تحتاج إلى مراجعة.`);
-  }
-  if (!insights.length) {
-    insights.push("ستظهر نتائج التحقق والاستشهادات هنا بعد إنشاء الإجابة.");
-  }
-  insights.forEach((insight) => {
-    elements.insightList.append(makeElement("li", "", insight));
-  });
+  if (evidence.citations.length) insights.push(`تم العثور على ${evidence.citations.length} استشهادات.`);
+  if (evidence.warnings.length) insights.push(`توجد ${evidence.warnings.length} ملاحظات تحتاج إلى مراجعة.`);
+  if (!insights.length) insights.push("ستظهر نتائج التحقق والاستشهادات هنا بعد إنشاء الإجابة.");
+  insights.forEach((insight) => elements.insightList.append(makeElement("li", "", insight)));
 }
 
 function normalizeWhitespace(value = "") {
@@ -285,59 +270,44 @@ function countWords(value) {
 }
 
 function updateWordCount() {
-  elements.wordCount.textContent =
-    `عدد الكلمات: ${countWords(elements.decisionContent.value)} كلمة`;
+  if (!elements.wordCount || !elements.decisionContent) return;
+  elements.wordCount.textContent = `عدد الكلمات: ${countWords(elements.decisionContent.value)} كلمة`;
 }
 
 function currentDecisionDraft() {
   return {
-    ministry: elements.decisionMinistry.value,
+    ministry: elements.decisionMinistry?.value || "",
     priority: selectedPriority,
-    title: elements.decisionTitle.value,
-    content: elements.decisionContent.value,
+    title: elements.decisionTitle?.value || "",
+    content: elements.decisionContent?.value || "",
+    files: uploadManager.getFiles().map((item) => ({
+      name: item.file.name,
+      size: item.file.size,
+      status: item.status,
+    })),
   };
 }
 
 function saveDecisionDraft(showConfirmation = true) {
   localStorage.setItem(decisionDraftKey, JSON.stringify(currentDecisionDraft()));
-  if (showConfirmation) {
-    showToast("تم حفظ مسودة القرار محلياً.");
-  }
+  if (showConfirmation) showToast("تم حفظ مسودة القرار محلياً.");
 }
 
 function loadDecisionDraft() {
   try {
     const draft = JSON.parse(localStorage.getItem(decisionDraftKey) || "null");
     if (!draft) return;
-    elements.decisionMinistry.value = draft.ministry || elements.decisionMinistry.value;
-    elements.decisionTitle.value = draft.title || "";
-    elements.decisionContent.value = draft.content || "";
+    if (elements.decisionMinistry) elements.decisionMinistry.value = draft.ministry || elements.decisionMinistry.value;
+    if (elements.decisionTitle) elements.decisionTitle.value = draft.title || "";
+    if (elements.decisionContent) elements.decisionContent.value = draft.content || "";
     selectedPriority = draft.priority || "عالية";
-    elements.priorityOptions.querySelectorAll("button").forEach((button) => {
-      button.classList.toggle(
-        "selected",
-        button.dataset.priority === selectedPriority,
-      );
+    elements.priorityOptions?.querySelectorAll("button").forEach((button) => {
+      button.classList.toggle("selected", button.dataset.priority === selectedPriority);
     });
     updateWordCount();
   } catch {
     localStorage.removeItem(decisionDraftKey);
   }
-}
-
-function formatFileSize(bytes) {
-  if (bytes < 1024 * 1024) {
-    return `${Math.max(1, Math.round(bytes / 1024))} كيلوبايت`;
-  }
-  return `${(bytes / (1024 * 1024)).toFixed(1)} ميغابايت`;
-}
-
-function displayAttachment(file) {
-  if (!file) return;
-  elements.uploadedFileName.textContent = file.name;
-  elements.uploadedFileMeta.textContent =
-    `${formatFileSize(file.size)} · جاهز للمراجعة`;
-  elements.uploadedFile.classList.remove("hidden");
 }
 
 function setPending(value) {
@@ -353,14 +323,8 @@ async function submitQuestion(question) {
   if (!conversation) conversation = createConversation();
 
   const cleanQuestion = question.trim();
-  if (!conversation.messages.length) {
-    conversation.title = truncate(cleanQuestion, 48);
-  }
-  conversation.messages.push({
-    role: "user",
-    content: cleanQuestion,
-    time: formatTime(),
-  });
+  if (!conversation.messages.length) conversation.title = truncate(cleanQuestion, 48);
+  conversation.messages.push({ role: "user", content: cleanQuestion, time: formatTime() });
   saveConversations();
   render();
   setPending(true);
@@ -374,15 +338,10 @@ async function submitQuestion(question) {
     const response = await fetch("/ask", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        question: cleanQuestion,
-        include_snippets: true,
-      }),
+      body: JSON.stringify({ question: cleanQuestion, include_snippets: true }),
     });
     const payload = await response.json();
-    if (!response.ok) {
-      throw new Error(payload.detail || "تعذر إنشاء الإجابة.");
-    }
+    if (!response.ok) throw new Error(payload.detail || "تعذر إنشاء الإجابة.");
 
     conversation.messages.push({
       role: "assistant",
@@ -448,11 +407,9 @@ elements.decisionNav.addEventListener("click", () => showView("decision"));
 elements.newChatInline.addEventListener("click", createConversation);
 elements.clearHistory.addEventListener("click", removeAllConversations);
 elements.historySearch.addEventListener("input", renderHistory);
-elements.mobileMenu.addEventListener("click", () =>
-  elements.nav.classList.toggle("open"),
-);
+elements.mobileMenu.addEventListener("click", () => elements.nav.classList.toggle("open"));
 
-elements.priorityOptions.addEventListener("click", (event) => {
+elements.priorityOptions?.addEventListener("click", (event) => {
   const button = event.target.closest("button[data-priority]");
   if (!button) return;
   selectedPriority = button.dataset.priority;
@@ -461,44 +418,17 @@ elements.priorityOptions.addEventListener("click", (event) => {
   });
 });
 
-elements.decisionContent.addEventListener("input", updateWordCount);
-elements.saveDraft.addEventListener("click", () => saveDecisionDraft());
+elements.decisionContent?.addEventListener("input", updateWordCount);
+elements.saveDraft?.addEventListener("click", () => saveDecisionDraft());
 
 elements.decisionForm.addEventListener("submit", (event) => {
   event.preventDefault();
-  if (
-    !elements.decisionTitle.value.trim() ||
-    !elements.decisionContent.value.trim()
-  ) {
+  if (elements.decisionTitle && elements.decisionContent && (!elements.decisionTitle.value.trim() || !elements.decisionContent.value.trim())) {
     showToast("يرجى إدخال عنوان القرار ونصه الكامل.");
     return;
   }
   saveDecisionDraft(false);
   showToast("واجهة رفع القرار جاهزة. لم يتم إرسال بيانات إلى الخادم.");
-});
-
-elements.decisionFile.addEventListener("change", () => {
-  displayAttachment(elements.decisionFile.files[0]);
-});
-
-elements.decisionDropzone.addEventListener("dragover", (event) => {
-  event.preventDefault();
-  elements.decisionDropzone.classList.add("dragging");
-});
-
-elements.decisionDropzone.addEventListener("dragleave", () => {
-  elements.decisionDropzone.classList.remove("dragging");
-});
-
-elements.decisionDropzone.addEventListener("drop", (event) => {
-  event.preventDefault();
-  elements.decisionDropzone.classList.remove("dragging");
-  displayAttachment(event.dataTransfer.files[0]);
-});
-
-elements.removeFile.addEventListener("click", () => {
-  elements.decisionFile.value = "";
-  elements.uploadedFile.classList.add("hidden");
 });
 
 loadDecisionDraft();

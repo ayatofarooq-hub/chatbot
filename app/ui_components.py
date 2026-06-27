@@ -31,7 +31,10 @@ def inject_design_system() -> None:
     st.markdown(
         """
         <style>
+        @import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap");
+
         :root {
+            --font-primary: "IBM Plex Sans Arabic", sans-serif;
             --gov-green: #145A38;
             --gov-green-dark: #0D472D;
             --gov-green-soft: #EAF5EE;
@@ -49,8 +52,8 @@ def inject_design_system() -> None:
             text-align: right;
         }
 
-        html, body {
-            font-family: "Segoe UI", Tahoma, Arial, sans-serif;
+        html, body, button, input, textarea, select {
+            font-family: var(--font-primary);
         }
 
         [data-testid="stAppViewContainer"] {
@@ -130,7 +133,7 @@ def inject_design_system() -> None:
         .gov-brand {
             color: var(--gov-green);
             font-size: 1.15rem;
-            font-weight: 800;
+            font-weight: 700;
             white-space: nowrap;
         }
 
@@ -157,7 +160,7 @@ def inject_design_system() -> None:
             border-radius: 50%;
             color: #FFFFFF;
             background: var(--gov-green);
-            font-weight: 800;
+            font-weight: 700;
         }
 
         .panel-heading {
@@ -173,7 +176,7 @@ def inject_design_system() -> None:
         .panel-title {
             color: var(--ink);
             font-size: 1rem;
-            font-weight: 800;
+            font-weight: 700;
         }
 
         .count-pill {
@@ -199,7 +202,7 @@ def inject_design_system() -> None:
         .workspace-title {
             color: var(--ink);
             font-size: 1.08rem;
-            font-weight: 800;
+            font-weight: 700;
         }
 
         .workspace-meta {
@@ -241,7 +244,7 @@ def inject_design_system() -> None:
             background: var(--gov-green);
             box-shadow: 0 7px 20px rgba(20, 90, 56, 0.22);
             font-size: 1.65rem;
-            font-weight: 900;
+            font-weight: 700;
         }
 
         .welcome-state h1 {
@@ -265,7 +268,7 @@ def inject_design_system() -> None:
             border: 1px solid transparent;
             border-radius: 0.8rem;
             font-size: 0.88rem;
-            font-weight: 650;
+            font-weight: 600;
         }
 
         .history-item.active {
@@ -292,14 +295,14 @@ def inject_design_system() -> None:
         .source-file {
             color: var(--gov-gold);
             font-size: 0.78rem;
-            font-weight: 800;
+            font-weight: 700;
         }
 
         .source-title {
             margin-top: 0.35rem;
             color: var(--ink);
             font-size: 0.88rem;
-            font-weight: 750;
+            font-weight: 700;
             line-height: 1.6;
         }
 
@@ -321,7 +324,7 @@ def inject_design_system() -> None:
             margin-bottom: 0.55rem;
             color: var(--ink);
             font-size: 0.85rem;
-            font-weight: 800;
+            font-weight: 700;
         }
 
         .insight-card li {
@@ -454,7 +457,7 @@ def render_global_header() -> None:
             <div class="gov-search">⌕ &nbsp; البحث في الوثائق والتشريعات...</div>
             <div class="gov-profile">
                 <div>
-                    <div style="font-weight:800;color:#17211B;">المستخدم الداخلي</div>
+                    <div style="font-weight:700;color:#17211B;">المستخدم الداخلي</div>
                     <div style="font-size:.72rem;color:#7A847E;">الدائرة القانونية</div>
                 </div>
                 <div class="gov-avatar">ق</div>
@@ -473,7 +476,7 @@ def render_navigation() -> bool:
             """
             <div style="padding:.5rem .4rem 1.4rem;">
                 <div style="font-size:.76rem;opacity:.75;">مجلس الوزراء</div>
-                <div style="font-size:1.28rem;font-weight:850;margin-top:.2rem;">
+                <div style="font-size:1.28rem;font-weight:700;margin-top:.2rem;">
                     نظام إدارة القرارات
                 </div>
             </div>
@@ -483,7 +486,7 @@ def render_navigation() -> bool:
         st.markdown(
             """
             <div style="padding:.9rem 1rem;margin-bottom:.6rem;border-radius:.75rem;
-                        background:#C9A408;font-weight:800;">
+                        background:#C9A408;font-weight:700;">
                 ◫ &nbsp; المساعد الذكي
             </div>
             """,

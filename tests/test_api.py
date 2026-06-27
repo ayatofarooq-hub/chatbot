@@ -63,6 +63,63 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(response.json()["answer"], "إجابة")
         mock_answer_question.assert_called_once_with("سؤال", False)
 
+    @patch("app.api.generate_answer")
+    @patch("app.api.search")
+    @patch("app.api.load_registry")
+    def test_answer_question_returns_registry_citations(
+        self,
+        mock_load_registry,
+        mock_search,
+        mock_generate_answer,
+    ):
+        mock_search.return_value = {
+            "documents": [["legal text"]],
+            "metadatas": [[
+                {
+                    "chunk_id": "abc123",
+                    "source_file": "penal_code.docx",
+                    "page_number": 4,
+                }
+            ]],
+            "distances": [[0.1]],
+            "relevance_scores": [[0.9]],
+            "bm25_scores": [[1.0]],
+        }
+        mock_load_registry.return_value = {
+            "by_chunk_id": {
+                "abc123": {
+                    "law": "penal law",
+                    "article": "article 405",
+                    "document_type": "law",
+                    "source_file": "penal_code.docx",
+                    "ingest_date": "2026-06-11",
+                    "chunk_id": "abc123",
+                }
+            }
+        }
+        mock_generate_answer.return_value.content = "answer"
+        mock_generate_answer.return_value.warnings = []
+
+        response = self.client.post(
+            "/ask",
+            json={"question": "question", "include_snippets": False},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.json()["citations"],
+            [
+                {
+                    "law": "penal law",
+                    "article": "article 405",
+                    "document_type": "law",
+                    "source_file": "penal_code.docx",
+                    "ingest_date": "2026-06-11",
+                    "chunk_id": "abc123",
+                }
+            ],
+        )
+
     @patch("app.api.list_documents")
     def test_list_documents(self, mock_list_documents):
         mock_list_documents.return_value = [

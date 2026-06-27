@@ -10,19 +10,21 @@ from pathlib import Path
 from typing import Any, Iterable
 
 try:
+    from .document_classifier import classify_document
     from .text_cleaning import clean_text
 except ImportError:
+    from document_classifier import classify_document
     from text_cleaning import clean_text
 
 
 PAGE_SEPARATOR_PATTERN = re.compile(r"^--- PAGE (\d+) ---\s*$", re.MULTILINE)
-HEADING_STYLE_PATTERN = re.compile(r"^(?:heading|عنوان)\s*(\d+)?", re.IGNORECASE)
+HEADING_STYLE_PATTERN = re.compile(r"^(?:heading|Ø¹Ù†ÙˆØ§Ù†)\s*(\d+)?", re.IGNORECASE)
 ARTICLE_PATTERN = re.compile(
-    r"^\s*(?P<label>المادة|مادة)\s*"
+    r"^\s*(?P<label>Ø§Ù„Ù…Ø§Ø¯Ø©|Ù…Ø§Ø¯Ø©)\s*"
     r"(?P<number>[\(\[]?[0-9\u0660-\u0669]+[\)\]]?)",
 )
 LEGAL_SECTION_PATTERN = re.compile(
-    r"^\s*(?P<label>الباب|الفصل|القسم|الفرع)\s+"
+    r"^\s*(?P<label>Ø§Ù„Ø¨Ø§Ø¨|Ø§Ù„ÙØµÙ„|Ø§Ù„Ù‚Ø³Ù…|Ø§Ù„ÙØ±Ø¹)\s+"
     r"(?P<name>[^\n:]{1,120})",
 )
 
@@ -47,7 +49,19 @@ class LoadedDocument:
     source_type: str
     title: str
     blocks: list[DocumentBlock]
+    document_type: str = ""
     metadata: dict[str, str] = field(default_factory=dict)
+
+
+def classify_blocks(blocks: list[DocumentBlock]) -> tuple[str, dict[str, str]]:
+    """Classify a loaded document from its extracted text blocks."""
+
+    text = "\n".join(block.text for block in blocks)
+    document_type, scores = classify_document(text)
+    return document_type, {
+        "classification_law_score": str(scores["law_score"]),
+        "classification_decision_score": str(scores["decision_score"]),
+    }
 
 
 def detect_legal_references(text: str) -> tuple[str, str]:
@@ -55,6 +69,18 @@ def detect_legal_references(text: str) -> tuple[str, str]:
 
     article_match = ARTICLE_PATTERN.match(text)
     section_match = LEGAL_SECTION_PATTERN.match(text)
+    if not article_match:
+        article_match = re.match(
+            r"^\s*(?P<label>\u0627\u0644\u0645\u0627\u062f\u0629|\u0645\u0627\u062f\u0629)\s*"
+            r"(?P<number>[\(\[]?[0-9\u0660-\u0669]+[\)\]]?)",
+            text,
+        )
+    if not section_match:
+        section_match = re.match(
+            r"^\s*(?P<label>\u0627\u0644\u0628\u0627\u0628|\u0627\u0644\u0641\u0635\u0644|\u0627\u0644\u0642\u0633\u0645|\u0627\u0644\u0641\u0631\u0639)\s+"
+            r"(?P<name>[^\n:]{1,120})",
+            text,
+        )
     article = article_match.group(0).strip() if article_match else ""
     section = section_match.group(0).strip() if section_match else ""
     return article, section
@@ -175,12 +201,15 @@ class DocxDocumentLoader(DocumentLoader):
                 )
             )
 
+        document_type, classification_metadata = classify_blocks(blocks)
+        metadata.update(classification_metadata)
         title = clean_text(properties.title or "") or first_heading or path.stem
         return LoadedDocument(
             source_file=path.name,
             source_type="docx",
             title=title,
             blocks=blocks,
+            document_type=document_type,
             metadata=metadata,
         )
 
@@ -213,7 +242,7 @@ class TxtDocumentLoader(DocumentLoader):
 
         blocks = []
         for page_number, page_text in pages:
-            for paragraph in re.split(r"\n\s*\n|\n(?=\s*(?:المادة|الباب|الفصل|القسم|الفرع)\b)", page_text):
+            for paragraph in re.split(r"\n\s*\n|\n(?=\s*(?:Ø§Ù„Ù…Ø§Ø¯Ø©|Ø§Ù„Ø¨Ø§Ø¨|Ø§Ù„ÙØµÙ„|Ø§Ù„Ù‚Ø³Ù…|Ø§Ù„ÙØ±Ø¹)\b)", page_text):
                 text = clean_text(paragraph)
                 if not text:
                     continue
@@ -227,15 +256,167 @@ class TxtDocumentLoader(DocumentLoader):
                     )
                 )
 
+        document_type, metadata = classify_blocks(blocks)
         return LoadedDocument(
             source_file=path.name,
             source_type="txt",
             title=path.stem,
             blocks=blocks,
+            document_type=document_type,
+            metadata=metadata,
         )
 
 
-LOADERS = (DocxDocumentLoader(), TxtDocumentLoader())
+class PdfDocumentLoader(DocumentLoader):
+    """Load PDFs with text extraction first and OCR fallback for scanned pages."""
+
+    extensions = (".pdf",)
+    minimum_text_chars = 20
+    ocr_language = "ara+eng"
+    ocr_dpi = 400
+    ocr_configs = ("--oem 1 --psm 6", "--oem 1 --psm 4", "--oem 1 --psm 11")
+
+    @staticmethod
+    def _ocr_quality_score(text: str) -> float:
+        """Score OCR output by Arabic/legal signal and obvious noise."""
+
+        if not text:
+            return 0.0
+
+        arabic_chars = len(re.findall(r"[\u0600-\u06ff]", text))
+        digit_chars = len(re.findall(r"[0-9\u0660-\u0669]", text))
+        legal_hits = len(
+            re.findall(
+                r"Ù‚Ø§Ù†ÙˆÙ†|Ù‚Ø±Ø§Ø±|Ø§Ù„Ù…Ø§Ø¯Ø©|Ù…Ø¬Ù„Ø³|Ø§Ù„Ù†ÙˆØ§Ø¨|Ø±Ù‚Ù…|Ù„Ø³Ù†Ø©",
+                text,
+            )
+        )
+        latin_noise = len(re.findall(r"[A-Za-z]{3,}", text))
+        replacement_noise = text.count("?") + text.count("ï¿½")
+        return (
+            arabic_chars
+            + (2.0 * digit_chars)
+            + (20.0 * legal_hits)
+            - (4.0 * latin_noise)
+            - (10.0 * replacement_noise)
+        )
+
+    @staticmethod
+    def _prepare_ocr_images(image: Any) -> list[Any]:
+        """Create OCR variants for scanned Arabic PDFs."""
+
+        from PIL import ImageFilter, ImageOps
+
+        grayscale = ImageOps.grayscale(image)
+        autocontrast = ImageOps.autocontrast(grayscale)
+        sharpened = autocontrast.filter(ImageFilter.SHARPEN)
+        threshold = sharpened.point(lambda value: 255 if value > 170 else 0)
+        return [sharpened, threshold]
+
+    def _ocr_page(self, path: Path, page_number: int) -> str:
+        """OCR one 1-based PDF page using local Tesseract tooling."""
+
+        try:
+            import pypdfium2 as pdfium
+            import pytesseract
+        except ImportError as error:
+            raise RuntimeError(
+                "Scanned PDF ingestion requires OCR dependencies. "
+                "Install requirements.txt, then install the Tesseract OCR "
+                "engine with Arabic language data."
+            ) from error
+
+        try:
+            pdf = pdfium.PdfDocument(str(path))
+            page = pdf[page_number - 1]
+            image = page.render(scale=self.ocr_dpi / 72).to_pil()
+            candidates = []
+            for prepared_image in self._prepare_ocr_images(image):
+                for config in self.ocr_configs:
+                    text = clean_text(
+                        pytesseract.image_to_string(
+                            prepared_image,
+                            lang=self.ocr_language,
+                            config=config,
+                        )
+                    )
+                    candidates.append(
+                        (self._ocr_quality_score(text), text)
+                    )
+            return max(candidates, default=(0.0, ""), key=lambda item: item[0])[1]
+        except pytesseract.TesseractNotFoundError as error:
+            raise RuntimeError(
+                "Tesseract OCR executable was not found. Install Tesseract "
+                "and make sure it is available on PATH."
+            ) from error
+        except pytesseract.TesseractError as error:
+            raise RuntimeError(
+                "Tesseract OCR failed. Verify Arabic language data is installed."
+            ) from error
+
+    def _extract_page_text(self, page: Any, path: Path, page_number: int) -> tuple[str, bool]:
+        """Return page text and whether OCR was used."""
+
+        text_layer = clean_text(page.extract_text() or "")
+        if len(text_layer) >= self.minimum_text_chars:
+            return text_layer, False
+
+        ocr_text = self._ocr_page(path, page_number)
+        if ocr_text:
+            return ocr_text, True
+        return text_layer, False
+
+    def load(self, path: Path) -> LoadedDocument:
+        try:
+            import pdfplumber
+        except ImportError as error:
+            raise RuntimeError(
+                "PDF ingestion requires pdfplumber. "
+                "Run: python -m pip install -r requirements.txt"
+            ) from error
+
+        blocks = []
+        used_ocr = False
+        with pdfplumber.open(path) as pdf:
+            for page_index, page in enumerate(pdf.pages, start=1):
+                page_text, page_used_ocr = self._extract_page_text(
+                    page,
+                    path,
+                    page_index,
+                )
+                used_ocr = used_ocr or page_used_ocr
+                if not page_text:
+                    continue
+                for paragraph in re.split(
+                    r"\n\s*\n|\n(?=\s*(?:Ã˜Â§Ã™â€žÃ™â€¦Ã˜Â§Ã˜Â¯Ã˜Â©|Ã˜Â§Ã™â€žÃ˜Â¨Ã˜Â§Ã˜Â¨|Ã˜Â§Ã™â€žÃ™ÂÃ˜ÂµÃ™â€ž|Ã˜Â§Ã™â€žÃ™â€šÃ˜Â³Ã™â€¦|Ã˜Â§Ã™â€žÃ™ÂÃ˜Â±Ã˜Â¹)\b)",
+                    page_text,
+                ):
+                    text = clean_text(paragraph)
+                    if not text:
+                        continue
+                    article, section = detect_legal_references(text)
+                    blocks.append(
+                        DocumentBlock(
+                            text=text,
+                            page_number=page_index,
+                            article_reference=article,
+                            section_reference=section,
+                        )
+                    )
+
+        document_type, metadata = classify_blocks(blocks)
+        metadata["ocr"] = "tesseract" if used_ocr else "none"
+        return LoadedDocument(
+            source_file=path.name,
+            source_type="pdf",
+            title=path.stem,
+            blocks=blocks,
+            document_type=document_type,
+            metadata=metadata,
+        )
+
+
+LOADERS = (DocxDocumentLoader(), TxtDocumentLoader(), PdfDocumentLoader())
 LOADER_BY_EXTENSION = {
     extension: loader
     for loader in LOADERS

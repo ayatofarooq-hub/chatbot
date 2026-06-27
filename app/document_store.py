@@ -7,10 +7,12 @@ import chromadb
 
 try:
     from .build_index import COLLECTION_NAME, add_chunks, create_embeddings
+    from .citation_registry import remove_source_citations, replace_source_citations
     from .chunk_text import build_chunks_from_content
     from .config import CHROMA_FOLDER, EXTRACTED_TEXT_FOLDER
 except ImportError:
     from build_index import COLLECTION_NAME, add_chunks, create_embeddings
+    from citation_registry import remove_source_citations, replace_source_citations
     from chunk_text import build_chunks_from_content
     from config import CHROMA_FOLDER, EXTRACTED_TEXT_FOLDER
 
@@ -95,6 +97,7 @@ def insert_document(filename: str, content: str) -> dict:
             raise FileExistsError(filename)
         collection = get_collection()
         add_chunks(collection, chunks, embeddings)
+        replace_source_citations(filename, chunks)
         path.write_text(stored_content, encoding="utf-8")
 
     return {"filename": filename, "chunk_count": len(chunks)}
@@ -115,6 +118,7 @@ def update_document(filename: str, content: str) -> dict:
         collection = get_collection()
         collection.delete(where={"source_file": filename})
         add_chunks(collection, chunks, embeddings)
+        replace_source_citations(filename, chunks)
         path.write_text(stored_content, encoding="utf-8")
 
     return {"filename": filename, "chunk_count": len(chunks)}
@@ -131,6 +135,7 @@ def delete_document(filename: str) -> dict:
             raise FileNotFoundError(filename)
         collection = get_collection()
         collection.delete(where={"source_file": filename})
+        remove_source_citations(filename)
         path.unlink()
 
     return {"filename": filename, "deleted": True}

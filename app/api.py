@@ -14,6 +14,12 @@ from starlette.staticfiles import StaticFiles
 
 try:
     from .build_index import COLLECTION_NAME
+    from .citation_registry import (
+        citations_for_metadatas,
+        filter_results_to_registered,
+        load_registry,
+        registry_warnings_for_metadatas,
+    )
     from .document_store import (
         delete_document,
         insert_document,
@@ -25,6 +31,12 @@ try:
 except ImportError:
     # Support direct execution with: python app/api.py
     from build_index import COLLECTION_NAME
+    from citation_registry import (
+        citations_for_metadatas,
+        filter_results_to_registered,
+        load_registry,
+        registry_warnings_for_metadatas,
+    )
     from document_store import (
         delete_document,
         insert_document,
@@ -64,6 +76,7 @@ def extract_snippets(results: dict) -> list[dict]:
     metadatas = results.get("metadatas", [[]])[0]
     distances = results.get("distances", [[]])[0]
     relevance_scores = results.get("relevance_scores", [[]])[0]
+    bm25_scores = results.get("bm25_scores", [[]])[0]
     snippets = []
 
     for index, (document, metadata) in enumerate(
@@ -76,6 +89,7 @@ def extract_snippets(results: dict) -> list[dict]:
                 "source_file": metadata.get("source_file"),
                 "page_number": metadata.get("page_number"),
                 "document_title": metadata.get("document_title"),
+                "document_type": metadata.get("document_type"),
                 "legal_reference": metadata.get("legal_reference"),
                 "article_reference": metadata.get("article_reference"),
                 "section_title": metadata.get("section_title"),
@@ -90,11 +104,35 @@ def extract_snippets(results: dict) -> list[dict]:
                     if index <= len(relevance_scores)
                     else None
                 ),
+                "bm25_score": (
+                    bm25_scores[index - 1]
+                    if index <= len(bm25_scores)
+                    else None
+                ),
                 "text": document,
             }
         )
 
     return snippets
+
+
+def result_metadatas(results: dict) -> list[dict]:
+    """Return the top-level metadata list from a Chroma query response."""
+
+    return results.get("metadatas", [[]])[0]
+
+
+def extract_structured_citations(
+    results: dict,
+    registry: dict | None = None,
+) -> tuple[list[dict], list[str]]:
+    """Return registry-backed citations and any citation integrity warnings."""
+
+    metadatas = result_metadatas(results)
+    registry = registry or load_registry()
+    citations = citations_for_metadatas(metadatas, registry=registry)
+    warnings = registry_warnings_for_metadatas(metadatas, registry=registry)
+    return citations, warnings
 
 
 def answer_question(question: str, include_snippets: bool = True) -> dict:
@@ -111,13 +149,22 @@ def answer_question(question: str, include_snippets: bool = True) -> dict:
         }
 
     results = search(question)
-    answer_result = generate_answer(question, results)
+    registry = load_registry()
+    validated_results, citation_warnings = filter_results_to_registered(
+        results,
+        registry=registry,
+    )
+    structured_citations, _ = extract_structured_citations(
+        validated_results,
+        registry=registry,
+    )
+    answer_result = generate_answer(question, validated_results)
     return {
         "question": question,
         "answer": answer_result.content,
-        "warnings": answer_result.warnings,
-        "citations": extract_citations(answer_result.content),
-        "snippets": extract_snippets(results) if include_snippets else [],
+        "warnings": answer_result.warnings + citation_warnings,
+        "citations": structured_citations,
+        "snippets": extract_snippets(validated_results) if include_snippets else [],
     }
 
 

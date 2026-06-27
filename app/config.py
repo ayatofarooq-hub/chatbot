@@ -13,6 +13,7 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 LEGAL_DOCUMENTS_FOLDER = PROJECT_ROOT / "data" / "legal_documents"
 EXTRACTED_TEXT_FOLDER = PROJECT_ROOT / "data" / "extracted_text"
 CHROMA_FOLDER = PROJECT_ROOT / "data" / "chroma"
+CITATION_REGISTRY_FILE = PROJECT_ROOT / "data" / "citation_registry.json"
 
 # Models that will be used by the future RAG chatbot.
 CHAT_MODEL = "qwen2.5:7b"

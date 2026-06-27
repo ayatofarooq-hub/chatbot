@@ -6,23 +6,29 @@ ChromaDB, and Microsoft Word documents as its primary knowledge source.
 ## Knowledge Pipeline
 
 ```text
-DOCX/TXT files
+PDF/DOCX/TXT files
   -> modular document loaders
   -> Iraqi legal-aware chunks
   -> Ollama bge-m3 embeddings
   -> persistent ChromaDB collection
-  -> hybrid semantic/lexical retrieval
+  -> citation_registry.json
+  -> hybrid semantic/BM25 retrieval
   -> Ollama grounded answer generation
 ```
 
-DOCX ingestion preserves, where available:
+PDF, DOCX, and TXT ingestion preserve, where available:
 
 - document title and Word core properties;
 - heading hierarchy and legal sections;
 - article references such as `المادة 12`;
+- document classification as `قانون` or `قرار`;
 - tables in row order;
 - Arabic Unicode text;
 - source filename and source type.
+
+Classification uses Arabic regex signal scoring during ingestion. The resulting
+`document_type` is stored in `data/chunks.jsonl`, Chroma metadata,
+`data/citation_registry.json`, and `/ask` snippets/citations.
 
 ## Setup
 
@@ -38,15 +44,16 @@ ollama pull bge-m3
 
 ## Batch Ingestion
 
-Put one or more `.docx` or UTF-8 `.txt` files in
+Put one or more text-layer `.pdf`, `.docx`, or UTF-8 `.txt` files in
 `data/legal_documents/`, then run:
 
 ```powershell
 python ingest_legal_documents.py
 ```
 
-This creates `data/chunks.jsonl`, generates embeddings, and rebuilds the
-`iraqi_legal_documents` collection in `data/chroma/`.
+This creates `data/chunks.jsonl`, writes `data/citation_registry.json`,
+generates embeddings, and rebuilds the `iraqi_legal_documents` collection in
+`data/chroma/`.
 
 The same pipeline can be run directly with:
 
@@ -56,6 +63,37 @@ python -m app.build_index
 
 See [docs/docx-ingestion-migration.md](docs/docx-ingestion-migration.md) for
 the PDF-to-DOCX migration procedure and metadata details.
+
+## OCR For Scanned PDFs
+
+PDF ingestion first uses the embedded text layer through `pdfplumber`. If a
+PDF page has no usable text, the loader falls back to OCR with Tesseract:
+
+- Python packages: `pypdfium2` and `pytesseract` from `requirements.txt`
+- System program: Tesseract OCR installed on Windows and available on `PATH`
+- Language data: Arabic trained data, used as `ara+eng`
+
+If OCR dependencies or the Tesseract executable are missing, scanned PDF
+ingestion fails with a setup error instead of indexing empty pages.
+
+For best Arabic OCR results, scan at 300-400 DPI, keep pages straight, avoid
+shadows, and prefer black text on a white background. The loader renders scanned
+PDF pages at 400 DPI, tries multiple Tesseract layouts, and keeps the result
+with the strongest Arabic/legal signal.
+
+## Automatic Weekly Ingestion
+
+For a long-running local watcher:
+
+```powershell
+python watch_legal_documents.py
+```
+
+For Windows Task Scheduler, run a periodic one-shot check:
+
+```powershell
+python watch_legal_documents.py --once
+```
 
 ## Run
 
@@ -78,6 +116,23 @@ The existing routes remain unchanged:
 
 The document-management endpoints remain text-based for backward
 compatibility. Batch DOCX ingestion is filesystem-based.
+
+`POST /ask` returns registry-backed structured citations:
+
+```json
+{
+  "answer": "...",
+  "citations": [
+    {
+      "law": "قانون العقوبات رقم 111 لسنة 1969",
+      "article": "المادة 405",
+      "source_file": "penal_code.docx",
+      "ingest_date": "2026-06-11",
+      "chunk_id": "abc123"
+    }
+  ]
+}
+```
 
 ## Other Interfaces
 

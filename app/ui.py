@@ -105,6 +105,7 @@ def extract_snippets(results: dict) -> list[dict]:
                 "source_file": metadata.get("source_file", "غير معروف"),
                 "page_number": metadata.get("page_number", "غير معروف"),
                 "document_title": metadata.get("document_title", ""),
+                "document_type": metadata.get("document_type", ""),
                 "legal_reference": metadata.get("legal_reference", ""),
                 "article_reference": metadata.get("article_reference", ""),
                 "section_title": metadata.get("section_title", ""),
