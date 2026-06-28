@@ -284,8 +284,17 @@ def rerank_results(results: dict, result_count: int = RESULT_COUNT) -> dict:
 def search(question: str) -> dict:
     """Retrieve broad semantic candidates, then rerank exact legal matches."""
 
-    embedding_response = ollama_client.embed(
-        model=EMBEDDING_MODEL,
+    try:
+        from .runtime_settings import runtime_settings
+    except ImportError:
+        from runtime_settings import runtime_settings
+    current = runtime_settings()
+    active_client = ollama.Client(
+        host=current["model"]["ollama_base_url"],
+        timeout=current["model"]["request_timeout"],
+    )
+    embedding_response = active_client.embed(
+        model=current["model"]["embedding_model"],
         input=question,
         keep_alive=EMBEDDING_QUERY_KEEP_ALIVE,
     )
@@ -306,7 +315,7 @@ def search(question: str) -> dict:
         include=["documents", "metadatas", "distances"],
     )
     candidate_results["_question"] = question
-    return rerank_results(candidate_results)
+    return rerank_results(candidate_results, result_count=current["retrieval"]["result_count"])
 
 
 def print_results(results: dict) -> None:

@@ -1,14 +1,14 @@
 # Offline Arabic Legal RAG Chatbot
 
-This repository contains an offline Arabic legal RAG chatbot using Ollama,
-ChromaDB, and Microsoft Word documents as its primary knowledge source.
+This project uses PostgreSQL as its only legal knowledge source, Ollama for
+local embeddings and answer generation, and ChromaDB as a generated search
+index.
 
 ## Knowledge Pipeline
 
 ```text
-PDF/DOCX/TXT files
-  -> modular document loaders
-  -> Iraqi legal-aware chunks
+PostgreSQL public.iraqi_laws
+  -> legal metadata mapping and chunking
   -> Ollama bge-m3 embeddings
   -> persistent ChromaDB collection
   -> citation_registry.json
@@ -16,19 +16,9 @@ PDF/DOCX/TXT files
   -> Ollama grounded answer generation
 ```
 
-PDF, DOCX, and TXT ingestion preserve, where available:
-
-- document title and Word core properties;
-- heading hierarchy and legal sections;
-- article references such as `المادة 12`;
-- document classification as `قانون` or `قرار`;
-- tables in row order;
-- Arabic Unicode text;
-- source filename and source type.
-
-Classification uses Arabic regex signal scoring during ingestion. The resulting
-`document_type` is stored in `data/chunks.jsonl`, Chroma metadata,
-`data/citation_registry.json`, and `/ask` snippets/citations.
+The database mapping preserves `id`, `classification`, `law_number`,
+`law_year`, `article_number`, `law_name`, and `summary` through retrieval and
+citation metadata.
 
 ## Setup
 
@@ -42,58 +32,48 @@ ollama pull qwen2.5:7b
 ollama pull bge-m3
 ```
 
-## Batch Ingestion
+## PostgreSQL Configuration
 
-Put one or more text-layer `.pdf`, `.docx`, or UTF-8 `.txt` files in
-`data/legal_documents/`, then run:
+Copy the environment template:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+Edit `.env` and set the real application password:
+
+```env
+DATABASE_URL=postgresql+psycopg://chatbot_app:PASSWORD@localhost:5432/laws_iraqi
+```
+
+Test the connection:
+
+```powershell
+python -m app.database
+```
+
+The configured role must have `SELECT` access to
+`public.iraqi_laws`.
+
+## Build the Search Index
 
 ```powershell
 python ingest_legal_documents.py
 ```
 
-This creates `data/chunks.jsonl`, writes `data/citation_registry.json`,
-generates embeddings, and rebuilds the `iraqi_legal_documents` collection in
+This reads every row from `public.iraqi_laws`, creates
+`data/chunks.jsonl`, writes `data/citation_registry.json`, generates
+embeddings, and rebuilds the `iraqi_legal_documents` collection in
 `data/chroma/`.
 
-The same pipeline can be run directly with:
+The same operation can be run with:
 
 ```powershell
 python -m app.build_index
 ```
 
-See [docs/docx-ingestion-migration.md](docs/docx-ingestion-migration.md) for
-the PDF-to-DOCX migration procedure and metadata details.
-
-## OCR For Scanned PDFs
-
-PDF ingestion first uses the embedded text layer through `pdfplumber`. If a
-PDF page has no usable text, the loader falls back to OCR with Tesseract:
-
-- Python packages: `pypdfium2` and `pytesseract` from `requirements.txt`
-- System program: Tesseract OCR installed on Windows and available on `PATH`
-- Language data: Arabic trained data, used as `ara+eng`
-
-If OCR dependencies or the Tesseract executable are missing, scanned PDF
-ingestion fails with a setup error instead of indexing empty pages.
-
-For best Arabic OCR results, scan at 300-400 DPI, keep pages straight, avoid
-shadows, and prefer black text on a white background. The loader renders scanned
-PDF pages at 400 DPI, tries multiple Tesseract layouts, and keeps the result
-with the strongest Arabic/legal signal.
-
-## Automatic Weekly Ingestion
-
-For a long-running local watcher:
-
-```powershell
-python watch_legal_documents.py
-```
-
-For Windows Task Scheduler, run a periodic one-shot check:
-
-```powershell
-python watch_legal_documents.py --once
-```
+PostgreSQL is the durable legal store. ChromaDB is generated and must not be
+edited directly.
 
 ## Run
 
@@ -105,34 +85,22 @@ python -m uvicorn app.api:app --host 127.0.0.1 --port 8000
 
 Open `http://127.0.0.1:8000/`.
 
-The existing routes remain unchanged:
+Supported routes:
 
 - `GET /health`
 - `POST /ask`
-- `GET /documents`
-- `POST /documents`
-- `PUT /documents/{filename}`
-- `DELETE /documents/{filename}`
 
-The document-management endpoints remain text-based for backward
-compatibility. Batch DOCX ingestion is filesystem-based.
-
-`POST /ask` returns registry-backed structured citations:
+Example request:
 
 ```json
 {
-  "answer": "...",
-  "citations": [
-    {
-      "law": "قانون العقوبات رقم 111 لسنة 1969",
-      "article": "المادة 405",
-      "source_file": "penal_code.docx",
-      "ingest_date": "2026-06-11",
-      "chunk_id": "abc123"
-    }
-  ]
+  "question": "ما هي عقوبة هذه الجريمة؟",
+  "include_snippets": true
 }
 ```
+
+`POST /ask` returns answers, warnings, PostgreSQL-backed citations, and
+optional evidence snippets.
 
 ## Other Interfaces
 

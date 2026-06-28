@@ -5,26 +5,13 @@ from __future__ import annotations
 import hashlib
 import json
 import re
-from pathlib import Path
 
 try:
-    from .config import LEGAL_DOCUMENTS_FOLDER, PROJECT_ROOT
-    from .document_classifier import classify_document
-    from .document_loaders import (
-        DocumentBlock,
-        LoadedDocument,
-        load_document,
-        load_documents,
-    )
+    from .config import PROJECT_ROOT
+    from .legal_document import LoadedDocument
 except ImportError:
-    from config import LEGAL_DOCUMENTS_FOLDER, PROJECT_ROOT
-    from document_classifier import classify_document
-    from document_loaders import (
-        DocumentBlock,
-        LoadedDocument,
-        load_document,
-        load_documents,
-    )
+    from config import PROJECT_ROOT
+    from legal_document import LoadedDocument
 
 
 CHUNKS_FILE = PROJECT_ROOT / "data" / "chunks.jsonl"
@@ -191,60 +178,20 @@ def build_chunks_from_document(document: LoadedDocument) -> list[dict]:
     return chunks
 
 
-def build_chunks(file_path: Path) -> list[dict]:
-    """Build chunks for one supported source document."""
-
-    return build_chunks_from_document(load_document(file_path))
-
-
-def build_chunks_from_content(source_file: str, content: str) -> list[dict]:
-    """Build chunks from API-provided plain text without changing its contract."""
-
-    normalized = normalize_whitespace(content)
-    page_pattern = re.compile(r"^--- PAGE (\d+) ---\s*$", re.MULTILINE)
-    separators = list(page_pattern.finditer(normalized))
-    blocks = []
-
-    if not separators:
-        separators = list(
-            page_pattern.finditer(f"--- PAGE 1 ---\n{normalized}")
-        )
-        normalized = f"--- PAGE 1 ---\n{normalized}"
-
-    for index, separator in enumerate(separators):
-        end = (
-            separators[index + 1].start()
-            if index + 1 < len(separators)
-            else len(normalized)
-        )
-        page_number = int(separator.group(1))
-        page_text = normalized[separator.end() : end].strip()
-        if page_text:
-            blocks.append(
-                DocumentBlock(text=page_text, page_number=page_number)
-            )
-
-    document_type, scores = classify_document(normalized)
-    document = LoadedDocument(
-        source_file=source_file,
-        source_type="txt",
-        title=Path(source_file).stem,
-        blocks=blocks,
-        document_type=document_type,
-        metadata={
-            "classification_law_score": str(scores["law_score"]),
-            "classification_decision_score": str(scores["decision_score"]),
-        },
-    )
-    return build_chunks_from_document(document)
-
-
 def main() -> None:
-    """Load and chunk every DOCX/TXT source document as JSON Lines."""
+    """Load and chunk every PostgreSQL legal record as JSON Lines."""
 
-    documents = load_documents(LEGAL_DOCUMENTS_FOLDER)
+    try:
+        from .postgres_laws import load_postgres_documents
+    except ImportError:
+        from postgres_laws import load_postgres_documents
+
+    documents = load_postgres_documents()
     if not documents:
-        print(f"No DOCX or TXT files found in: {LEGAL_DOCUMENTS_FOLDER}")
+        print(
+            "No PostgreSQL laws found. Check DATABASE_URL and "
+            "public.iraqi_laws."
+        )
         return
 
     all_chunks = []

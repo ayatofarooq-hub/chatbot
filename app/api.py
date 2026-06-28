@@ -20,14 +20,15 @@ try:
         load_registry,
         registry_warnings_for_metadatas,
     )
-    from .document_store import (
-        delete_document,
-        insert_document,
-        list_documents,
-        update_document,
-    )
     from .rag_answer import CITATION_PATTERN, generate_answer, get_quick_response
     from .search_index import search
+    from .settings_api import (
+        backup_create, backup_restore, classification_delete,
+        classification_put, classification_reassign, classifications_get,
+        classifications_post, index_rebuild, index_status, login, logout,
+        model_test, session, settings_export, settings_get, settings_import,
+        settings_put, settings_reset,
+    )
 except ImportError:
     # Support direct execution with: python app/api.py
     from build_index import COLLECTION_NAME
@@ -37,14 +38,15 @@ except ImportError:
         load_registry,
         registry_warnings_for_metadatas,
     )
-    from document_store import (
-        delete_document,
-        insert_document,
-        list_documents,
-        update_document,
-    )
     from rag_answer import CITATION_PATTERN, generate_answer, get_quick_response
     from search_index import search
+    from settings_api import (
+        backup_create, backup_restore, classification_delete,
+        classification_put, classification_reassign, classifications_get,
+        classifications_post, index_rebuild, index_status, login, logout,
+        model_test, session, settings_export, settings_get, settings_import,
+        settings_put, settings_reset,
+    )
 
 
 FRONTEND_FOLDER = Path(__file__).resolve().parent.parent / "frontend"
@@ -190,6 +192,20 @@ async def ask(request: Request) -> JSONResponse:
     """Accept a legal question and return a grounded chatbot answer."""
 
     try:
+        from .auth import COOKIE_NAME, admin_for_token
+        from .runtime_settings import runtime_settings
+        auth_settings = runtime_settings()["authentication"]
+        if (
+            auth_settings["login_enabled"]
+            and not auth_settings["guest_access"]
+            and not admin_for_token(request.cookies.get(COOKIE_NAME))
+        ):
+            return JSONResponse(
+                {"detail": "Authentication required."}, status_code=401
+            )
+    except ImportError:
+        pass
+    try:
         payload = await request.json()
     except ValueError:
         return JSONResponse(
@@ -253,93 +269,6 @@ async def ask(request: Request) -> JSONResponse:
         return JSONResponse({"detail": str(error)}, status_code=422)
 
 
-async def documents(_: Request) -> JSONResponse:
-    """List source documents currently managed by the chatbot."""
-
-    return JSONResponse({"documents": await run_in_threadpool(list_documents)})
-
-
-async def create_document(request: Request) -> JSONResponse:
-    """Insert a text document and index it."""
-
-    try:
-        payload = await request.json()
-        if not isinstance(payload, dict):
-            raise ValueError("Request body must be a JSON object.")
-        result = await run_in_threadpool(
-            insert_document,
-            payload.get("filename"),
-            payload.get("content"),
-        )
-        return JSONResponse(result, status_code=201)
-    except FileExistsError:
-        return JSONResponse(
-            {"detail": "A document with this filename already exists."},
-            status_code=409,
-        )
-    except ValueError as error:
-        return JSONResponse({"detail": str(error)}, status_code=422)
-    except NotFoundError:
-        return JSONResponse(
-            {"detail": f"Collection '{COLLECTION_NAME}' was not found."},
-            status_code=503,
-        )
-    except (ConnectionError, httpx.HTTPError):
-        return JSONResponse(
-            {"detail": "Could not connect to Ollama."},
-            status_code=503,
-        )
-
-
-async def replace_document(request: Request) -> JSONResponse:
-    """Replace a text document and its indexed chunks."""
-
-    try:
-        payload = await request.json()
-        if not isinstance(payload, dict):
-            raise ValueError("Request body must be a JSON object.")
-        result = await run_in_threadpool(
-            update_document,
-            request.path_params["filename"],
-            payload.get("content"),
-        )
-        return JSONResponse(result)
-    except FileNotFoundError:
-        return JSONResponse({"detail": "Document not found."}, status_code=404)
-    except ValueError as error:
-        return JSONResponse({"detail": str(error)}, status_code=422)
-    except NotFoundError:
-        return JSONResponse(
-            {"detail": f"Collection '{COLLECTION_NAME}' was not found."},
-            status_code=503,
-        )
-    except (ConnectionError, httpx.HTTPError):
-        return JSONResponse(
-            {"detail": "Could not connect to Ollama."},
-            status_code=503,
-        )
-
-
-async def remove_document(request: Request) -> JSONResponse:
-    """Delete a text document and its indexed chunks."""
-
-    try:
-        result = await run_in_threadpool(
-            delete_document,
-            request.path_params["filename"],
-        )
-        return JSONResponse(result)
-    except FileNotFoundError:
-        return JSONResponse({"detail": "Document not found."}, status_code=404)
-    except ValueError as error:
-        return JSONResponse({"detail": str(error)}, status_code=422)
-    except NotFoundError:
-        return JSONResponse(
-            {"detail": f"Collection '{COLLECTION_NAME}' was not found."},
-            status_code=503,
-        )
-
-
 app = Starlette(
     debug=False,
     routes=[
@@ -347,10 +276,24 @@ app = Starlette(
         Route("/favicon.ico", favicon, methods=["GET"]),
         Route("/health", health, methods=["GET"]),
         Route("/ask", ask, methods=["POST"]),
-        Route("/documents", documents, methods=["GET"]),
-        Route("/documents", create_document, methods=["POST"]),
-        Route("/documents/{filename:str}", replace_document, methods=["PUT"]),
-        Route("/documents/{filename:str}", remove_document, methods=["DELETE"]),
+        Route("/api/auth/login", login, methods=["POST"]),
+        Route("/api/auth/logout", logout, methods=["POST"]),
+        Route("/api/auth/session", session, methods=["GET"]),
+        Route("/api/settings", settings_get, methods=["GET"]),
+        Route("/api/settings", settings_put, methods=["PUT"]),
+        Route("/api/settings/reset", settings_reset, methods=["POST"]),
+        Route("/api/settings/classifications", classifications_get, methods=["GET"]),
+        Route("/api/settings/classifications", classifications_post, methods=["POST"]),
+        Route("/api/settings/classifications/{id:int}", classification_put, methods=["PUT"]),
+        Route("/api/settings/classifications/{id:int}", classification_delete, methods=["DELETE"]),
+        Route("/api/settings/classifications/{id:int}/reassign", classification_reassign, methods=["POST"]),
+        Route("/api/settings/model/test", model_test, methods=["POST"]),
+        Route("/api/settings/index/rebuild", index_rebuild, methods=["POST"]),
+        Route("/api/settings/index/status", index_status, methods=["GET"]),
+        Route("/api/settings/export", settings_export, methods=["GET"]),
+        Route("/api/settings/import", settings_import, methods=["POST"]),
+        Route("/api/settings/backup", backup_create, methods=["POST"]),
+        Route("/api/settings/restore", backup_restore, methods=["POST"]),
         Mount(
             "/assets",
             app=StaticFiles(directory=FRONTEND_FOLDER),

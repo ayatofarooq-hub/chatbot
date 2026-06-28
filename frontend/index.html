@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/assets/styles.css">
+  <link rel="stylesheet" href="/assets/styles.css?v=20260628-settings-2">
 </head>
 <body>
   <div class="app-shell">
@@ -30,6 +30,11 @@
         <button class="nav-item" id="new-decision-button" type="button">
           <span class="nav-icon" aria-hidden="true">⊕</span>
           <span>قرار جديد</span>
+          <span class="nav-arrow" aria-hidden="true">‹</span>
+        </button>
+        <button class="nav-item" id="settings-nav-button" type="button">
+          <span class="nav-icon" aria-hidden="true">⚙</span>
+          <span data-i18n="settings">الإعدادات</span>
           <span class="nav-arrow" aria-hidden="true">‹</span>
         </button>
       </nav>
@@ -181,10 +186,14 @@
           </form>
         </div>
       </section>
+      <section class="settings-view app-view" id="settings-view" hidden>
+        <div id="settings-root"></div>
+      </section>
     </main>
   </div>
 
   <div class="toast" id="toast" role="alert"></div>
-  <script type="module" src="/assets/app.js"></script>
+  <div id="modal-root"></div>
+  <script type="module" src="/assets/app.js?v=20260628-settings-2"></script>
 </body>
 </html>

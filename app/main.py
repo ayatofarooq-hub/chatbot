@@ -1,17 +1,12 @@
-"""Temporary project entry point.
-
-This file checks the initial setup only. The legal chatbot and RAG pipeline
-will be implemented later.
-"""
+"""Display the PostgreSQL-only chatbot configuration."""
 
 from app.config import (
     CHAT_MODEL,
     CHROMA_FOLDER,
     EMBEDDING_MODEL,
-    EXTRACTED_TEXT_FOLDER,
-    LEGAL_DOCUMENTS_FOLDER,
     create_data_directories,
 )
+from app.database import create_database_engine, connection_identity
 
 
 def main() -> None:
@@ -19,9 +14,15 @@ def main() -> None:
 
     create_data_directories()
 
-    print("Offline Arabic legal chatbot project is ready for development.")
-    print(f"Legal documents folder: {LEGAL_DOCUMENTS_FOLDER}")
-    print(f"Extracted text folder: {EXTRACTED_TEXT_FOLDER}")
+    engine = create_database_engine()
+    try:
+        database_name, database_user = connection_identity(engine)
+    finally:
+        engine.dispose()
+
+    print(
+        f"PostgreSQL source: database '{database_name}' as '{database_user}'"
+    )
     print(f"Chroma folder: {CHROMA_FOLDER}")
     print(f"Chat model: {CHAT_MODEL}")
     print(f"Embedding model: {EMBEDDING_MODEL}")

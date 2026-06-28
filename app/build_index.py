@@ -16,12 +16,11 @@ try:
     from .config import (
         CHROMA_FOLDER,
         EMBEDDING_MODEL,
-        LEGAL_DOCUMENTS_FOLDER,
         OLLAMA_KEEP_ALIVE,
         OLLAMA_REQUEST_TIMEOUT_SECONDS,
     )
-    from .document_loaders import load_documents
     from .ollama_client import client as ollama_client
+    from .postgres_laws import load_postgres_documents
 except ImportError:
     # Support direct execution with: python app/build_index.py
     from citation_registry import save_registry
@@ -29,12 +28,11 @@ except ImportError:
     from config import (
         CHROMA_FOLDER,
         EMBEDDING_MODEL,
-        LEGAL_DOCUMENTS_FOLDER,
         OLLAMA_KEEP_ALIVE,
         OLLAMA_REQUEST_TIMEOUT_SECONDS,
     )
-    from document_loaders import load_documents
     from ollama_client import client as ollama_client
+    from postgres_laws import load_postgres_documents
 
 
 COLLECTION_NAME = "iraqi_legal_documents"
@@ -93,6 +91,14 @@ def load_chunks(file_path: Path) -> list[dict]:
 def create_embeddings(chunks: list[dict]) -> list[list[float]]:
     """Generate one Ollama embedding for every legal text chunk."""
 
+    try:
+        from .runtime_settings import runtime_settings
+    except ImportError:
+        from runtime_settings import runtime_settings
+    model = runtime_settings()["model"]
+    active_client = ollama.Client(
+        host=model["ollama_base_url"], timeout=model["request_timeout"]
+    )
     embeddings = []
 
     for start in tqdm(
@@ -101,10 +107,10 @@ def create_embeddings(chunks: list[dict]) -> list[list[float]]:
         unit="batch",
     ):
         batch = chunks[start : start + EMBEDDING_BATCH_SIZE]
-        response = ollama_client.embed(
-            model=EMBEDDING_MODEL,
+        response = active_client.embed(
+            model=model["embedding_model"],
             input=[chunk["text"] for chunk in batch],
-            keep_alive=OLLAMA_KEEP_ALIVE,
+            keep_alive=model["keep_alive"],
         )
         batch_embeddings = response["embeddings"]
 
@@ -171,12 +177,24 @@ def add_chunks(collection, chunks: list[dict], embeddings: list[list[float]]) ->
 
 
 def load_source_chunks() -> list[dict]:
-    """Load and chunk all DOCX/TXT legal sources."""
+    """Load and chunk PostgreSQL legal records."""
 
-    documents = load_documents(LEGAL_DOCUMENTS_FOLDER)
+    try:
+        from . import chunk_text
+        from .runtime_settings import runtime_settings
+    except ImportError:
+        import chunk_text
+        from runtime_settings import runtime_settings
+    retrieval = runtime_settings()["retrieval"]
+    chunk_text.TARGET_CHUNK_SIZE = retrieval["chunk_size"]
+    chunk_text.MIN_CHUNK_SIZE = max(100, int(retrieval["chunk_size"] * 0.6))
+    chunk_text.MAX_CHUNK_SIZE = max(retrieval["chunk_size"] + 1, int(retrieval["chunk_size"] * 1.35))
+    chunk_text.CHUNK_OVERLAP = retrieval["chunk_overlap"]
+    documents = load_postgres_documents()
     if not documents:
-        raise FileNotFoundError(
-            f"No DOCX or TXT files found in: {LEGAL_DOCUMENTS_FOLDER}"
+        raise ValueError(
+            "PostgreSQL public.iraqi_laws returned no legal records. "
+            "Check DATABASE_URL and the table contents."
         )
 
     chunks = []
@@ -184,6 +202,8 @@ def load_source_chunks() -> list[dict]:
         document_chunks = build_chunks_from_document(document)
         chunks.extend(document_chunks)
         print(f"{document.source_file}: {len(document_chunks)} chunks")
+
+    print(f"Loaded {len(documents)} rows from PostgreSQL public.iraqi_laws.")
 
     if not chunks:
         raise ValueError("The source documents did not produce any chunks.")
@@ -199,12 +219,12 @@ def save_chunks(chunks: list[dict]) -> None:
 
 
 def main() -> None:
-    """Build a fresh Chroma collection from DOCX/TXT legal sources."""
+    """Build a fresh Chroma collection from PostgreSQL legal records."""
 
     try:
         chunks = load_source_chunks()
         save_chunks(chunks)
-        print(f"Prepared {len(chunks)} chunks from legal source documents.")
+        print(f"Prepared {len(chunks)} chunks from configured legal sources.")
         print(f"Embedding model: {EMBEDDING_MODEL}")
 
         # Generate embeddings before resetting the collection. If Ollama is

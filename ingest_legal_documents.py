@@ -1,4 +1,4 @@
-"""Sample batch ingestion entry point for legal DOCX/TXT documents."""
+"""Rebuild the legal search index from PostgreSQL."""
 
 from app.build_index import main
 

@@ -277,14 +277,25 @@ def call_chat_model(
 ) -> str:
     """Stream a model response while retaining it for validation."""
 
-    response_stream = ollama_client.chat(
-        model=CHAT_MODEL,
+    try:
+        from .runtime_settings import runtime_settings
+    except ImportError:
+        from runtime_settings import runtime_settings
+    model_settings = runtime_settings()["model"]
+    active_client = ollama.Client(
+        host=model_settings["ollama_base_url"],
+        timeout=model_settings["request_timeout"],
+    )
+    response_stream = active_client.chat(
+        model=model_settings["chat_model"],
         messages=messages,
         stream=True,
-        keep_alive=OLLAMA_KEEP_ALIVE,
+        keep_alive=model_settings["keep_alive"],
         options={
-            "temperature": 0,
-            "num_predict": CHAT_MAX_TOKENS,
+            "temperature": model_settings["temperature"],
+            "top_p": model_settings["top_p"],
+            "num_ctx": model_settings["context_length"],
+            "num_predict": model_settings["max_answer_tokens"],
         },
     )
     response_parts = []

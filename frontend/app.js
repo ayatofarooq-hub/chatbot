@@ -1,4 +1,5 @@
 import { createUploadManager } from "./components/upload/useUploadManager.js";
+import { createSettingsModule } from "./components/settings/SettingsPage.js";
 
 const storageKey = "iraqi-legal-assistant-conversations";
 const decisionDraftKey = "iraqi-legal-assistant-decision-draft";
@@ -17,6 +18,8 @@ const elements = {
   decisionNav: document.querySelector("#new-decision-button"),
   decisionTitle: document.querySelector("#decision-title"),
   decisionView: document.querySelector("#decision-view"),
+  settingsNav: document.querySelector("#settings-nav-button"),
+  settingsView: document.querySelector("#settings-view"),
   dropzoneRoot: document.querySelector("#upload-dropzone-root"),
   errorsRoot: document.querySelector("#upload-errors"),
   form: document.querySelector("#question-form"),
@@ -60,6 +63,12 @@ const uploadManager = createUploadManager({
   showToast,
 });
 
+const settingsModule = createSettingsModule({
+  root: document.querySelector("#settings-root"),
+  modalRoot: document.querySelector("#modal-root"),
+  showToast,
+});
+
 function loadConversations() {
   try {
     const stored = JSON.parse(localStorage.getItem(storageKey) || "[]");
@@ -91,16 +100,22 @@ function createConversation() {
 
 function showView(viewName) {
   const showAssistant = viewName === "assistant";
+  const showDecision = viewName === "decision";
+  const showSettings = viewName === "settings";
   elements.assistantView.hidden = !showAssistant;
-  elements.decisionView.hidden = showAssistant;
+  elements.decisionView.hidden = !showDecision;
+  elements.settingsView.hidden = !showSettings;
   elements.assistantNav.classList.toggle("active", showAssistant);
-  elements.decisionNav.classList.toggle("active", !showAssistant);
+  elements.decisionNav.classList.toggle("active", showDecision);
+  elements.settingsNav.classList.toggle("active", showSettings);
   elements.nav.classList.remove("open");
-  document.body.classList.toggle("decision-mode", !showAssistant);
+  document.body.classList.toggle("decision-mode", showDecision);
   if (showAssistant) {
     elements.input.focus();
-  } else {
+  } else if (showDecision) {
     elements.dropzoneRoot.querySelector(".upload-dropzone")?.focus();
+  } else if (showSettings) {
+    settingsModule.open();
   }
 }
 
@@ -404,6 +419,7 @@ elements.suggestions.addEventListener("click", (event) => {
 
 elements.assistantNav.addEventListener("click", () => showView("assistant"));
 elements.decisionNav.addEventListener("click", () => showView("decision"));
+elements.settingsNav.addEventListener("click", () => showView("settings"));
 elements.newChatInline.addEventListener("click", createConversation);
 elements.clearHistory.addEventListener("click", removeAllConversations);
 elements.historySearch.addEventListener("input", renderHistory);
