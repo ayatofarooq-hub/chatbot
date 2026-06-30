@@ -5,16 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#145a38">
   <title>المساعد القانوني العراقي</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/assets/styles.css?v=20260630-ar-settings">
+  <link rel="stylesheet" href="/assets/styles.css?v=20260630-ui-polish">
 </head>
 <body>
   <div class="app-shell">
     <aside class="primary-nav" id="primary-nav">
       <div class="brand-lockup">
-        <div class="brand-icon" aria-hidden="true">✓</div>
+        <div class="brand-icon" aria-hidden="true">
+          <img src="/assets/images/logo-icon.png" alt="">
+        </div>
         <div>
           <span>مجلس الوزراء</span>
           <strong>نظام إدارة القرارات</strong>
@@ -23,19 +22,34 @@
 
       <nav class="main-menu" aria-label="التنقل الرئيسي">
         <button class="nav-item active" id="assistant-nav-button" type="button">
-          <span class="nav-icon" aria-hidden="true">▣</span>
+          <span class="nav-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" focusable="false">
+              <path d="M5.75 6.5A3.75 3.75 0 0 1 9.5 2.75h5A3.75 3.75 0 0 1 18.25 6.5v5A3.75 3.75 0 0 1 14.5 15.25H10l-4.25 3.5v-3.8A3.75 3.75 0 0 1 2 11.2V6.5h3.75Z"/>
+              <path d="M8 7.25h8M8 10.25h5.5"/>
+            </svg>
+          </span>
           <span>المساعد الذكي</span>
-          <span class="nav-arrow" aria-hidden="true">‹</span>
+          <span class="nav-arrow" aria-hidden="true">›</span>
         </button>
         <button class="nav-item" id="new-decision-button" type="button">
-          <span class="nav-icon" aria-hidden="true">⊕</span>
+          <span class="nav-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" focusable="false">
+              <path d="M7 3.75h6.25L18 8.5v11.75H7A2.25 2.25 0 0 1 4.75 18V6A2.25 2.25 0 0 1 7 3.75Z"/>
+              <path d="M13.25 3.75V8.5H18M8.25 13h5.5M11 10.25v5.5"/>
+            </svg>
+          </span>
           <span>قرار جديد</span>
-          <span class="nav-arrow" aria-hidden="true">‹</span>
+          <span class="nav-arrow" aria-hidden="true">›</span>
         </button>
         <button class="nav-item" id="settings-nav-button" type="button">
-          <span class="nav-icon" aria-hidden="true">⚙</span>
+          <span class="nav-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" focusable="false">
+              <path d="M12 8.25a3.75 3.75 0 1 1 0 7.5 3.75 3.75 0 0 1 0-7.5Z"/>
+              <path d="M19.25 13.25v-2.5l-2.05-.5a6.2 6.2 0 0 0-.72-1.73l1.1-1.8-1.8-1.8-1.8 1.1a6.2 6.2 0 0 0-1.73-.72L11.75 2.75h-2.5l-.5 2.05a6.2 6.2 0 0 0-1.73.72l-1.8-1.1-1.8 1.8 1.1 1.8a6.2 6.2 0 0 0-.72 1.73l-2.05.5v2.5l2.05.5c.16.61.4 1.2.72 1.73l-1.1 1.8 1.8 1.8 1.8-1.1c.53.32 1.12.56 1.73.72l.5 2.05h2.5l.5-2.05c.61-.16 1.2-.4 1.73-.72l1.8 1.1 1.8-1.8-1.1-1.8c.32-.53.56-1.12.72-1.73l2.05-.5Z"/>
+            </svg>
+          </span>
           <span data-i18n="settings">الإعدادات</span>
-          <span class="nav-arrow" aria-hidden="true">‹</span>
+          <span class="nav-arrow" aria-hidden="true">›</span>
         </button>
       </nav>
 
@@ -53,9 +67,6 @@
           <span aria-hidden="true">⌕</span>
           <input type="search" placeholder="البحث في القرارات والتشريعات..." disabled>
         </label>
-        <div class="header-actions" aria-hidden="true">
-          <span>●</span><span>⚙</span><span>♧</span>
-        </div>
         <div class="profile">
           <div>
             <strong>المستخدم الداخلي</strong>
@@ -66,7 +77,38 @@
         </div>
       </header>
 
-      <div class="workspace-grid app-view active" id="assistant-view">
+      <section class="landing-view app-view active" id="landing-view">
+        <div class="landing-orb landing-orb-one" aria-hidden="true"></div>
+        <div class="landing-orb landing-orb-two" aria-hidden="true"></div>
+
+        <div class="landing-hero">
+          <div class="landing-badge">مساعد قانوني عراقي محلي</div>
+          <h1><span aria-hidden="true">✺</span> أهلاً بك في المساعد القانوني</h1>
+          <p>
+            ابدأ بسؤال قانوني، وسننقلك مباشرة إلى صفحة المحادثة الحالية مع إرسال السؤال تلقائياً
+            دون تغيير منطق المحادثة أو مصادر الإجابة.
+          </p>
+
+          <form class="landing-prompt" id="landing-form">
+            <label class="visually-hidden" for="landing-input">اكتب سؤالك القانوني</label>
+            <textarea id="landing-input" rows="3" placeholder="كيف يمكنني مساعدتك اليوم؟"></textarea>
+            <div class="landing-prompt-actions">
+              <button class="landing-attach" type="button" disabled aria-label="إرفاق ملف">＋</button>
+              <div class="landing-model" aria-hidden="true">النموذج المحلي · Ollama</div>
+              <button class="landing-send" id="landing-send" type="submit" aria-label="إرسال السؤال">←</button>
+            </div>
+          </form>
+
+          <div class="landing-suggestions" id="landing-suggestions" aria-label="أسئلة مقترحة">
+            <button type="button">لخّص أهم الأحكام القانونية في الوثائق المتاحة</button>
+            <button type="button">ما الالتزامات والإجراءات المطلوبة في هذا القرار؟</button>
+            <button type="button">قارن بين النصوص القانونية ذات الصلة</button>
+            <button type="button">استخرج الجهات والأطراف المعنية</button>
+          </div>
+        </div>
+      </section>
+
+      <div class="workspace-grid app-view" id="assistant-view" hidden>
         <aside class="history-panel panel">
           <div class="panel-header">
             <strong>سجل المحادثات</strong>
@@ -194,6 +236,6 @@
 
   <div class="toast" id="toast" role="alert"></div>
   <div id="modal-root"></div>
-  <script type="module" src="/assets/app.js?v=20260630-ar-settings"></script>
+  <script type="module" src="/assets/app.js?v=20260630-ui-polish"></script>
 </body>
 </html>

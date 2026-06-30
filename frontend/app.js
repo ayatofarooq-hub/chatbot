@@ -27,6 +27,11 @@ const elements = {
   historySearch: document.querySelector("#history-search"),
   input: document.querySelector("#question-input"),
   insightList: document.querySelector("#insight-list"),
+  landingForm: document.querySelector("#landing-form"),
+  landingInput: document.querySelector("#landing-input"),
+  landingSend: document.querySelector("#landing-send"),
+  landingSuggestions: document.querySelector("#landing-suggestions"),
+  landingView: document.querySelector("#landing-view"),
   listRoot: document.querySelector("#upload-file-list"),
   messages: document.querySelector("#messages"),
   mobileMenu: document.querySelector("#mobile-menu"),
@@ -50,6 +55,7 @@ let conversations = loadConversations();
 let activeConversationId = conversations[0]?.id ?? null;
 let pending = false;
 let selectedPriority = "عالية";
+const initialPromptKey = "iraqi-legal-assistant-initial-prompt";
 
 const uploadManager = createUploadManager({
   dropzoneRoot: elements.dropzoneRoot,
@@ -99,24 +105,58 @@ function createConversation() {
 }
 
 function showView(viewName) {
+  const showLanding = viewName === "landing";
   const showAssistant = viewName === "assistant";
   const showDecision = viewName === "decision";
   const showSettings = viewName === "settings";
+  elements.landingView.hidden = !showLanding;
   elements.assistantView.hidden = !showAssistant;
   elements.decisionView.hidden = !showDecision;
   elements.settingsView.hidden = !showSettings;
-  elements.assistantNav.classList.toggle("active", showAssistant);
+  elements.assistantNav.classList.toggle("active", showAssistant || showLanding);
   elements.decisionNav.classList.toggle("active", showDecision);
   elements.settingsNav.classList.toggle("active", showSettings);
   elements.nav.classList.remove("open");
   document.body.classList.toggle("decision-mode", showDecision);
-  if (showAssistant) {
+  if (showLanding) {
+    elements.landingInput.focus();
+  } else if (showAssistant) {
     elements.input.focus();
+    consumeInitialPrompt();
   } else if (showDecision) {
     elements.dropzoneRoot.querySelector(".upload-dropzone")?.focus();
   } else if (showSettings) {
     settingsModule.open();
   }
+}
+
+function transferPromptToChat(question) {
+  const cleanQuestion = normalizeWhitespace(question);
+  if (!cleanQuestion || pending) return;
+  sessionStorage.setItem(initialPromptKey, cleanQuestion);
+  elements.landingInput.value = "";
+  elements.landingInput.style.height = "";
+  history.replaceState(null, "", "#chat");
+  showView("assistant");
+}
+
+function consumeInitialPrompt() {
+  const fromQuery = new URLSearchParams(window.location.search).get("prompt");
+  const stored = sessionStorage.getItem(initialPromptKey);
+  const prompt = normalizeWhitespace(stored || fromQuery || "");
+  if (!prompt || pending) return;
+
+  sessionStorage.removeItem(initialPromptKey);
+  if (fromQuery) {
+    const url = new URL(window.location.href);
+    url.searchParams.delete("prompt");
+    history.replaceState(null, "", `${url.pathname}${url.search}${url.hash || "#chat"}`);
+  }
+
+  elements.input.value = prompt;
+  elements.input.style.height = "auto";
+  elements.input.style.height = `${Math.min(elements.input.scrollHeight, 120)}px`;
+  elements.form.requestSubmit();
 }
 
 function activeConversation() {
@@ -400,6 +440,28 @@ elements.form.addEventListener("submit", (event) => {
   submitQuestion(question);
 });
 
+elements.landingForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  transferPromptToChat(elements.landingInput.value);
+});
+
+elements.landingInput.addEventListener("keydown", (event) => {
+  if (event.key === "Enter" && !event.shiftKey) {
+    event.preventDefault();
+    elements.landingForm.requestSubmit();
+  }
+});
+
+elements.landingInput.addEventListener("input", () => {
+  elements.landingInput.style.height = "auto";
+  elements.landingInput.style.height = `${Math.min(elements.landingInput.scrollHeight, 150)}px`;
+});
+
+elements.landingSuggestions.addEventListener("click", (event) => {
+  const button = event.target.closest("button");
+  if (button) transferPromptToChat(button.textContent);
+});
+
 elements.input.addEventListener("keydown", (event) => {
   if (event.key === "Enter" && !event.shiftKey) {
     event.preventDefault();
@@ -417,7 +479,10 @@ elements.suggestions.addEventListener("click", (event) => {
   if (button) submitQuestion(button.textContent);
 });
 
-elements.assistantNav.addEventListener("click", () => showView("assistant"));
+elements.assistantNav.addEventListener("click", () => {
+  history.replaceState(null, "", window.location.pathname);
+  showView("landing");
+});
 elements.decisionNav.addEventListener("click", () => showView("decision"));
 elements.settingsNav.addEventListener("click", () => showView("settings"));
 elements.newChatInline.addEventListener("click", createConversation);
@@ -449,3 +514,8 @@ elements.decisionForm.addEventListener("submit", (event) => {
 
 loadDecisionDraft();
 render();
+if (window.location.hash === "#chat" || new URLSearchParams(window.location.search).has("prompt")) {
+  showView("assistant");
+} else {
+  showView("landing");
+}

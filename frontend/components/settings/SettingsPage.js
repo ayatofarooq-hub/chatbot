@@ -446,20 +446,20 @@ export function createSettingsModule({ root, modalRoot, showToast }) {
     section.className = "fine-tuning-stack full-width";
     section.innerHTML = `
       <section class="settings-card fine-card">
-        <div class="fine-card-title"><span aria-hidden="true">⌘</span><h2>الضبط الدقيق</h2></div>
+        <div class="fine-card-title"><span class="settings-card-icon" aria-hidden="true">&#9881;</span><h2>الضبط الدقيق</h2></div>
         <div class="fine-row"><span>النموذج الأساسي</span><select data-ft-model></select></div>
         <div class="fine-row"><span>حد التحقق</span><div class="range-control"><input data-ft-validation type="range" min="0" max="1" step="0.01"><strong data-ft-validation-label></strong></div></div>
       </section>
       <section class="settings-card fine-card">
         <div class="fine-card-header">
-          <div class="fine-card-title"><span aria-hidden="true">◷</span><h2>إعادة التدريب المجدولة</h2></div>
+          <div class="fine-card-title"><span class="settings-card-icon" aria-hidden="true">&#9719;</span><h2>إعادة التدريب المجدولة</h2></div>
           <span class="run-status">مجدول</span>
         </div>
         <div class="fine-row"><span>وقت البدء</span><input data-ft-time type="time"></div>
         <button type="button" data-run-now>تشغيل الآن</button>
       </section>
       <section class="settings-card fine-card">
-        <div class="fine-card-title"><span aria-hidden="true">≛</span><h2>نمط التعلم</h2></div>
+        <div class="fine-card-title"><span class="settings-card-icon" aria-hidden="true">&#8644;</span><h2>نمط التعلم</h2></div>
         <div class="segmented-control">
           <button type="button" data-mode="manual">يدوي</button>
           <button type="button" data-mode="automatic">تلقائي</button>
@@ -468,17 +468,11 @@ export function createSettingsModule({ root, modalRoot, showToast }) {
       </section>
       <section class="settings-card fine-card">
         <div class="fine-card-header">
-          <div class="fine-card-title"><span aria-hidden="true">⌁</span><h2>${t("classifications", language)}</h2></div>
+          <div class="fine-card-title"><span class="settings-card-icon" aria-hidden="true">&#9638;</span><h2>${t("classifications", language)}</h2></div>
           <div class="classification-actions"><button type="button" data-add>إضافة تصنيف</button><button type="button" class="danger-button" data-delete-category>حذف تصنيف</button></div>
         </div>
       </section>
-      <section class="settings-card fine-card sign-in-card">
-        <div>
-          <h2>تسجيل دخول النظام للضبط الدقيق</h2>
-          <p class="fine-help">عند التفعيل يمكن للمهام المجدولة العمل في وقتها. عند التعطيل يتم منع التدريب قبل أن يبدأ.</p>
-        </div>
-        <label class="toggle-switch"><input data-ft-signed-in type="checkbox"><span></span></label>
-      </section>`;
+      `;
 
     const modelSelect = section.querySelector("[data-ft-model]");
     [state.model.chat_model, "Legal-Base v3", "qwen2.5:7b"].filter(Boolean).forEach((model) => {
@@ -519,10 +513,6 @@ export function createSettingsModule({ root, modalRoot, showToast }) {
       };
     });
     syncMode();
-
-    const signedIn = section.querySelector("[data-ft-signed-in]");
-    signedIn.checked = state.fine_tuning.system_signed_in;
-    signedIn.onchange = () => { state.fine_tuning.system_signed_in = signedIn.checked; markDirty(); };
 
     section.querySelector("[data-run-now]").onclick = () => notify("مشغّل الضبط الدقيق اليدوي غير مربوط بواجهة API حالياً.");
     grid.append(section);
