@@ -1825,9 +1825,11 @@ textarea:focus-visible,
 [data-scale="large"] { font-size: 18px; }
 
 .settings-view {
-  min-height: calc(100vh - 76px);
+  height: calc(100vh - 86px);
+  min-height: 0;
   padding: 28px;
-  overflow: auto;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   background: var(--page-bg, #f4f7f5);
 }
 
@@ -1901,14 +1903,226 @@ textarea:focus-visible,
 }
 .settings-modal label { display: grid; gap: 6px; margin: 12px 0; }
 .field-error, .settings-error { color: #a33131; }
+.settings-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+}
+.settings-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.92rem;
+}
+.settings-table th,
+.settings-table td {
+  padding: 10px;
+  border-bottom: 1px solid var(--settings-border);
+  text-align: start;
+  vertical-align: top;
+}
+.settings-row-actions {
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+}
 :focus-visible { outline: 3px solid color-mix(in srgb, var(--primary) 45%, transparent); outline-offset: 2px; }
+
+.fine-tuning-stack {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 20px;
+}
+
+.fine-card {
+  display: grid;
+  gap: 16px;
+  box-shadow: none;
+}
+
+.fine-card-title,
+.fine-card-header,
+.fine-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.fine-card-title {
+  justify-content: flex-start;
+}
+
+.fine-card-title span {
+  color: #1f65b7;
+  font-weight: var(--font-weight-semibold);
+}
+
+.fine-card h2 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.fine-row > span {
+  color: #5f625f;
+  font-weight: var(--font-weight-medium);
+}
+
+.fine-row select,
+.fine-row input[type="time"] {
+  width: min(280px, 55%);
+  min-height: 44px;
+  padding: 8px 14px;
+  border: 1px solid var(--settings-border);
+  border-radius: 8px;
+  background: var(--settings-surface);
+  color: inherit;
+  font: inherit;
+}
+
+.range-control {
+  width: min(280px, 55%);
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 12px;
+}
+
+.range-control input {
+  width: 100%;
+  accent-color: #7db5f4;
+}
+
+.run-status {
+  padding: 7px 14px;
+  border-radius: 10px;
+  color: #1b6d21;
+  background: #c5efc5;
+  font-weight: var(--font-weight-semibold);
+}
+
+.segmented-control {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.segmented-control button {
+  min-height: 46px;
+  margin: 0;
+  border-radius: 8px;
+  font-weight: var(--font-weight-semibold);
+}
+
+.segmented-control button.active {
+  color: #1f5fa8;
+  background: #cfe3fb;
+  border-color: #7fb2f0;
+}
+
+.fine-help {
+  margin: 0;
+  color: #85827b;
+  line-height: 1.6;
+}
+
+.category-row {
+  min-height: 42px;
+  margin-top: 10px;
+  padding: 0 14px;
+  border: 1px solid var(--settings-border);
+  border-radius: 8px;
+}
+
+.category-row small {
+  color: var(--settings-muted);
+}
+
+.category-row button {
+  min-height: 30px;
+  margin: 0;
+  padding: 4px 10px;
+}
+
+.classification-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.classification-actions button {
+  margin: 0;
+}
+
+.icon-danger-button {
+  width: 32px;
+  color: #777 !important;
+  border: 0 !important;
+  background: transparent !important;
+  font-size: 20px;
+}
+
+.sign-in-card {
+  grid-template-columns: 1fr auto;
+  align-items: center;
+}
+
+.toggle-switch input {
+  position: absolute;
+  opacity: 0;
+}
+
+.toggle-switch span {
+  width: 52px;
+  height: 30px;
+  display: block;
+  position: relative;
+  border-radius: 999px;
+  background: #c9d1ca;
+  cursor: pointer;
+}
+
+.toggle-switch span::after {
+  content: "";
+  width: 24px;
+  height: 24px;
+  position: absolute;
+  top: 3px;
+  inset-inline-start: 3px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 2px 6px rgb(0 0 0 / 20%);
+  transition: transform 180ms ease;
+}
+
+.toggle-switch input:checked + span {
+  background: #2f7ed8;
+}
+
+.toggle-switch input:checked + span::after {
+  transform: translateX(22px);
+}
 
 @media (max-width: 900px) {
   .settings-grid { grid-template-columns: 1fr; }
   .settings-card.full-width { grid-column: auto; }
 }
 @media (max-width: 600px) {
-  .settings-view { padding: 16px; }
+  .settings-view {
+    height: calc(100vh - 70px);
+    padding: 16px;
+  }
   .settings-header, .classification-row { align-items: stretch; flex-direction: column; }
   .settings-fields { grid-template-columns: 1fr; }
+  .fine-card-header,
+  .fine-row,
+  .sign-in-card {
+    align-items: stretch;
+    grid-template-columns: 1fr;
+    flex-direction: column;
+  }
+  .fine-row select,
+  .fine-row input[type="time"],
+  .range-control {
+    width: 100%;
+  }
 }

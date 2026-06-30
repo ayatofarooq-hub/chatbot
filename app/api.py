@@ -27,7 +27,8 @@ try:
         classification_put, classification_reassign, classifications_get,
         classifications_post, index_rebuild, index_status, login, logout,
         model_test, session, settings_export, settings_get, settings_import,
-        settings_put, settings_reset,
+        settings_put, settings_reset, audit_log_get, user_delete,
+        user_password_post, user_put, users_get, users_post,
     )
 except ImportError:
     # Support direct execution with: python app/api.py
@@ -45,7 +46,8 @@ except ImportError:
         classification_put, classification_reassign, classifications_get,
         classifications_post, index_rebuild, index_status, login, logout,
         model_test, session, settings_export, settings_get, settings_import,
-        settings_put, settings_reset,
+        settings_put, settings_reset, audit_log_get, user_delete,
+        user_password_post, user_put, users_get, users_post,
     )
 
 
@@ -197,7 +199,6 @@ async def ask(request: Request) -> JSONResponse:
         auth_settings = runtime_settings()["authentication"]
         if (
             auth_settings["login_enabled"]
-            and not auth_settings["guest_access"]
             and not admin_for_token(request.cookies.get(COOKIE_NAME))
         ):
             return JSONResponse(
@@ -294,6 +295,12 @@ app = Starlette(
         Route("/api/settings/import", settings_import, methods=["POST"]),
         Route("/api/settings/backup", backup_create, methods=["POST"]),
         Route("/api/settings/restore", backup_restore, methods=["POST"]),
+        Route("/api/settings/users", users_get, methods=["GET"]),
+        Route("/api/settings/users", users_post, methods=["POST"]),
+        Route("/api/settings/users/{id:int}", user_put, methods=["PUT"]),
+        Route("/api/settings/users/{id:int}", user_delete, methods=["DELETE"]),
+        Route("/api/settings/users/{id:int}/password", user_password_post, methods=["POST"]),
+        Route("/api/settings/audit-log", audit_log_get, methods=["GET"]),
         Mount(
             "/assets",
             app=StaticFiles(directory=FRONTEND_FOLDER),

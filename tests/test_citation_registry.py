@@ -65,6 +65,10 @@ class CitationRegistryTests(unittest.TestCase):
                 "ok": {
                     "law": "law",
                     "article": "article",
+                    "law_number": "111",
+                    "law_year": "1969",
+                    "article_number": "405",
+                    "law_name": "Penal Code",
                     "source_file": "law.docx",
                     "ingest_date": "2026-06-11",
                     "chunk_id": "ok",

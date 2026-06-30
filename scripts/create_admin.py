@@ -19,20 +19,18 @@ def main() -> None:
         raise SystemExit("Administrator username cannot be empty.")
 
     while True:
-        password = getpass("Administrator password (12+ characters): ")
-        if len(password) < 12:
-            print(
-                f"Password is too short ({len(password)} characters). "
-                "Enter at least 12 characters."
-            )
-            continue
+        password = getpass("Administrator password: ")
         confirmation = getpass("Confirm password: ")
         if password != confirmation:
             print("Passwords do not match. Try again.")
             continue
+        try:
+            create_admin(username, password)
+        except ValueError as exc:
+            print(f"{exc} Try again.")
+            continue
         break
 
-    create_admin(username, password)
     print(f"Administrator '{username}' is ready.")
 
 

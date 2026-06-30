@@ -1,4 +1,4 @@
-"""Answer Arabic legal questions using only retrieved local context."""
+﻿"""Answer Arabic legal questions using only retrieved local context."""
 
 import argparse
 import re
@@ -13,6 +13,12 @@ from chromadb.errors import NotFoundError
 
 try:
     from .build_index import COLLECTION_NAME
+    from .citation_registry import (
+        chunk_id_for,
+        filter_results_to_registered,
+        load_registry,
+        registry_warnings_for_metadatas,
+    )
     from .config import (
         CHAT_MAX_TOKENS,
         CHAT_MODEL,
@@ -32,6 +38,12 @@ try:
 except ImportError:
     # Support direct execution with: python app/rag_answer.py
     from build_index import COLLECTION_NAME
+    from citation_registry import (
+        chunk_id_for,
+        filter_results_to_registered,
+        load_registry,
+        registry_warnings_for_metadatas,
+    )
     from config import (
         CHAT_MAX_TOKENS,
         CHAT_MODEL,
@@ -136,25 +148,47 @@ def get_quick_response(question: str) -> str | None:
     return None
 
 
-def build_context(results: dict) -> str:
-    """Format retrieved chunks with citation metadata for the chat model."""
+def citation_for_metadata(metadata: dict, registry: dict) -> dict:
+    """Return the registry-backed citation for retrieved metadata."""
+
+    chunk_id = chunk_id_for(metadata)
+    if not chunk_id:
+        return {}
+    return registry.get("by_chunk_id", {}).get(chunk_id, {})
+
+
+def build_context(results: dict, registry: dict | None = None) -> str:
+    """Format retrieved chunks with registry-backed legal citation metadata."""
 
     documents = results.get("documents", [[]])[0]
     metadatas = results.get("metadatas", [[]])[0]
+    registry = registry or load_registry()
     context_sections = []
 
     for rank, (document, metadata) in enumerate(
         zip(documents, metadatas),
         start=1,
     ):
+        citation = citation_for_metadata(metadata, registry)
         source_file = metadata.get("source_file", "غير معروف")
         page_number = metadata.get("page_number", "غير معروف")
         legal_reference = metadata.get("legal_reference", "")
         document_title = metadata.get("document_title", "")
         document_type = metadata.get("document_type", "")
+        classification = (
+            citation.get("classification")
+            or metadata.get("document_classification")
+            or document_type
+        )
         metadata_lines = [
             f"المصدر: {source_file}",
             f"الصفحة: {page_number}",
+            f"chunk_id: {chunk_id_for(metadata) or 'missing'}",
+            f"law_number: {citation.get('law_number') or 'missing'}",
+            f"law_year: {citation.get('law_year') or 'missing'}",
+            f"article_number: {citation.get('article_number') or 'missing'}",
+            f"law_name: {citation.get('law_name') or 'missing'}",
+            f"classification: {classification or 'missing'}",
         ]
         if document_type:
             metadata_lines.append(f"نوع الوثيقة: {document_type}")
@@ -174,7 +208,6 @@ def build_context(results: dict) -> str:
         )
 
     return "\n\n".join(context_sections)
-
 
 def print_retrieved_context(context: str) -> None:
     """Print retrieved passages when diagnostic mode is enabled."""
@@ -271,6 +304,26 @@ def validate_answer(answer: str, context: str, results: dict) -> list[str]:
     return errors
 
 
+def registry_metadata_warnings(results: dict, registry: dict) -> list[str]:
+    """Return Arabic warnings for incomplete registry-backed legal metadata."""
+
+    warnings = []
+    for metadata in results.get("metadatas", [[]])[0]:
+        chunk_id = chunk_id_for(metadata) or "missing"
+        citation = citation_for_metadata(metadata, registry)
+        missing = [
+            field
+            for field in ("law_number", "law_year", "article_number", "law_name")
+            if not str(citation.get(field, "")).strip()
+        ]
+        if missing:
+            warnings.append(
+                "بيانات الاستشهاد ناقصة للمقطع "
+                f"'{chunk_id}': " + "، ".join(missing)
+            )
+    return warnings
+
+
 def call_chat_model(
     messages: list[dict],
     status_callback: Callable[[str], None] | None = None,
@@ -328,11 +381,17 @@ def generate_answer(
         if status_callback:
             status_callback(message)
 
-    context = build_context(results)
+    registry = load_registry()
+    results, registry_filter_warnings = filter_results_to_registered(
+        results,
+        registry=registry,
+    )
+    metadata_warnings = registry_metadata_warnings(results, registry)
+    context = build_context(results, registry=registry)
     if not context:
         return AnswerResult(
             content=f"{INSUFFICIENT_CONTEXT_MESSAGE}\n\n{FINAL_WARNING}",
-            warnings=[],
+            warnings=registry_filter_warnings,
         )
 
     report("جارٍ توليد الإجابة من المقاطع المسترجعة...")
@@ -360,7 +419,10 @@ def generate_answer(
         answer = call_chat_model(messages, status_callback=status_callback)
         validation_errors = validate_answer(answer, context, results)
 
-    return AnswerResult(content=answer, warnings=validation_errors)
+    return AnswerResult(
+        content=answer,
+        warnings=registry_filter_warnings + metadata_warnings + validation_errors,
+    )
 
 
 def print_vetting_warnings(warnings: list[str]) -> None:

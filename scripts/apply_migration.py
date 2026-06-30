@@ -35,11 +35,15 @@ def main() -> None:
     parser.add_argument(
         "migration",
         nargs="?",
-        default=str(PROJECT_ROOT / "migrations" / "001_settings.sql"),
         type=Path,
+        help="Specific migration file. If omitted, all migrations are applied in filename order.",
     )
     arguments = parser.parse_args()
-    apply_migration(arguments.migration)
+    if arguments.migration:
+        apply_migration(arguments.migration)
+    else:
+        for migration in sorted((PROJECT_ROOT / "migrations").glob("*.sql")):
+            apply_migration(migration)
 
 
 if __name__ == "__main__":

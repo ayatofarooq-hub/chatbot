@@ -34,6 +34,11 @@ class SettingsValidationTests(unittest.TestCase):
         with self.assertRaises(SettingsValidationError):
             validate_settings({"model": {"database_password": "secret"}})
 
+    def test_rejects_invalid_fine_tuning_schedule_time(self):
+        with self.assertRaises(SettingsValidationError) as context:
+            validate_settings({"fine_tuning": {"scheduled_start_time": "25:99"}})
+        self.assertIn("fine_tuning.scheduled_start_time", context.exception.errors)
+
 
 class SettingsApiTests(unittest.TestCase):
     def setUp(self):
@@ -56,7 +61,7 @@ class SettingsApiTests(unittest.TestCase):
         self.assertNotIn("password", response.text.lower())
 
     @patch("app.settings_api.update_settings")
-    @patch("app.settings_api.admin_for_token", return_value={"id": 1, "username": "admin"})
+    @patch("app.settings_api.admin_for_token", return_value={"id": 1, "username": "admin", "permissions": ["manage_settings"]})
     def test_settings_update(self, _mock_admin, mock_update):
         mock_update.return_value = {"appearance": {"language": "en"}}
         response = self.client.put(
@@ -69,7 +74,7 @@ class SettingsApiTests(unittest.TestCase):
 
     @patch("app.settings_api.ollama.Client")
     @patch("app.settings_api.get_settings")
-    @patch("app.settings_api.admin_for_token", return_value={"id": 1, "username": "admin"})
+    @patch("app.settings_api.admin_for_token", return_value={"id": 1, "username": "admin", "permissions": ["manage_settings"]})
     def test_model_connection_failure_is_reported(
         self, _mock_admin, mock_get, mock_client
     ):

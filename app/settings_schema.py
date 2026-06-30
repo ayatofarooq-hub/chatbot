@@ -19,7 +19,7 @@ DEFAULTS = {
         "debug_context": False, "ocr_enabled": True, "ocr_language": "ara",
     },
     "authentication": {
-        "login_enabled": True, "guest_access": True, "remember_login": True,
+        "login_enabled": True, "remember_login": True,
         "session_timeout_minutes": 60, "password_min_length": 12,
         "require_numbers": True, "require_symbols": False,
         "require_uppercase": False,
@@ -39,6 +39,11 @@ DEFAULTS = {
         "index_rebuild_completed": True, "database_backup_completed": True,
     },
     "backup": {"automatic_frequency": None, "local_destination": None},
+    "fine_tuning": {
+        "learning_mode": "manual", "auto_approval_threshold": 0.85,
+        "validation_threshold": 0.80, "scheduled_start_time": "02:00",
+        "system_signed_in": True,
+    },
 }
 
 RANGES = {
@@ -55,6 +60,8 @@ RANGES = {
     ("authentication", "password_min_length"): (8, 128),
     ("upload", "max_file_size_mb"): (1, 500),
     ("upload", "max_file_count"): (1, 50),
+    ("fine_tuning", "auto_approval_threshold"): (0, 1),
+    ("fine_tuning", "validation_threshold"): (0, 1),
 }
 ENUMS = {
     ("retrieval", "ocr_language"): {"ara", "eng", "ara+eng"},
@@ -65,6 +72,7 @@ ENUMS = {
     ("appearance", "interface_scale"): {"small", "medium", "large"},
     ("upload", "ocr_language"): {"ara", "eng", "ara+eng"},
     ("backup", "automatic_frequency"): {"daily", "weekly", "monthly", None},
+    ("fine_tuning", "learning_mode"): {"manual", "automatic"},
 }
 
 
@@ -121,6 +129,11 @@ def validate_settings(payload: object, partial: bool = True) -> dict:
         r"#[0-9A-Fa-f]{6}", appearance["custom_primary_color"]
     ):
         errors["appearance.custom_primary_color"] = "Use #RRGGBB format."
+    fine_tuning = result.get("fine_tuning", {})
+    if fine_tuning.get("scheduled_start_time") is not None and not re.fullmatch(
+        r"(?:[01]\d|2[0-3]):[0-5]\d", fine_tuning["scheduled_start_time"]
+    ):
+        errors["fine_tuning.scheduled_start_time"] = "Use HH:MM 24-hour format."
     if errors:
         raise SettingsValidationError(errors)
     return result

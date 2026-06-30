@@ -51,7 +51,6 @@ CREATE TABLE IF NOT EXISTS public.retrieval_settings (
 CREATE TABLE IF NOT EXISTS public.authentication_settings (
     id smallint PRIMARY KEY DEFAULT 1 CHECK (id = 1),
     login_enabled boolean NOT NULL DEFAULT true,
-    guest_access boolean NOT NULL DEFAULT true,
     remember_login boolean NOT NULL DEFAULT true,
     session_timeout_minutes integer CHECK (session_timeout_minutes IN (15,30,60,240) OR session_timeout_minutes IS NULL),
     password_min_length integer NOT NULL DEFAULT 12 CHECK (password_min_length BETWEEN 8 AND 128),

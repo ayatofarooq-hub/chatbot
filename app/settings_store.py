@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import date, datetime, time, timezone
 from decimal import Decimal
 
 from sqlalchemy import text
@@ -14,15 +14,30 @@ TABLES = {
     "model": "model_settings", "retrieval": "retrieval_settings",
     "authentication": "authentication_settings", "appearance": "appearance_settings",
     "upload": "upload_settings", "notifications": "notification_settings",
-    "backup": "backup_settings",
+    "backup": "backup_settings", "fine_tuning": "fine_tuning_settings",
+}
+
+READ_ONLY_COLUMNS = {
+    "fine_tuning": {"live_model_run_id", "live_model_id"},
 }
 
 
 def _json_row(row) -> dict:
     return {
-        key: value.isoformat() if isinstance(value, datetime) else value
+        key: value.strftime("%H:%M") if isinstance(value, time)
+        else value.isoformat() if isinstance(value, (date, datetime)) else value
         for key, value in row.items()
     }
+
+
+def _setting_value(value):
+    if isinstance(value, Decimal):
+        return float(value)
+    if isinstance(value, time):
+        return value.strftime("%H:%M")
+    if isinstance(value, (date, datetime, time)):
+        return value.isoformat()
+    return value
 
 
 def get_settings(engine=None) -> dict:
@@ -34,11 +49,13 @@ def get_settings(engine=None) -> dict:
             for section, table in TABLES.items():
                 row = connection.execute(text(f"SELECT * FROM public.{table} WHERE id=1")).mappings().one()
                 result[section] = {
-                    key: (float(value) if isinstance(value, Decimal) else value)
-                    for key, value in row.items() if key not in {"id", "updated_at"}
+                    key: _setting_value(value)
+                    for key, value in row.items()
+                    if key in DEFAULTS[section]
+                    and key not in {"id", "updated_at"} | READ_ONLY_COLUMNS.get(section, set())
                 }
         result["capabilities"] = {
-            "fine_tuning": False, "upload_endpoint": False,
+            "fine_tuning": True, "upload_endpoint": False,
             "automatic_backup_scheduler": False, "desktop_notifications": False,
         }
         return result
@@ -56,10 +73,17 @@ def update_settings(payload: dict, engine=None) -> dict:
             for section, values in changes.items():
                 if not values:
                     continue
-                assignments = ", ".join(f"{key}=:{key}" for key in values)
+                writable = {
+                    key: value
+                    for key, value in values.items()
+                    if key not in READ_ONLY_COLUMNS.get(section, set())
+                }
+                if not writable:
+                    continue
+                assignments = ", ".join(f"{key}=:{key}" for key in writable)
                 connection.execute(
                     text(f"UPDATE public.{TABLES[section]} SET {assignments}, updated_at=now() WHERE id=1"),
-                    values,
+                    writable,
                 )
         return get_settings(engine)
     finally:

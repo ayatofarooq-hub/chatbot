@@ -39,13 +39,21 @@ class ApiTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 204)
 
-    def test_ask_rejects_empty_question(self):
+    @patch("app.auth.admin_for_token", return_value=None)
+    def test_ask_requires_authentication(self, _mock_admin):
+        response = self.client.post("/ask", json={"question": "question"})
+
+        self.assertEqual(response.status_code, 401)
+
+    @patch("app.auth.admin_for_token", return_value={"id": 1, "username": "admin"})
+    def test_ask_rejects_empty_question(self, _mock_admin):
         response = self.client.post("/ask", json={"question": "  "})
 
         self.assertEqual(response.status_code, 422)
 
+    @patch("app.auth.admin_for_token", return_value={"id": 1, "username": "admin"})
     @patch("app.api.answer_question")
-    def test_ask_returns_answer_payload(self, mock_answer_question):
+    def test_ask_returns_answer_payload(self, mock_answer_question, _mock_admin):
         mock_answer_question.return_value = {
             "question": "سؤال",
             "answer": "إجابة",
@@ -63,6 +71,7 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(response.json()["answer"], "إجابة")
         mock_answer_question.assert_called_once_with("سؤال", False)
 
+    @patch("app.auth.admin_for_token", return_value={"id": 1, "username": "admin"})
     @patch("app.api.generate_answer")
     @patch("app.api.search")
     @patch("app.api.load_registry")
@@ -71,6 +80,7 @@ class ApiTests(unittest.TestCase):
         mock_load_registry,
         mock_search,
         mock_generate_answer,
+        _mock_admin,
     ):
         mock_search.return_value = {
             "documents": [["legal text"]],
@@ -90,6 +100,11 @@ class ApiTests(unittest.TestCase):
                 "abc123": {
                     "law": "penal law",
                     "article": "article 405",
+                    "law_number": "111",
+                    "law_year": "1969",
+                    "article_number": "405",
+                    "law_name": "Penal Code",
+                    "classification": "criminal",
                     "document_type": "law",
                     "source_file": "penal_code.docx",
                     "ingest_date": "2026-06-11",
@@ -112,6 +127,11 @@ class ApiTests(unittest.TestCase):
                 {
                     "law": "penal law",
                     "article": "article 405",
+                    "law_number": "111",
+                    "law_year": "1969",
+                    "article_number": "405",
+                    "law_name": "Penal Code",
+                    "classification": "criminal",
                     "document_type": "law",
                     "source_file": "penal_code.docx",
                     "ingest_date": "2026-06-11",
