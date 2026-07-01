@@ -35,6 +35,8 @@ const elements = {
   listRoot: document.querySelector("#upload-file-list"),
   messages: document.querySelector("#messages"),
   mobileMenu: document.querySelector("#mobile-menu"),
+  microphonePicker: document.querySelector("#microphone-picker"),
+  microphoneSelect: document.querySelector("#microphone-select"),
   nav: document.querySelector("#primary-nav"),
   newChatInline: document.querySelector("#new-chat-inline"),
   priorityOptions: document.querySelector("#priority-options"),
@@ -47,12 +49,26 @@ const elements = {
   statsRoot: document.querySelector("#upload-stats-root"),
   suggestions: document.querySelector("#suggestions"),
   toast: document.querySelector("#toast"),
+  voiceButton: document.querySelector("#voice-button"),
   welcome: document.querySelector("#welcome"),
   wordCount: document.querySelector("#word-count"),
 };
 
 let conversations = loadConversations();
 let activeConversationId = conversations[0]?.id ?? null;
+let mediaRecorder = null;
+let microphoneStream = null;
+let recordingChunks = [];
+let recordingTimer = null;
+let recordingStartedAt = 0;
+let recordingActive = false;
+let pcmContext = null;
+let pcmSource = null;
+let pcmProcessor = null;
+let pcmChunks = [];
+const maximumRecordingMs = 60_000;
+const minimumRecordingMs = 2_000;
+const microphoneStorageKey = "jalssa-selected-microphone";
 let pending = false;
 let selectedPriority = "عالية";
 const initialPromptKey = "iraqi-legal-assistant-initial-prompt";
@@ -432,12 +448,234 @@ function showToast(message) {
   window.setTimeout(() => elements.toast.classList.remove("visible"), 3500);
 }
 
+function supportedAudioType() {
+  const candidates = ["audio/webm;codecs=opus", "audio/webm", "audio/ogg;codecs=opus", "audio/mp4"];
+  return candidates.find((type) => MediaRecorder.isTypeSupported(type)) || "";
+}
+
+function encodeWav(chunks, sampleRate) {
+  const sampleCount = chunks.reduce((total, chunk) => total + chunk.length, 0);
+  const buffer = new ArrayBuffer(44 + sampleCount * 2);
+  const view = new DataView(buffer);
+  const writeText = (offset, text) => {
+    for (let index = 0; index < text.length; index += 1) {
+      view.setUint8(offset + index, text.charCodeAt(index));
+    }
+  };
+  writeText(0, "RIFF");
+  view.setUint32(4, 36 + sampleCount * 2, true);
+  writeText(8, "WAVE");
+  writeText(12, "fmt ");
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true);
+  view.setUint16(22, 1, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, sampleRate * 2, true);
+  view.setUint16(32, 2, true);
+  view.setUint16(34, 16, true);
+  writeText(36, "data");
+  view.setUint32(40, sampleCount * 2, true);
+  let offset = 44;
+  chunks.forEach((chunk) => {
+    chunk.forEach((sample) => {
+      const clamped = Math.max(-1, Math.min(1, sample));
+      view.setInt16(offset, clamped < 0 ? clamped * 0x8000 : clamped * 0x7fff, true);
+      offset += 2;
+    });
+  });
+  return new Blob([buffer], { type: "audio/wav" });
+}
+
+async function refreshMicrophoneOptions(activeDeviceId = "") {
+  const devices = (await navigator.mediaDevices.enumerateDevices())
+    .filter((device) => device.kind === "audioinput");
+  if (!devices.length) return;
+
+  const savedDeviceId = localStorage.getItem(microphoneStorageKey) || "";
+  elements.microphoneSelect.replaceChildren();
+  devices.forEach((device, index) => {
+    const option = new Option(device.label || `ميكروفون ${index + 1}`, device.deviceId);
+    elements.microphoneSelect.add(option);
+  });
+  const preferredId = savedDeviceId || activeDeviceId;
+  if (preferredId && devices.some((device) => device.deviceId === preferredId)) {
+    elements.microphoneSelect.value = preferredId;
+  }
+  elements.microphonePicker.hidden = devices.length < 2;
+}
+
+function resetRecorder() {
+  window.clearTimeout(recordingTimer);
+  recordingTimer = null;
+  microphoneStream?.getTracks().forEach((track) => track.stop());
+  microphoneStream = null;
+  pcmSource?.disconnect();
+  pcmProcessor?.disconnect();
+  pcmSource = null;
+  pcmProcessor = null;
+  pcmContext?.close();
+  pcmContext = null;
+  pcmChunks = [];
+  recordingActive = false;
+  mediaRecorder = null;
+  recordingChunks = [];
+  recordingStartedAt = 0;
+  elements.voiceButton.classList.remove("recording", "transcribing");
+  elements.voiceButton.disabled = false;
+  elements.voiceButton.textContent = "●";
+  elements.voiceButton.setAttribute("aria-label", "بدء الإدخال الصوتي");
+}
+
+async function transcribeRecording(blob) {
+  elements.voiceButton.classList.remove("recording");
+  elements.voiceButton.classList.add("transcribing");
+  elements.voiceButton.disabled = true;
+  elements.voiceButton.textContent = "…";
+  elements.voiceButton.setAttribute("aria-label", "جارٍ تحويل الصوت إلى نص");
+
+  const formData = new FormData();
+  const extension = blob.type.includes("ogg") ? "ogg" : blob.type.includes("mp4") ? "mp4" : "webm";
+  formData.append("audio", blob, `recording.${extension}`);
+
+  try {
+    const response = await fetch("/transcribe", { method: "POST", body: formData });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.detail || "تعذر تحويل الصوت إلى نص.");
+    const separator = elements.input.value.trim() ? " " : "";
+    elements.input.value = `${elements.input.value.trimEnd()}${separator}${payload.text}`;
+    elements.input.dispatchEvent(new Event("input"));
+    elements.input.focus();
+  } catch (error) {
+    showToast(error.message || "تعذر تحويل الصوت إلى نص.");
+  } finally {
+    resetRecorder();
+  }
+}
+
+function finishRecording() {
+  if (!recordingActive) return;
+  recordingActive = false;
+  const recordingDuration = Date.now() - recordingStartedAt;
+  window.clearTimeout(recordingTimer);
+
+  if (pcmContext) {
+    const blob = encodeWav(pcmChunks, pcmContext.sampleRate);
+    pcmSource?.disconnect();
+    pcmProcessor?.disconnect();
+    microphoneStream?.getTracks().forEach((track) => track.stop());
+    microphoneStream = null;
+    pcmContext.close();
+    pcmContext = null;
+    pcmSource = null;
+    pcmProcessor = null;
+    pcmChunks = [];
+    if (recordingDuration < minimumRecordingMs) {
+      resetRecorder();
+      showToast("التسجيل قصير جداً. تحدث لمدة ثانيتين على الأقل.");
+      return;
+    }
+    transcribeRecording(blob);
+    return;
+  }
+
+  if (mediaRecorder?.state === "recording") mediaRecorder.stop();
+}
+
+async function toggleRecording() {
+  if (recordingActive) {
+    finishRecording();
+    return;
+  }
+  if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
+    showToast("التسجيل الصوتي غير مدعوم في هذا المتصفح.");
+    return;
+  }
+
+  try {
+    const selectedDeviceId = localStorage.getItem(microphoneStorageKey);
+    try {
+      microphoneStream = await navigator.mediaDevices.getUserMedia({
+        audio: selectedDeviceId ? { deviceId: { exact: selectedDeviceId } } : true,
+      });
+    } catch (error) {
+      if (!selectedDeviceId || error?.name !== "OverconstrainedError") throw error;
+      localStorage.removeItem(microphoneStorageKey);
+      microphoneStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    }
+    const audioTrack = microphoneStream.getAudioTracks()[0];
+    if (!audioTrack || audioTrack.readyState !== "live") {
+      throw new Error("microphone-unavailable");
+    }
+    await refreshMicrophoneOptions(audioTrack.getSettings().deviceId || "");
+
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (AudioContextClass) {
+      pcmContext = new AudioContextClass();
+      await pcmContext.resume();
+      pcmSource = pcmContext.createMediaStreamSource(microphoneStream);
+      pcmProcessor = pcmContext.createScriptProcessor(4096, 1, 1);
+      pcmChunks = [];
+      pcmProcessor.addEventListener("audioprocess", (event) => {
+        if (!recordingActive) return;
+        pcmChunks.push(new Float32Array(event.inputBuffer.getChannelData(0)));
+      });
+      pcmSource.connect(pcmProcessor);
+      pcmProcessor.connect(pcmContext.destination);
+    } else {
+      const mimeType = supportedAudioType();
+      mediaRecorder = new MediaRecorder(microphoneStream, mimeType ? { mimeType } : undefined);
+      recordingChunks = [];
+      mediaRecorder.addEventListener("dataavailable", (event) => {
+        if (event.data.size) recordingChunks.push(event.data);
+      });
+      mediaRecorder.addEventListener("stop", () => {
+        const recordingDuration = Date.now() - recordingStartedAt;
+        const blob = new Blob(recordingChunks, { type: mediaRecorder.mimeType || "audio/webm" });
+        if (recordingDuration < minimumRecordingMs) {
+          resetRecorder();
+          showToast("التسجيل قصير جداً. تحدث لمدة ثانيتين على الأقل.");
+          return;
+        }
+        transcribeRecording(blob);
+      }, { once: true });
+      mediaRecorder.start(250);
+    }
+    recordingStartedAt = Date.now();
+    recordingActive = true;
+    elements.voiceButton.classList.add("recording");
+    elements.voiceButton.textContent = "■";
+    elements.voiceButton.setAttribute("aria-label", "إيقاف التسجيل");
+    showToast("بدأ التسجيل. اضغط على المربع الأحمر عند الانتهاء.");
+    recordingTimer = window.setTimeout(() => {
+      if (recordingActive) finishRecording();
+    }, maximumRecordingMs);
+  } catch (error) {
+    console.error("Microphone startup failed:", error);
+    resetRecorder();
+    if (error?.name === "NotAllowedError") {
+      showToast("تم رفض إذن الميكروفون من المتصفح.");
+    } else if (error?.name === "NotReadableError") {
+      showToast("الميكروفون مستخدم من تطبيق آخر أو غير متاح للنظام.");
+    } else if (error?.name === "OverconstrainedError") {
+      showToast("الميكروفون لا يدعم إعدادات التسجيل المطلوبة.");
+    } else {
+      showToast(`تعذر تشغيل الميكروفون: ${error?.message || "خطأ غير معروف"}`);
+    }
+  }
+}
+
 elements.form.addEventListener("submit", (event) => {
   event.preventDefault();
   const question = elements.input.value;
   elements.input.value = "";
   elements.input.style.height = "";
   submitQuestion(question);
+});
+
+elements.voiceButton?.addEventListener("click", toggleRecording);
+elements.microphoneSelect?.addEventListener("change", () => {
+  localStorage.setItem(microphoneStorageKey, elements.microphoneSelect.value);
+  showToast("تم اختيار الميكروفون. ابدأ تسجيلاً جديداً.");
 });
 
 elements.landingForm.addEventListener("submit", (event) => {

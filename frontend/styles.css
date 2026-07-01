@@ -909,6 +909,22 @@ textarea:focus-visible,
   border-radius: 10px;
 }
 
+.composer .voice.recording {
+  color: #b42318;
+  animation: voice-pulse 1.2s ease-in-out infinite;
+}
+
+.composer .voice.transcribing {
+  color: var(--green);
+}
+
+@keyframes voice-pulse {
+  50% {
+    opacity: 0.45;
+    transform: scale(0.88);
+  }
+}
+
 .composer .send {
   width: 44px;
   height: 44px;
@@ -931,6 +947,31 @@ textarea:focus-visible,
   color: #8b9690;
   text-align: center;
   font-size: 10px;
+}
+
+.microphone-picker {
+  width: min(760px, calc(100% - 60px));
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 auto 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.microphone-picker[hidden] {
+  display: none;
+}
+
+.microphone-picker select {
+  flex: 1;
+  min-width: 0;
+  padding: 7px 10px;
+  color: var(--ink);
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  font: inherit;
 }
 
 .source-list {
@@ -2045,11 +2086,10 @@ textarea:focus-visible,
 
   .composer {
     width: calc(100% - 24px);
-    grid-template-columns: 1fr 46px;
+    grid-template-columns: 1fr 38px 46px;
   }
 
-  .composer .attach,
-  .composer .voice {
+  .composer .attach {
     display: none;
   }
 

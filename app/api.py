@@ -1,6 +1,7 @@
 """HTTP API for testing the legal chatbot with clients such as Postman."""
 
 from pathlib import Path
+from tempfile import NamedTemporaryFile
 
 import httpx
 import ollama
@@ -22,6 +23,7 @@ try:
     )
     from .rag_answer import CITATION_PATTERN, generate_answer, get_quick_response
     from .search_index import search
+    from .speech_to_text import inspect_audio, transcribe_audio
     from .settings_api import (
         backup_create, backup_restore, classification_delete,
         classification_put, classification_reassign, classifications_get,
@@ -41,6 +43,7 @@ except ImportError:
     )
     from rag_answer import CITATION_PATTERN, generate_answer, get_quick_response
     from search_index import search
+    from speech_to_text import inspect_audio, transcribe_audio
     from settings_api import (
         backup_create, backup_restore, classification_delete,
         classification_put, classification_reassign, classifications_get,
@@ -190,6 +193,90 @@ async def favicon(_: Request) -> Response:
     return Response(status_code=204)
 
 
+MAX_AUDIO_BYTES = 10 * 1024 * 1024
+ALLOWED_AUDIO_TYPES = {
+    "audio/mp4",
+    "audio/mpeg",
+    "audio/ogg",
+    "audio/wav",
+    "audio/webm",
+}
+
+
+async def transcribe(request: Request) -> JSONResponse:
+    """Accept a short recording and transcribe it locally as Arabic."""
+
+    try:
+        form = await request.form()
+    except Exception:
+        return JSONResponse(
+            {"detail": "Request must contain multipart form data."},
+            status_code=400,
+        )
+
+    audio = form.get("audio")
+    if audio is None or not hasattr(audio, "read"):
+        return JSONResponse(
+            {"detail": "Field 'audio' must contain an audio file."},
+            status_code=422,
+        )
+
+    content_type = (getattr(audio, "content_type", "") or "").split(";", 1)[0]
+    if content_type not in ALLOWED_AUDIO_TYPES:
+        await audio.close()
+        return JSONResponse(
+            {"detail": "Unsupported audio format."},
+            status_code=415,
+        )
+
+    content = await audio.read(MAX_AUDIO_BYTES + 1)
+    await audio.close()
+    if not content:
+        return JSONResponse({"detail": "The recording is empty."}, status_code=422)
+    if len(content) > MAX_AUDIO_BYTES:
+        return JSONResponse(
+            {"detail": "The recording exceeds the 10 MB limit."},
+            status_code=413,
+        )
+
+    suffix = Path(getattr(audio, "filename", "") or ".webm").suffix or ".webm"
+    temporary_path = None
+    try:
+        with NamedTemporaryFile(suffix=suffix, delete=False) as temporary:
+            temporary.write(content)
+            temporary_path = Path(temporary.name)
+        diagnostics = await run_in_threadpool(inspect_audio, temporary_path)
+        print(f"Speech audio diagnostics: {diagnostics}", flush=True)
+        text = await run_in_threadpool(transcribe_audio, temporary_path)
+        return JSONResponse({"text": text, "language": "ar"})
+    except ValueError as error:
+        level = diagnostics.get("rms", 0.0) if "diagnostics" in locals() else 0.0
+        duration = (
+            diagnostics.get("duration_seconds", 0.0)
+            if "diagnostics" in locals()
+            else 0.0
+        )
+        return JSONResponse(
+            {
+                "detail": (
+                    f"{error} مدة التسجيل: {duration} ثانية، "
+                    f"مستوى الإشارة: {level}."
+                )
+            },
+            status_code=422,
+        )
+    except RuntimeError as error:
+        return JSONResponse({"detail": str(error)}, status_code=503)
+    except Exception:
+        return JSONResponse(
+            {"detail": "Audio transcription failed."},
+            status_code=500,
+        )
+    finally:
+        if temporary_path is not None:
+            temporary_path.unlink(missing_ok=True)
+
+
 async def ask(request: Request) -> JSONResponse:
     """Accept a legal question and return a grounded chatbot answer."""
 
@@ -276,6 +363,7 @@ app = Starlette(
         Route("/", frontend, methods=["GET"]),
         Route("/favicon.ico", favicon, methods=["GET"]),
         Route("/health", health, methods=["GET"]),
+        Route("/transcribe", transcribe, methods=["POST"]),
         Route("/ask", ask, methods=["POST"]),
         Route("/api/auth/login", login, methods=["POST"]),
         Route("/api/auth/logout", logout, methods=["POST"]),

@@ -1,0 +1,33 @@
+INFO:     127.0.0.1:56134 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56134 - "GET /assets/styles.css?v=20260701-speech HTTP/1.1" 304 Not Modified
+INFO:     127.0.0.1:59015 - "GET /assets/app.js?v=20260701-speech-7 HTTP/1.1" 304 Not Modified
+INFO:     127.0.0.1:59015 - "GET /favicon.ico HTTP/1.1" 204 No Content
+Speech audio diagnostics: {'duration_seconds': 11.1, 'sample_count': 532800, 'rms': 0.0, 'peak': 0.0}
+INFO:     127.0.0.1:53516 - "POST /transcribe HTTP/1.1" 422 Unprocessable Entity
+Speech audio diagnostics: {'duration_seconds': 11.94, 'sample_count': 573120, 'rms': 0.0, 'peak': 0.0}
+INFO:     127.0.0.1:59295 - "POST /transcribe HTTP/1.1" 422 Unprocessable Entity
+INFO:     127.0.0.1:52195 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52195 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52195 - "GET /assets/app.js?v=20260701-speech-8 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51458 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51458 - "GET /assets/styles.css?v=20260701-speech HTTP/1.1" 304 Not Modified
+INFO:     127.0.0.1:50145 - "GET /assets/app.js?v=20260701-speech-8 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63499 - "GET /assets/images/logo-icon.png HTTP/1.1" 304 Not Modified
+INFO:     127.0.0.1:63499 - "GET /assets/components/settings/SettingsPage.js HTTP/1.1" 304 Not Modified
+INFO:     127.0.0.1:63499 - "GET /favicon.ico HTTP/1.1" 204 No Content
+Speech audio diagnostics: {'duration_seconds': 9.22, 'sample_count': 442368, 'rms': 0.191328, 'peak': 1.0}
+INFO:     127.0.0.1:55698 - "POST /transcribe HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50502 - "POST /ask HTTP/1.1" 200 OK
+Speech audio diagnostics: {'duration_seconds': 5.72, 'sample_count': 274432, 'rms': 0.184396, 'peak': 1.0}
+INFO:     127.0.0.1:49167 - "POST /transcribe HTTP/1.1" 200 OK
+Speech audio diagnostics: {'duration_seconds': 6.23, 'sample_count': 299008, 'rms': 0.173957, 'peak': 1.0}
+INFO:     127.0.0.1:52421 - "POST /transcribe HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52421 - "POST /ask HTTP/1.1" 401 Unauthorized
+Speech audio diagnostics: {'duration_seconds': 6.06, 'sample_count': 290816, 'rms': 0.109872, 'peak': 1.0}
+INFO:     127.0.0.1:52309 - "POST /transcribe HTTP/1.1" 200 OK
+Speech audio diagnostics: {'duration_seconds': 7.34, 'sample_count': 352256, 'rms': 0.138085, 'peak': 1.0}
+INFO:     127.0.0.1:59589 - "POST /transcribe HTTP/1.1" 200 OK
+Speech audio diagnostics: {'duration_seconds': 8.7, 'sample_count': 417792, 'rms': 0.114534, 'peak': 1.0}
+INFO:     127.0.0.1:52304 - "POST /transcribe HTTP/1.1" 200 OK
+Speech audio diagnostics: {'duration_seconds': 4.01, 'sample_count': 192512, 'rms': 0.191521, 'peak': 1.0}
+INFO:     127.0.0.1:57047 - "POST /transcribe HTTP/1.1" 200 OK

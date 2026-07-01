@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#145a38">
   <title>المساعد القانوني العراقي</title>
-  <link rel="stylesheet" href="/assets/styles.css?v=20260630-ui-polish">
+  <link rel="stylesheet" href="/assets/styles.css?v=20260701-speech">
 </head>
 <body>
   <div class="app-shell">
@@ -163,9 +163,13 @@
           <form class="composer" id="question-form">
             <button class="attach" type="button" disabled aria-label="إرفاق ملف">⌕</button>
             <textarea id="question-input" rows="1" placeholder="اسأل عن أي قانون أو لائحة أو وثيقة عراقية..." required></textarea>
-            <button class="voice" type="button" disabled aria-label="إدخال صوتي">♩</button>
+            <button class="voice" id="voice-button" type="button" aria-label="بدء الإدخال الصوتي" title="إدخال صوتي">●</button>
             <button class="send" id="send-button" type="submit" aria-label="إرسال">←</button>
           </form>
+          <label class="microphone-picker" id="microphone-picker" hidden>
+            <span>الميكروفون</span>
+            <select id="microphone-select" aria-label="اختيار الميكروفون"></select>
+          </label>
           <p class="legal-note">
             تذكّر: الذكاء الاصطناعي يدعم اتخاذ القرار. يرجى دائماً مراجعة المراجع القانونية المرفقة.
           </p>
@@ -236,6 +240,6 @@
 
   <div class="toast" id="toast" role="alert"></div>
   <div id="modal-root"></div>
-  <script type="module" src="/assets/app.js?v=20260630-ui-polish"></script>
+  <script type="module" src="/assets/app.js?v=20260701-speech-8"></script>
 </body>
 </html>

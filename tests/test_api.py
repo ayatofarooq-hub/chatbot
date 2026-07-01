@@ -39,6 +39,28 @@ class ApiTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 204)
 
+    @patch("app.api.transcribe_audio", return_value="ما هي المادة القانونية")
+    def test_transcribe_returns_arabic_text(self, mock_transcribe):
+        response = self.client.post(
+            "/transcribe",
+            files={"audio": ("recording.webm", b"audio", "audio/webm")},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.json(),
+            {"text": "ما هي المادة القانونية", "language": "ar"},
+        )
+        mock_transcribe.assert_called_once()
+
+    def test_transcribe_rejects_unsupported_audio(self):
+        response = self.client.post(
+            "/transcribe",
+            files={"audio": ("recording.txt", b"audio", "text/plain")},
+        )
+
+        self.assertEqual(response.status_code, 415)
+
     @patch("app.auth.admin_for_token", return_value=None)
     def test_ask_requires_authentication(self, _mock_admin):
         response = self.client.post("/ask", json={"question": "question"})
