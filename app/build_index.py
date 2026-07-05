@@ -20,7 +20,8 @@ try:
         OLLAMA_REQUEST_TIMEOUT_SECONDS,
     )
     from .ollama_client import client as ollama_client
-    from .postgres_laws import load_postgres_documents
+    from backend.services.document_service import DocumentService
+    from backend.services.json_repository import JsonRepository
 except ImportError:
     # Support direct execution with: python app/build_index.py
     from citation_registry import save_registry
@@ -32,7 +33,8 @@ except ImportError:
         OLLAMA_REQUEST_TIMEOUT_SECONDS,
     )
     from ollama_client import client as ollama_client
-    from postgres_laws import load_postgres_documents
+    from backend.services.document_service import DocumentService
+    from backend.services.json_repository import JsonRepository
 
 
 COLLECTION_NAME = "iraqi_legal_documents"
@@ -177,7 +179,7 @@ def add_chunks(collection, chunks: list[dict], embeddings: list[list[float]]) ->
 
 
 def load_source_chunks() -> list[dict]:
-    """Load and chunk PostgreSQL legal records."""
+    """Load and chunk JSON-backed legal records."""
 
     try:
         from . import chunk_text
@@ -190,12 +192,12 @@ def load_source_chunks() -> list[dict]:
     chunk_text.MIN_CHUNK_SIZE = max(100, int(retrieval["chunk_size"] * 0.6))
     chunk_text.MAX_CHUNK_SIZE = max(retrieval["chunk_size"] + 1, int(retrieval["chunk_size"] * 1.35))
     chunk_text.CHUNK_OVERLAP = retrieval["chunk_overlap"]
-    documents = load_postgres_documents()
+    repository = JsonRepository()
+    documents = []
+    for document in repository.list_documents():
+        documents.append(document)
     if not documents:
-        raise ValueError(
-            "PostgreSQL public.iraqi_laws returned no legal records. "
-            "Check DATABASE_URL and the table contents."
-        )
+        raise ValueError("No JSON legal records were found in data/laws or related folders.")
 
     chunks = []
     for document in documents:
@@ -203,7 +205,7 @@ def load_source_chunks() -> list[dict]:
         chunks.extend(document_chunks)
         print(f"{document.source_file}: {len(document_chunks)} chunks")
 
-    print(f"Loaded {len(documents)} rows from PostgreSQL public.iraqi_laws.")
+    print(f"Loaded {len(documents)} JSON legal records.")
 
     if not chunks:
         raise ValueError("The source documents did not produce any chunks.")
@@ -219,7 +221,7 @@ def save_chunks(chunks: list[dict]) -> None:
 
 
 def main() -> None:
-    """Build a fresh Chroma collection from PostgreSQL legal records."""
+    """Build a fresh Chroma collection from JSON legal records."""
 
     try:
         chunks = load_source_chunks()

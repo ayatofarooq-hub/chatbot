@@ -1,7 +1,12 @@
 """HTTP API for testing the legal chatbot with clients such as Postman."""
 
+from datetime import datetime
+from html import escape
+from io import BytesIO
 from pathlib import Path
 from tempfile import NamedTemporaryFile
+import sys
+from urllib.parse import quote
 
 import httpx
 import ollama
@@ -34,6 +39,10 @@ try:
     )
 except ImportError:
     # Support direct execution with: python app/api.py
+    app_dir = str(Path(__file__).resolve().parent)
+    if app_dir not in sys.path:
+        sys.path.insert(0, app_dir)
+    
     from build_index import COLLECTION_NAME
     from citation_registry import (
         citations_for_metadatas,
@@ -357,6 +366,163 @@ async def ask(request: Request) -> JSONResponse:
         return JSONResponse({"detail": str(error)}, status_code=422)
 
 
+async def export_chat(request: Request) -> Response:
+    """Export a conversation as Markdown or plain text."""
+
+    try:
+        payload = await request.json()
+    except ValueError:
+        return JSONResponse(
+            {"detail": "Request body must be valid JSON."},
+            status_code=400,
+        )
+
+    if not isinstance(payload, dict):
+        return JSONResponse(
+            {"detail": "Request body must be a JSON object."},
+            status_code=400,
+        )
+
+    title = payload.get("title", "محادثة قانونية")
+    messages = payload.get("messages", [])
+    export_format = request.query_params.get("format", "md").lower()
+
+    if export_format not in ("pdf", "txt"):
+        return JSONResponse(
+            {"detail": "Format must be 'pdf' or 'txt'."},
+            status_code=422,
+        )
+
+    if not isinstance(messages, list):
+        return JSONResponse(
+            {"detail": "Field 'messages' must be an array."},
+            status_code=422,
+        )
+
+    if not messages:
+        return JSONResponse(
+            {"detail": "Conversation has no messages."},
+            status_code=422,
+        )
+
+    # Format the conversation
+    lines = []
+    lines.append(f"المحادثة: {title}")
+    lines.append(f"التاريخ: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    lines.append("-" * 50)
+    lines.append("")
+
+    for message in messages:
+        if not isinstance(message, dict):
+            continue
+        
+        role = message.get("role", "unknown")
+        content = message.get("content", "")
+        time = message.get("time", "")
+        
+        # Format based on role
+        if role == "user":
+            lines.append(f"المستخدم: {time}")
+            lines.append(content)
+        elif role == "assistant":
+            lines.append(f"المساعد: {time}")
+            lines.append(content)
+            
+            # Add citations if present
+            citations = message.get("citations", [])
+            if citations:
+                lines.append("")
+                lines.append("المصادر:")
+                for citation in citations:
+                    if isinstance(citation, dict):
+                        ref = citation.get("legal_reference", "")
+                        source = citation.get("source_file", "")
+                        page = citation.get("page_number", "")
+                        if ref:
+                            lines.append(f"  - {ref}")
+                        elif source and page:
+                            lines.append(f"  - {source}، الصفحة {page}")
+            
+            # Add warnings if present
+            warnings = message.get("warnings", [])
+            if warnings:
+                lines.append("")
+                lines.append("ملاحظات:")
+                for warning in warnings:
+                    lines.append(f"  - {warning}")
+        
+        lines.append("")
+        lines.append("-" * 50)
+        lines.append("")
+
+    content = "\n".join(lines)
+
+    # Return based on format
+    if export_format == "pdf":
+        import fitz
+
+        message_html = []
+        for message in messages:
+            if not isinstance(message, dict):
+                continue
+            role = "المستخدم" if message.get("role") == "user" else "المساعد"
+            body = escape(str(message.get("content", ""))).replace("\n", "<br>")
+            time = escape(str(message.get("time", "")))
+            message_html.append(
+                f'<section class="message"><h2>{escape(role)}'
+                f'<small>{time}</small></h2><p>{body}</p></section>'
+            )
+        html = (
+            '<html dir="rtl"><body>'
+            f"<h1>{escape(str(title))}</h1>"
+            f'<p class="date">{datetime.now():%Y-%m-%d %H:%M:%S}</p>'
+            + "".join(message_html)
+            + "</body></html>"
+        )
+        css = """
+            @page { size: a4; margin: 54pt; }
+            body { direction: rtl; font-family: sans-serif; color: #17211b; }
+            h1 { color: #145a38; font-size: 24pt; margin-bottom: 4pt; }
+            .date { color: #68736d; margin-bottom: 24pt; }
+            .message { border-bottom: 1px solid #dfe5e1; padding: 10pt 0; }
+            h2 { color: #145a38; font-size: 13pt; margin: 0 0 7pt; }
+            h2 small { color: #78817c; font-size: 8pt; margin-right: 8pt; }
+            p { font-size: 11pt; line-height: 1.7; margin: 0; }
+        """
+        story = fitz.Story(html=html, user_css=css)
+        output = BytesIO()
+        writer = fitz.DocumentWriter(output)
+
+        def pdf_page(_rect_number, _filled):
+            return (
+                fitz.Rect(0, 0, 595, 842),
+                fitz.Rect(54, 54, 541, 788),
+                None,
+            )
+
+        story.write(writer, pdf_page)
+        writer.close()
+        content_bytes = output.getvalue()
+        filename = f"{title.replace('/', '-').replace(' ', '_')}.pdf"
+        media_type = "application/pdf"
+    else:
+        filename = f"{title.replace('/', '-').replace(' ', '_')}.txt"
+        media_type = "text/plain; charset=utf-8"
+        content_bytes = content.encode("utf-8")
+
+    encoded_filename = quote(filename, safe="")
+    return Response(
+        content=content_bytes,
+        media_type=media_type,
+        headers={
+            "Content-Disposition": (
+                f'attachment; filename="conversation.{export_format}"; '
+                f"filename*=UTF-8''{encoded_filename}"
+            ),
+        },
+    )
+
+
 app = Starlette(
     debug=False,
     routes=[
@@ -365,6 +531,7 @@ app = Starlette(
         Route("/health", health, methods=["GET"]),
         Route("/transcribe", transcribe, methods=["POST"]),
         Route("/ask", ask, methods=["POST"]),
+        Route("/api/export-chat", export_chat, methods=["POST"]),
         Route("/api/auth/login", login, methods=["POST"]),
         Route("/api/auth/logout", logout, methods=["POST"]),
         Route("/api/auth/session", session, methods=["GET"]),

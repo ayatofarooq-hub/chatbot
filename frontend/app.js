@@ -22,6 +22,8 @@ const elements = {
   settingsView: document.querySelector("#settings-view"),
   dropzoneRoot: document.querySelector("#upload-dropzone-root"),
   errorsRoot: document.querySelector("#upload-errors"),
+  exportButton: document.querySelector("#export-button"),
+  exportDropdown: document.querySelector("#export-dropdown"),
   form: document.querySelector("#question-form"),
   historyList: document.querySelector("#history-list"),
   historySearch: document.querySelector("#history-search"),
@@ -29,8 +31,12 @@ const elements = {
   insightList: document.querySelector("#insight-list"),
   landingForm: document.querySelector("#landing-form"),
   landingInput: document.querySelector("#landing-input"),
+  landingRecordingCancel: document.querySelector("#landing-recording-cancel"),
+  landingRecordingConfirm: document.querySelector("#landing-recording-confirm"),
+  landingRecordingControls: document.querySelector("#landing-recording-controls"),
   landingSend: document.querySelector("#landing-send"),
   landingSuggestions: document.querySelector("#landing-suggestions"),
+  landingVoiceButton: document.querySelector("#landing-voice-button"),
   landingView: document.querySelector("#landing-view"),
   listRoot: document.querySelector("#upload-file-list"),
   messages: document.querySelector("#messages"),
@@ -53,6 +59,7 @@ const elements = {
   welcome: document.querySelector("#welcome"),
   wordCount: document.querySelector("#word-count"),
 };
+const landingVoiceIconMarkup = elements.landingVoiceButton?.innerHTML || "";
 
 let conversations = loadConversations();
 let activeConversationId = conversations[0]?.id ?? null;
@@ -66,6 +73,10 @@ let pcmContext = null;
 let pcmSource = null;
 let pcmProcessor = null;
 let pcmChunks = [];
+let recordingButton = elements.voiceButton;
+let recordingInput = elements.input;
+let discardRecording = false;
+let landingVoiceLevel = 0;
 const maximumRecordingMs = 60_000;
 const minimumRecordingMs = 2_000;
 const microphoneStorageKey = "jalssa-selected-microphone";
@@ -258,6 +269,11 @@ function renderConversation() {
   const hasMessages = Boolean(conversation?.messages.length);
   elements.welcome.hidden = hasMessages;
   elements.suggestions.hidden = hasMessages;
+
+  // Enable export button when conversation has messages
+  if (elements.exportButton) {
+    elements.exportButton.disabled = !hasMessages;
+  }
 
   if (!conversation) return;
 
@@ -520,18 +536,51 @@ function resetRecorder() {
   mediaRecorder = null;
   recordingChunks = [];
   recordingStartedAt = 0;
-  elements.voiceButton.classList.remove("recording", "transcribing");
-  elements.voiceButton.disabled = false;
-  elements.voiceButton.textContent = "●";
-  elements.voiceButton.setAttribute("aria-label", "بدء الإدخال الصوتي");
+  discardRecording = false;
+  landingVoiceLevel = 0;
+  updateLandingWaveform();
+  recordingButton?.classList.remove("recording", "transcribing");
+  if (recordingButton) {
+    recordingButton.disabled = false;
+    if (recordingButton === elements.landingVoiceButton) {
+      recordingButton.innerHTML = landingVoiceIconMarkup;
+    } else {
+      recordingButton.textContent = "●";
+    }
+    recordingButton.setAttribute("aria-label", "بدء الإدخال الصوتي");
+  }
+  setLandingRecordingUi(false);
+}
+
+function updateLandingWaveform(samples = null) {
+  if (samples?.length) {
+    let squareSum = 0;
+    for (let index = 0; index < samples.length; index += 1) {
+      squareSum += samples[index] * samples[index];
+    }
+    const rms = Math.sqrt(squareSum / samples.length);
+    const target = Math.min(1, Math.max(0, (rms - 0.008) * 14));
+    landingVoiceLevel = landingVoiceLevel * 0.62 + target * 0.38;
+  } else {
+    landingVoiceLevel = 0;
+  }
+
+  const bars = elements.landingRecordingControls?.querySelectorAll(".landing-waveform span");
+  if (!bars) return;
+  const shape = [0.38, 0.62, 0.86, 0.55, 1, 0.72, 0.44, 0.82, 0.58, 0.94, 0.68, 0.42];
+  bars.forEach((bar, index) => {
+    const height = 4 + landingVoiceLevel * 32 * shape[index % shape.length];
+    bar.style.height = `${height.toFixed(1)}px`;
+    bar.style.opacity = `${(0.45 + landingVoiceLevel * 0.55).toFixed(2)}`;
+  });
 }
 
 async function transcribeRecording(blob) {
-  elements.voiceButton.classList.remove("recording");
-  elements.voiceButton.classList.add("transcribing");
-  elements.voiceButton.disabled = true;
-  elements.voiceButton.textContent = "…";
-  elements.voiceButton.setAttribute("aria-label", "جارٍ تحويل الصوت إلى نص");
+  recordingButton.classList.remove("recording");
+  recordingButton.classList.add("transcribing");
+  recordingButton.disabled = true;
+  recordingButton.textContent = "…";
+  recordingButton.setAttribute("aria-label", "جارٍ تحويل الصوت إلى نص");
 
   const formData = new FormData();
   const extension = blob.type.includes("ogg") ? "ogg" : blob.type.includes("mp4") ? "mp4" : "webm";
@@ -541,10 +590,10 @@ async function transcribeRecording(blob) {
     const response = await fetch("/transcribe", { method: "POST", body: formData });
     const payload = await response.json();
     if (!response.ok) throw new Error(payload.detail || "تعذر تحويل الصوت إلى نص.");
-    const separator = elements.input.value.trim() ? " " : "";
-    elements.input.value = `${elements.input.value.trimEnd()}${separator}${payload.text}`;
-    elements.input.dispatchEvent(new Event("input"));
-    elements.input.focus();
+    const separator = recordingInput.value.trim() ? " " : "";
+    recordingInput.value = `${recordingInput.value.trimEnd()}${separator}${payload.text}`;
+    recordingInput.dispatchEvent(new Event("input"));
+    recordingInput.focus();
   } catch (error) {
     showToast(error.message || "تعذر تحويل الصوت إلى نص.");
   } finally {
@@ -581,11 +630,14 @@ function finishRecording() {
   if (mediaRecorder?.state === "recording") mediaRecorder.stop();
 }
 
-async function toggleRecording() {
+async function toggleRecording(button = elements.voiceButton, input = elements.input) {
   if (recordingActive) {
     finishRecording();
     return;
   }
+  recordingButton = button;
+  recordingInput = input;
+  discardRecording = false;
   if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
     showToast("التسجيل الصوتي غير مدعوم في هذا المتصفح.");
     return;
@@ -617,7 +669,9 @@ async function toggleRecording() {
       pcmChunks = [];
       pcmProcessor.addEventListener("audioprocess", (event) => {
         if (!recordingActive) return;
-        pcmChunks.push(new Float32Array(event.inputBuffer.getChannelData(0)));
+        const samples = new Float32Array(event.inputBuffer.getChannelData(0));
+        pcmChunks.push(samples);
+        if (recordingButton === elements.landingVoiceButton) updateLandingWaveform(samples);
       });
       pcmSource.connect(pcmProcessor);
       pcmProcessor.connect(pcmContext.destination);
@@ -629,6 +683,10 @@ async function toggleRecording() {
         if (event.data.size) recordingChunks.push(event.data);
       });
       mediaRecorder.addEventListener("stop", () => {
+        if (discardRecording) {
+          resetRecorder();
+          return;
+        }
         const recordingDuration = Date.now() - recordingStartedAt;
         const blob = new Blob(recordingChunks, { type: mediaRecorder.mimeType || "audio/webm" });
         if (recordingDuration < minimumRecordingMs) {
@@ -642,9 +700,10 @@ async function toggleRecording() {
     }
     recordingStartedAt = Date.now();
     recordingActive = true;
-    elements.voiceButton.classList.add("recording");
-    elements.voiceButton.textContent = "■";
-    elements.voiceButton.setAttribute("aria-label", "إيقاف التسجيل");
+    recordingButton.classList.add("recording");
+    if (recordingButton !== elements.landingVoiceButton) recordingButton.textContent = "■";
+    recordingButton.setAttribute("aria-label", "إيقاف التسجيل");
+    setLandingRecordingUi(recordingButton === elements.landingVoiceButton);
     showToast("بدأ التسجيل. اضغط على المربع الأحمر عند الانتهاء.");
     recordingTimer = window.setTimeout(() => {
       if (recordingActive) finishRecording();
@@ -664,6 +723,43 @@ async function toggleRecording() {
   }
 }
 
+function setLandingRecordingUi(active) {
+  elements.landingForm?.classList.toggle("recording-mode", active);
+  if (elements.landingRecordingControls) elements.landingRecordingControls.hidden = !active;
+  elements.landingRecordingControls?.classList.remove("transcribing");
+  if (elements.landingRecordingCancel) elements.landingRecordingCancel.disabled = false;
+  if (elements.landingRecordingConfirm) {
+    elements.landingRecordingConfirm.disabled = false;
+    elements.landingRecordingConfirm.textContent = "✓";
+  }
+}
+
+function cancelRecording() {
+  if (!recordingActive || recordingButton !== elements.landingVoiceButton) return;
+  recordingActive = false;
+  discardRecording = true;
+  window.clearTimeout(recordingTimer);
+  setLandingRecordingUi(false);
+  if (mediaRecorder?.state === "recording") {
+    mediaRecorder.stop();
+  } else {
+    resetRecorder();
+  }
+  showToast("تم إلغاء التسجيل.");
+}
+
+function confirmLandingRecording() {
+  if (!recordingActive || recordingButton !== elements.landingVoiceButton) return;
+  elements.landingRecordingControls?.classList.add("transcribing");
+  if (elements.landingRecordingCancel) elements.landingRecordingCancel.disabled = true;
+  if (elements.landingRecordingConfirm) {
+    elements.landingRecordingConfirm.disabled = true;
+    elements.landingRecordingConfirm.textContent = "…";
+  }
+  showToast("جارٍ تحويل التسجيل إلى نص...");
+  finishRecording();
+}
+
 elements.form.addEventListener("submit", (event) => {
   event.preventDefault();
   const question = elements.input.value;
@@ -672,7 +768,9 @@ elements.form.addEventListener("submit", (event) => {
   submitQuestion(question);
 });
 
-elements.voiceButton?.addEventListener("click", toggleRecording);
+elements.voiceButton?.addEventListener("click", () => {
+  toggleRecording(elements.voiceButton, elements.input);
+});
 elements.microphoneSelect?.addEventListener("change", () => {
   localStorage.setItem(microphoneStorageKey, elements.microphoneSelect.value);
   showToast("تم اختيار الميكروفون. ابدأ تسجيلاً جديداً.");
@@ -728,6 +826,39 @@ elements.clearHistory.addEventListener("click", removeAllConversations);
 elements.historySearch.addEventListener("input", renderHistory);
 elements.mobileMenu.addEventListener("click", () => elements.nav.classList.toggle("open"));
 
+// Export functionality
+elements.exportButton?.addEventListener("click", (event) => {
+  event.stopPropagation();
+  elements.exportDropdown.hidden = !elements.exportDropdown.hidden;
+});
+
+elements.exportDropdown?.addEventListener("click", (event) => {
+  const button = event.target.closest("button[data-format]");
+  if (button) {
+    exportConversation(button.dataset.format);
+    elements.exportDropdown.hidden = true;
+  }
+});
+
+document.addEventListener("click", () => {
+  elements.exportDropdown.hidden = true;
+});
+
+// Landing voice button
+elements.landingVoiceButton?.addEventListener("click", async (event) => {
+  event.preventDefault();
+  if (recordingActive) return;
+  await toggleRecording(elements.landingVoiceButton, elements.landingInput);
+});
+elements.landingRecordingControls?.addEventListener("click", (event) => {
+  const button = event.target.closest("button");
+  if (!button) return;
+  event.preventDefault();
+  event.stopPropagation();
+  if (button === elements.landingRecordingCancel) cancelRecording();
+  if (button === elements.landingRecordingConfirm) confirmLandingRecording();
+});
+
 elements.priorityOptions?.addEventListener("click", (event) => {
   const button = event.target.closest("button[data-priority]");
   if (!button) return;
@@ -749,6 +880,56 @@ elements.decisionForm.addEventListener("submit", (event) => {
   saveDecisionDraft(false);
   showToast("واجهة رفع القرار جاهزة. لم يتم إرسال بيانات إلى الخادم.");
 });
+
+// Export conversation function
+async function exportConversation(format = "pdf") {
+  const conversation = activeConversation();
+  if (!conversation || !conversation.messages.length) {
+    showToast("لا توجد رسائل للتصدير.");
+    return;
+  }
+
+  elements.exportButton.disabled = true;
+  elements.exportButton.textContent = "…";
+  elements.exportButton.setAttribute("aria-label", "جارٍ التصدير");
+
+  try {
+    const response = await fetch(`/api/export-chat?format=${format}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: conversation.title,
+        messages: conversation.messages,
+      }),
+    });
+
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({}));
+      throw new Error(payload.detail || "فشل تصدير المحادثة.");
+    }
+
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const filename = `${conversation.title.replace(/[\/\\?%*:|"<>]/g, "_")}.${format === "pdf" ? "pdf" : "txt"}`;
+
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    showToast("تم تصدير المحادثة بنجاح.");
+  } catch (error) {
+    console.error("Export failed:", error);
+    showToast(error.message || "فشل تصدير المحادثة.");
+  } finally {
+    elements.exportButton.disabled = false;
+    elements.exportButton.textContent = "⇩ تصدير";
+    elements.exportButton.setAttribute("aria-label", "تصدير المحادثة");
+  }
+}
 
 loadDecisionDraft();
 render();

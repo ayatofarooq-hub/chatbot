@@ -2045,7 +2045,8 @@ textarea:focus-visible,
   }
 
   .landing-prompt-actions {
-    grid-template-columns: 40px 1fr 44px;
+    grid-template-columns: 40px 40px minmax(0, 1fr) 44px;
+    gap: 10px;
   }
 
   .landing-model {
@@ -2463,5 +2464,356 @@ textarea:focus-visible,
   .fine-row input[type="time"],
   .range-control {
     width: 100%;
+  }
+}
+
+/* Export Chat Styles */
+.toolbar-buttons {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.export-menu {
+  position: relative;
+}
+
+#export-button,
+.toolbar-buttons > button {
+  padding: 8px 14px;
+  height: 36px;
+  color: #333;
+  background: #f0f0f0;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 160ms ease;
+}
+
+#export-button:hover:not(:disabled),
+.toolbar-buttons > button:hover:not(:disabled) {
+  background: #e8e8e8;
+  border-color: #999;
+}
+
+#export-button:disabled,
+.toolbar-buttons > button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.export-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  min-width: 180px;
+  margin-top: 4px;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  z-index: 100;
+  overflow: hidden;
+}
+
+.export-dropdown[hidden] {
+  display: none;
+}
+
+.export-format {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 10px 14px;
+  background: white;
+  border: none;
+  text-align: right;
+  cursor: pointer;
+  transition: background 160ms ease;
+  font-size: 14px;
+}
+
+.export-format:hover {
+  background: #f5f5f5;
+}
+
+.export-format span {
+  margin-left: 8px;
+  font-size: 16px;
+}
+
+.landing-prompt-actions {
+  display: grid;
+  grid-template-columns: 44px 44px 1fr 48px;
+  align-items: center;
+  gap: 12px;
+}
+
+.landing-voice,
+.landing-attach,
+.landing-send {
+  border: 0;
+  border-radius: 14px;
+}
+
+.landing-voice,
+.landing-attach {
+  width: 42px;
+  height: 42px;
+  color: #17211b;
+  background: #f3f5f3;
+  font-size: 24px;
+  transition: all 160ms ease;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: var(--font-weight-bold);
+}
+
+.landing-voice svg {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.landing-voice:hover:not(:disabled),
+.landing-attach:hover:not(:disabled) {
+  background: #e8f5ed;
+  transform: scale(1.05);
+}
+
+.landing-voice:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.landing-prompt.recording-mode .landing-voice {
+  display: none;
+}
+
+.landing-voice.transcribing {
+  background: #ffa500;
+  color: white;
+  animation: pulse-transcribing 0.6s ease-in-out infinite;
+}
+
+.landing-recording-controls {
+  grid-column: 2 / -1;
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) 42px 42px;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+  z-index: 3;
+  pointer-events: auto;
+}
+
+.landing-recording-controls[hidden] {
+  display: none;
+}
+
+.landing-prompt.recording-mode .landing-model,
+.landing-prompt.recording-mode .landing-send {
+  display: none;
+}
+
+.landing-waveform {
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  padding-inline: 14px;
+  border-bottom: 2px dotted #c7ccc9;
+}
+
+.landing-waveform span {
+  width: 3px;
+  height: 4px;
+  border-radius: 999px;
+  background: #6b726e;
+  opacity: 0.45;
+  transition: height 90ms linear, opacity 90ms linear;
+}
+
+.landing-recording-cancel,
+.landing-recording-confirm {
+  width: 42px;
+  height: 42px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #202622;
+  font-size: 28px;
+  line-height: 1;
+  position: relative;
+  z-index: 4;
+  pointer-events: auto;
+}
+
+.landing-recording-cancel:hover,
+.landing-recording-confirm:hover {
+  background: #eef1ef;
+}
+
+.landing-recording-controls button:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
+
+/* Waveform animation for landing voice */
+@keyframes waveform-landing {
+  0%, 100% {
+    height: 4px;
+    opacity: 0.4;
+  }
+  50% {
+    height: 16px;
+    opacity: 1;
+  }
+}
+
+@keyframes pulse-ring-landing {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.6);
+  }
+  70% {
+    box-shadow: 0 0 0 8px rgba(255, 255, 255, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0);
+  }
+}
+
+/* Chat Voice Button Animations */
+.voice {
+  position: relative;
+}
+
+.voice.recording::before,
+.voice.recording::after {
+  content: "";
+  position: absolute;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+  opacity: 0.5;
+}
+
+.voice.recording::before {
+  width: 24px;
+  height: 24px;
+  top: -4px;
+  left: -4px;
+  animation: pulse-ring 1.5s ease-out infinite;
+}
+
+.voice.recording::after {
+  width: 36px;
+  height: 36px;
+  top: -10px;
+  left: -10px;
+  animation: pulse-ring 1.5s 0.3s ease-out infinite;
+}
+
+/* Animations */
+@keyframes pulse-recording {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 68, 68, 0.7);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(255, 68, 68, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 68, 68, 0);
+  }
+}
+
+@keyframes pulse-transcribing {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(255, 165, 0, 0.7);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(255, 165, 0, 0);
+  }
+}
+
+@keyframes pulse-ring {
+  0% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1.5);
+    opacity: 0;
+  }
+}
+
+@keyframes waveform {
+  0%, 100% {
+    height: 2px;
+  }
+  50% {
+    height: 12px;
+  }
+}
+
+/* Recording indicator */
+.message.assistant.recording {
+  animation: typing-indicator 1.5s ease-in-out infinite;
+}
+
+@keyframes typing-indicator {
+  0%, 60%, 100% {
+    opacity: 0.5;
+  }
+  30% {
+    opacity: 1;
+  }
+}
+
+/* Dark theme support */
+@media (prefers-color-scheme: dark) {
+  .toolbar-buttons > button,
+  #export-button {
+    color: #e0e0e0;
+    background: #333;
+    border-color: #555;
+  }
+
+  .toolbar-buttons > button:hover:not(:disabled),
+  #export-button:hover:not(:disabled) {
+    background: #444;
+    border-color: #999;
+  }
+
+  .export-dropdown {
+    background: #2a2a2a;
+    border-color: #444;
+  }
+
+  .export-format {
+    background: #2a2a2a;
+    color: #e0e0e0;
+  }
+
+  .export-format:hover {
+    background: #333;
+  }
+
+  .landing-voice,
+  .landing-attach {
+    color: #26312b;
+    background: #e8f5ed;
+  }
+
+  .landing-voice:hover:not(:disabled),
+  .landing-attach:hover:not(:disabled) {
+    background: #d0ead3;
   }
 }

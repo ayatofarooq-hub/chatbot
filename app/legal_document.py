@@ -1,4 +1,4 @@
-"""Internal structured representation of a PostgreSQL legal record."""
+"""Internal structured representation of a legal record."""
 
 from dataclasses import dataclass, field
 
@@ -17,7 +17,7 @@ class DocumentBlock:
 
 @dataclass(frozen=True)
 class LoadedDocument:
-    """One normalized PostgreSQL legal record."""
+    """One normalized legal record."""
 
     source_file: str
     source_type: str

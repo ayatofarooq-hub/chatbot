@@ -1,4 +1,10 @@
-"""Display the PostgreSQL-only chatbot configuration."""
+"""Display the offline chatbot configuration."""
+
+from pathlib import Path
+import sys
+
+if __package__ in {None, ""}:
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from app.config import (
     CHAT_MODEL,
@@ -18,10 +24,11 @@ def main() -> None:
     try:
         database_name, database_user = connection_identity(engine)
     finally:
-        engine.dispose()
+        if engine is not None:
+            engine.dispose()
 
     print(
-        f"PostgreSQL source: database '{database_name}' as '{database_user}'"
+        f"Offline source: database '{database_name}' as '{database_user}'"
     )
     print(f"Chroma folder: {CHROMA_FOLDER}")
     print(f"Chat model: {CHAT_MODEL}")

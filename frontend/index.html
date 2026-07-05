@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#145a38">
   <title>المساعد القانوني العراقي</title>
-  <link rel="stylesheet" href="/assets/styles.css?v=20260701-speech">
+  <link rel="stylesheet" href="/assets/styles.css?v=20260705-live-waveform">
 </head>
 <body>
   <div class="app-shell">
@@ -94,8 +94,22 @@
             <textarea id="landing-input" rows="3" placeholder="كيف يمكنني مساعدتك اليوم؟"></textarea>
             <div class="landing-prompt-actions">
               <button class="landing-attach" type="button" disabled aria-label="إرفاق ملف">＋</button>
+              <button class="landing-voice" id="landing-voice-button" type="button" aria-label="بدء الإدخال الصوتي" title="إدخال صوتي">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M12 15.25a3.75 3.75 0 0 0 3.75-3.75v-5a3.75 3.75 0 0 0-7.5 0v5A3.75 3.75 0 0 0 12 15.25Z"/>
+                  <path d="M5.75 11.25a6.25 6.25 0 0 0 12.5 0M12 17.5v3.25M9.25 20.75h5.5"/>
+                </svg>
+              </button>
               <div class="landing-model" aria-hidden="true">النموذج المحلي · Ollama</div>
               <button class="landing-send" id="landing-send" type="submit" aria-label="إرسال السؤال">←</button>
+              <div class="landing-recording-controls" id="landing-recording-controls" hidden>
+                <div class="landing-waveform" aria-label="جارٍ التسجيل">
+                  <span></span><span></span><span></span><span></span><span></span><span></span>
+                  <span></span><span></span><span></span><span></span><span></span><span></span>
+                </div>
+                <button class="landing-recording-cancel" id="landing-recording-cancel" type="button" aria-label="إلغاء التسجيل">×</button>
+                <button class="landing-recording-confirm" id="landing-recording-confirm" type="button" aria-label="إنهاء التسجيل وتحويله إلى نص">✓</button>
+              </div>
             </div>
           </form>
 
@@ -135,7 +149,17 @@
               </div>
             </div>
             <div class="toolbar-buttons">
-              <button type="button" disabled>⇩ تصدير الاستجابة</button>
+              <div class="export-menu">
+                <button id="export-button" type="button" disabled aria-label="تصدير المحادثة" title="تصدير المحادثة">⇩ تصدير</button>
+                <div class="export-dropdown" id="export-dropdown" hidden>
+                  <button type="button" data-format="pdf" class="export-format">
+                    <span>⬇</span> PDF
+                  </button>
+                  <button type="button" data-format="txt" class="export-format">
+                    <span>⬇</span> نص عادي
+                  </button>
+                </div>
+              </div>
               <button type="button" disabled>▽ تصفية</button>
             </div>
           </div>
@@ -240,6 +264,6 @@
 
   <div class="toast" id="toast" role="alert"></div>
   <div id="modal-root"></div>
-  <script type="module" src="/assets/app.js?v=20260701-speech-8"></script>
+  <script type="module" src="/assets/app.js?v=20260705-live-waveform"></script>
 </body>
 </html>

@@ -8,7 +8,7 @@ from pathlib import Path
 # the directory from which Python is started.
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
-# PostgreSQL is the sole durable knowledge source. Local storage is generated.
+# The legal knowledge source is a local JSON repository plus generated embeddings.
 CHROMA_FOLDER = PROJECT_ROOT / "data" / "chroma"
 CITATION_REGISTRY_FILE = PROJECT_ROOT / "data" / "citation_registry.json"
 

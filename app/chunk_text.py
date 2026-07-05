@@ -5,13 +5,14 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+from types import SimpleNamespace
 
 try:
     from .config import PROJECT_ROOT
-    from .legal_document import LoadedDocument
+    from .legal_document import DocumentBlock, LoadedDocument
 except ImportError:
     from config import PROJECT_ROOT
-    from legal_document import LoadedDocument
+    from legal_document import DocumentBlock, LoadedDocument
 
 
 CHUNKS_FILE = PROJECT_ROOT / "data" / "chunks.jsonl"
@@ -87,30 +88,50 @@ def split_text(text: str) -> list[str]:
     return chunks
 
 
-def _reference_label(
-    article_reference: str,
-    section_reference: str,
-    section_title: str,
-) -> str:
+def _reference_label(article_reference: str, section_reference: str, section_title: str) -> str:
     return article_reference or section_reference or section_title
 
 
 def _chunk_id(source_file: str, chunk_index: int) -> str:
-    source_hash = hashlib.sha1(
-        source_file.encode("utf-8"), usedforsecurity=False
-    ).hexdigest()[:12]
+    source_hash = hashlib.sha1(source_file.encode("utf-8"), usedforsecurity=False).hexdigest()[:12]
     return f"{source_hash}-chunk-{chunk_index}"
 
 
-def build_chunks_from_document(document: LoadedDocument) -> list[dict]:
+def _normalize_document(document) -> SimpleNamespace:
+    if isinstance(document, dict):
+        blocks = []
+        for article in document.get("articles", []) or []:
+            article_text = str(article.get("text", "") or "").strip()
+            if article_text:
+                blocks.append(
+                    DocumentBlock(
+                        text=article_text,
+                        article_reference=str(article.get("article_number", "")),
+                    )
+                )
+        if not blocks:
+            blocks.append(DocumentBlock(text=str(document.get("summary", "") or "")))
+        return SimpleNamespace(
+            source_file=str(document.get("source") or document.get("id") or "document"),
+            source_type="json",
+            title=str(document.get("title", "") or ""),
+            blocks=blocks,
+            document_type=str(document.get("document_type", "") or ""),
+            metadata={k: v for k, v in document.items() if k not in {"title", "articles", "summary"} and v not in {None, "", [], {}}},
+        )
+    return document
+
+
+def build_chunks_from_document(document: LoadedDocument | dict) -> list[dict]:
     """Build embedding chunks while retaining legal structure and metadata."""
 
+    doc = _normalize_document(document)
     chunks = []
     heading_path: list[str] = []
     current_article = ""
     current_section = ""
 
-    for block in document.blocks:
+    for block in doc.blocks:
         if block.block_type == "heading":
             level = max(block.heading_level or 1, 1)
             heading_path = heading_path[: level - 1]
@@ -128,8 +149,8 @@ def build_chunks_from_document(document: LoadedDocument) -> list[dict]:
 
         section_title = " > ".join(heading_path)
         context_lines = []
-        if document.title and document.title != section_title:
-            context_lines.append(document.title)
+        if doc.title and doc.title != section_title:
+            context_lines.append(doc.title)
         if section_title:
             context_lines.append(section_title)
         if block.block_type == "table":
@@ -137,26 +158,18 @@ def build_chunks_from_document(document: LoadedDocument) -> list[dict]:
 
         prefix = "\n".join(context_lines)
         available_size = max(MIN_CHUNK_SIZE, MAX_CHUNK_SIZE - len(prefix) - 2)
-        block_parts = (
-            split_text(block.text)
-            if len(block.text) > available_size
-            else [block.text]
-        )
+        block_parts = split_text(block.text) if len(block.text) > available_size else [block.text]
 
         for part in block_parts:
             text = "\n\n".join(value for value in (prefix, part) if value)
             chunk_index = len(chunks)
-            legal_reference = _reference_label(
-                current_article,
-                current_section,
-                section_title,
-            )
+            legal_reference = _reference_label(current_article, current_section, section_title)
             chunk = {
-                "id": _chunk_id(document.source_file, chunk_index),
-                "source_file": document.source_file,
-                "source_type": document.source_type,
-                "document_type": document.document_type,
-                "document_title": document.title,
+                "id": _chunk_id(doc.source_file, chunk_index),
+                "source_file": doc.source_file,
+                "source_type": doc.source_type,
+                "document_type": doc.document_type,
+                "document_title": doc.title,
                 "page_number": block.page_number,
                 "chunk_index": chunk_index,
                 "section_title": section_title,
@@ -166,20 +179,14 @@ def build_chunks_from_document(document: LoadedDocument) -> list[dict]:
                 "block_type": block.block_type,
                 "text": text,
             }
-            chunk.update(
-                {
-                    f"document_{key}": value
-                    for key, value in document.metadata.items()
-                    if value
-                }
-            )
+            chunk.update({f"document_{key}": value for key, value in doc.metadata.items() if value})
             chunks.append(chunk)
 
     return chunks
 
 
 def main() -> None:
-    """Load and chunk every PostgreSQL legal record as JSON Lines."""
+    """Load and chunk every JSON-backed legal record as JSON Lines."""
 
     try:
         from .postgres_laws import load_postgres_documents
@@ -188,10 +195,7 @@ def main() -> None:
 
     documents = load_postgres_documents()
     if not documents:
-        print(
-            "No PostgreSQL laws found. Check DATABASE_URL and "
-            "public.iraqi_laws."
-        )
+        print("No JSON laws found. Check the data/laws folder.")
         return
 
     all_chunks = []

@@ -10,8 +10,15 @@ from pathlib import Path
 
 import httpx
 import ollama
-from sqlalchemy.exc import IntegrityError
 from starlette.concurrency import run_in_threadpool
+
+try:
+    from sqlalchemy.exc import IntegrityError
+except ImportError:  # pragma: no cover - fallback for offline environments
+    class IntegrityError(Exception):
+        """Fallback exception used when SQLAlchemy is unavailable."""
+
+        pass
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 

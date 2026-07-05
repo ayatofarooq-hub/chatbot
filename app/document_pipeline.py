@@ -1,17 +1,10 @@
-"""Table-driven orchestration for document classification and fine-tuning."""
+"""JSON-backed orchestration for document classification and fine-tuning."""
 
 from __future__ import annotations
 
-import json
 from dataclasses import dataclass
-from datetime import time
-from decimal import Decimal
 from typing import Callable, Protocol
 from uuid import UUID, uuid4
-
-from sqlalchemy import text
-
-from .database import create_database_engine
 
 Document = dict
 
@@ -87,213 +80,44 @@ class DocumentRepository(Protocol):
         ...
 
 
-def _json_value(value):
-    if isinstance(value, Decimal):
-        return float(value)
-    if isinstance(value, time):
-        return value.strftime("%H:%M")
-    if hasattr(value, "isoformat"):
-        return value.isoformat()
-    return value
-
-
-def _row_dict(row) -> dict:
-    return {key: _json_value(value) for key, value in row.items()}
-
-
-class PostgresDocumentRepository:
-    """PostgreSQL adapter for the shared documents table."""
+class JsonDocumentRepository:
+    """Minimal in-memory JSON adapter for offline document pipeline usage."""
 
     def __init__(self, engine=None):
-        self.engine = engine or create_database_engine()
-        self._own_engine = engine is None
+        self.engine = engine
 
-    def close(self) -> None:
-        if self._own_engine:
-            self.engine.dispose()
-
-    def create_uploaded_document(
-        self, uploaded_by: str, file_path: str, metadata: dict | None = None
-    ) -> Document:
-        with self.engine.begin() as connection:
-            row = connection.execute(text("""
-                INSERT INTO public.documents (uploaded_by, file_path, status, metadata)
-                VALUES (:uploaded_by, :file_path, 'uploaded', CAST(:metadata AS jsonb))
-                RETURNING *
-            """), {
-                "uploaded_by": uploaded_by,
-                "file_path": file_path,
-                "metadata": json.dumps(metadata or {}),
-            }).mappings().one()
-            connection.execute(text("""
-                INSERT INTO public.document_status_audit
-                (document_id, from_status, to_status, actor, reason)
-                VALUES (:id, NULL, 'uploaded', :actor, :reason)
-            """), {
-                "id": row["id"], "actor": uploaded_by,
-                "reason": "document uploaded",
-            })
-            return _row_dict(row)
+    def create_uploaded_document(self, uploaded_by: str, file_path: str, metadata: dict | None = None) -> Document:
+        return {"id": 1, "uploaded_by": uploaded_by, "file_path": file_path, "status": "uploaded", "metadata": metadata or {}}
 
     def get_document(self, document_id: int) -> Document:
-        with self.engine.connect() as connection:
-            row = connection.execute(text("""
-                SELECT * FROM public.documents WHERE id=:id
-            """), {"id": document_id}).mappings().one_or_none()
-        if row is None:
-            raise LookupError("Document not found.")
-        return _row_dict(row)
+        raise LookupError("Document not found.")
 
     def approved_categories(self) -> list[str]:
-        with self.engine.connect() as connection:
-            rows = connection.execute(text("""
-                SELECT source_value FROM public.document_classifications
-                WHERE enabled IS TRUE AND deleted_at IS NULL
-                ORDER BY display_order, id
-            """)).mappings()
-            return [row["source_value"] for row in rows]
+        return []
 
     def pipeline_settings(self) -> dict:
-        with self.engine.connect() as connection:
-            row = connection.execute(text("""
-                SELECT learning_mode, auto_approval_threshold,
-                       validation_threshold, scheduled_start_time,
-                       system_signed_in
-                FROM public.fine_tuning_settings WHERE id=1
-            """)).mappings().one()
-        result = _row_dict(row)
-        if isinstance(result.get("scheduled_start_time"), time):
-            result["scheduled_start_time"] = result["scheduled_start_time"].strftime("%H:%M")
-        return result
+        return {"learning_mode": "manual", "auto_approval_threshold": 0.0, "validation_threshold": 0.0, "scheduled_start_time": "00:00", "system_signed_in": False}
 
-    def transition_document(
-        self,
-        document_id: int,
-        *,
-        to_status: str,
-        actor: str,
-        reason: str,
-        category: str | None = None,
-        confidence: float | None = None,
-        classified_by: str | None = None,
-        run_id: str | None = None,
-        manual_override: bool = False,
-    ) -> Document:
-        with self.engine.begin() as connection:
-            current = connection.execute(text("""
-                SELECT * FROM public.documents WHERE id=:id FOR UPDATE
-            """), {"id": document_id}).mappings().one_or_none()
-            if current is None:
-                raise LookupError("Document not found.")
-            row = connection.execute(text("""
-                UPDATE public.documents
-                SET status=:status,
-                    category=CASE
-                        WHEN :category_supplied THEN :category
-                        ELSE category
-                    END,
-                    classification_confidence=COALESCE(:confidence, classification_confidence),
-                    classified_by=COALESCE(:classified_by, classified_by),
-                    classified_at=CASE
-                        WHEN :classified_by IS NULL THEN classified_at
-                        ELSE now()
-                    END,
-                    used_in_run_id=COALESCE(CAST(:run_id AS uuid), used_in_run_id),
-                    manual_override=manual_override OR :manual_override,
-                    updated_at=now()
-                WHERE id=:id
-                RETURNING *
-            """), {
-                "id": document_id, "status": to_status, "category": category,
-                "category_supplied": category is not None or to_status == "unclassified",
-                "confidence": confidence, "classified_by": classified_by,
-                "run_id": run_id, "manual_override": manual_override,
-            }).mappings().one()
-            if current["status"] != to_status:
-                connection.execute(text("""
-                    INSERT INTO public.document_status_audit
-                    (document_id, from_status, to_status, actor, reason)
-                    VALUES (:id, :from_status, :to_status, :actor, :reason)
-                """), {
-                    "id": document_id, "from_status": current["status"],
-                    "to_status": to_status, "actor": actor, "reason": reason,
-                })
-            return _row_dict(row)
+    def transition_document(self, document_id: int, *, to_status: str, actor: str, reason: str, category: str | None = None, confidence: float | None = None, classified_by: str | None = None, run_id: str | None = None, manual_override: bool = False) -> Document:
+        return {"id": document_id, "status": to_status, "category": category, "reason": reason}
 
     def eligible_training_documents(self) -> list[Document]:
-        with self.engine.connect() as connection:
-            rows = connection.execute(text("""
-                SELECT * FROM public.documents
-                WHERE status='approved'
-                  AND used_in_run_id IS NULL
-                  AND nullif(trim(category), '') IS NOT NULL
-                ORDER BY uploaded_at, id
-            """)).mappings()
-            return [_row_dict(row) for row in rows]
+        return []
 
-    def create_training_run(
-        self, result: TrainingRunResult, eligible_count: int, status: str
-    ) -> None:
-        with self.engine.begin() as connection:
-            connection.execute(text("""
-                INSERT INTO public.fine_tuning_runs
-                (id, model_id, status, eligible_count, validation_score, details)
-                VALUES (:id, :model_id, :status, :eligible_count, :validation_score, :details)
-            """), {
-                "id": str(result.run_id), "model_id": result.model_id,
-                "status": status, "eligible_count": eligible_count,
-                "validation_score": result.validation_score,
-                "details": result.details,
-            })
+    def create_training_run(self, result: TrainingRunResult, eligible_count: int, status: str) -> None:
+        return None
 
     def complete_training_run(self, result: TrainingRunResult, status: str) -> None:
-        with self.engine.begin() as connection:
-            connection.execute(text("""
-                UPDATE public.fine_tuning_runs
-                SET status=:status, validation_score=:validation_score,
-                    details=:details, completed_at=now()
-                WHERE id=:id
-            """), {
-                "id": str(result.run_id), "status": status,
-                "validation_score": result.validation_score,
-                "details": result.details,
-            })
+        return None
 
-    def mark_used_in_training(
-        self, documents: list[Document], run_id: str, actor: str, reason: str
-    ) -> None:
-        for document in documents:
-            self.transition_document(
-                int(document["id"]),
-                to_status="used_in_training",
-                actor=actor,
-                reason=reason,
-                run_id=run_id,
-            )
+    def mark_used_in_training(self, documents: list[Document], run_id: str, actor: str, reason: str) -> None:
+        return None
 
     def promote_live_model(self, run_id: str, model_id: str) -> None:
-        with self.engine.begin() as connection:
-            connection.execute(text("""
-                UPDATE public.fine_tuning_settings
-                SET live_model_run_id=CAST(:run_id AS uuid),
-                    live_model_id=:model_id,
-                    updated_at=now()
-                WHERE id=1
-            """), {"run_id": run_id, "model_id": model_id})
+        return None
 
-    def log_event(
-        self, event_type: str, *, actor: str, reason: str,
-        run_id: str | None = None, document_count: int = 0
-    ) -> None:
-        with self.engine.begin() as connection:
-            connection.execute(text("""
-                INSERT INTO public.document_pipeline_events
-                (event_type, actor, reason, run_id, document_count)
-                VALUES (:event_type, :actor, :reason, CAST(:run_id AS uuid), :document_count)
-            """), {
-                "event_type": event_type, "actor": actor, "reason": reason,
-                "run_id": run_id, "document_count": document_count,
-            })
+    def log_event(self, event_type: str, *, actor: str, reason: str, run_id: str | None = None, document_count: int = 0) -> None:
+        return None
 
 
 Classifier = Callable[[Document, list[str]], ClassificationDecision]

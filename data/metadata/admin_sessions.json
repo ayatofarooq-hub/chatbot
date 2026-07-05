@@ -1,0 +1,14 @@
+[
+  {
+    "id": "a664c544-a3c9-4379-a1b0-2a8dad2f7012",
+    "admin_user_id": 1,
+    "token_hash": "0babaef3eea62d276e581d5ed3187cf02885db098f0c268816645a91800b0acf",
+    "expires_at": "2026-07-05T09:12:48.003428+00:00"
+  },
+  {
+    "id": "fef11d49-1997-41a8-b78f-fa906baa5f9d",
+    "admin_user_id": 2,
+    "token_hash": "35165a3ed92e5cced1f8cb313acd173448e8c0d8d8208a4fdea71ff82d03c8e7",
+    "expires_at": "2026-07-05T10:23:18.361915+00:00"
+  }
+]
