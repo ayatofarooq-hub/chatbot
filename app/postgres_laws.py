@@ -27,6 +27,7 @@ def document_to_loaded_document(document: Mapping[str, Any]) -> LoadedDocument:
             blocks.append(
                 DocumentBlock(
                     text=article_text,
+                    page_number=int(article.get("page_number") or 1),
                     article_reference=_text(article.get("article_number")),
                 )
             )
@@ -41,8 +42,10 @@ def document_to_loaded_document(document: Mapping[str, Any]) -> LoadedDocument:
             "year": _text(document.get("year")),
             "source": _text(document.get("source")),
             "category": document.get("category"),
+            "upload_id": _text(document.get("upload_id")),
+            "original_filename": _text(document.get("original_filename")),
         }.items()
-        if value not in {None, "", [], {}}
+        if value is not None and value != "" and value != [] and value != {}
     }
     return LoadedDocument(
         source_file=_text(document.get("source")) or document_id,

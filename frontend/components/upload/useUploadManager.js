@@ -2,9 +2,15 @@ import { createUploadDropzone } from "./UploadDropzone.js";
 import { createUploadProgressCard, updateUploadProgressCard } from "./UploadProgressCard.js";
 import { createUploadedFileCard } from "./UploadedFileCard.js";
 import { createUploadStats } from "./UploadStats.js";
-import { simulateUpload } from "./uploadService.js";
-import { MAX_FILES, UploadStatus } from "./uploadTypes.js";
-import { validateFiles } from "./uploadValidation.js";
+import {
+  fetchUploadedFiles,
+  fetchUploadSettings,
+  removeUploadedFile,
+  uploadFile,
+} from "./uploadService.js?v=20260712-upload-settings";
+import { DEFAULT_UPLOAD_CONFIG, normalizeUploadConfig } from "./uploadConfig.js?v=20260712-upload-settings";
+import { UploadStatus } from "./uploadTypes.js?v=20260706-real-uploads";
+import { validateFiles } from "./uploadValidation.js?v=20260712-upload-settings";
 
 export function createUploadManager({
   dropzoneRoot,
@@ -13,6 +19,7 @@ export function createUploadManager({
   statsRoot,
   countRoot,
   capacityRoot,
+  subtitleRoot,
   qualityCountRoot,
   qualityLabelRoot,
   showToast,
@@ -20,10 +27,12 @@ export function createUploadManager({
   const state = {
     files: [],
     cancelUploadById: new Map(),
+    config: DEFAULT_UPLOAD_CONFIG,
     errors: [],
   };
 
   const dropzone = createUploadDropzone({
+    config: state.config,
     onFilesSelected(files) {
       addFiles(files);
     },
@@ -32,7 +41,7 @@ export function createUploadManager({
   dropzoneRoot.replaceChildren(dropzone.element);
 
   function addFiles(files) {
-    const { validFiles, errors } = validateFiles(files, state.files.length, MAX_FILES);
+    const { validFiles, errors } = validateFiles(files, state.files.length, state.config);
     state.errors = errors;
     errors.forEach(showToast);
 
@@ -48,8 +57,35 @@ export function createUploadManager({
       };
 
       state.files.push(fileItem);
-      const cancel = simulateUpload(fileItem, updateFile, updateFile);
+      const { promise, cancel } = uploadFile(file, (progress) => {
+        updateFile({ ...fileItem, ...progress, status: UploadStatus.UPLOADING });
+      });
       state.cancelUploadById.set(fileItem.id, cancel);
+      promise.then((uploaded) => {
+        state.cancelUploadById.delete(fileItem.id);
+        state.files = state.files.map((candidate) => (
+          candidate.id === fileItem.id
+            ? {
+              ...candidate,
+              id: uploaded.id,
+              status: UploadStatus.UPLOADED,
+              progress: 100,
+              speedBytesPerSecond: 0,
+              remainingSeconds: 0,
+              uploadedAt: uploaded.uploaded_at,
+              chunkCount: uploaded.chunk_count,
+            }
+            : candidate
+        ));
+        render();
+        showToast(`Saved and indexed "${file.name}".`);
+      }).catch((error) => {
+        state.cancelUploadById.delete(fileItem.id);
+        state.files = state.files.filter((candidate) => candidate.id !== fileItem.id);
+        state.errors = [error.message];
+        showToast(error.message);
+        render();
+      });
     });
 
     render();
@@ -65,15 +101,20 @@ export function createUploadManager({
     render();
   }
 
-  function deleteFile(fileId) {
+  async function deleteFile(fileId) {
     const card = listRoot.querySelector(`[data-file-id="${fileId}"]`);
     card?.classList.add("removing");
-    window.setTimeout(() => {
+    try {
+      await removeUploadedFile(fileId);
       state.cancelUploadById.get(fileId)?.();
       state.cancelUploadById.delete(fileId);
       state.files = state.files.filter((fileItem) => fileItem.id !== fileId);
       render();
-    }, 150);
+      showToast("File removed from storage and search index.");
+    } catch (error) {
+      card?.classList.remove("removing");
+      showToast(error.message);
+    }
   }
 
   function moveFile(fileId, direction) {
@@ -87,18 +128,14 @@ export function createUploadManager({
   }
 
   function previewFile(fileItem) {
-    const url = URL.createObjectURL(fileItem.file);
-    window.open(url, "_blank", "noopener,noreferrer");
-    window.setTimeout(() => URL.revokeObjectURL(url), 30000);
+    window.open(`/api/uploads/${encodeURIComponent(fileItem.id)}/download`, "_blank", "noopener,noreferrer");
   }
 
   function downloadFile(fileItem) {
-    const url = URL.createObjectURL(fileItem.file);
     const link = document.createElement("a");
-    link.href = url;
+    link.href = `/api/uploads/${encodeURIComponent(fileItem.id)}/download`;
     link.download = fileItem.file.name;
     link.click();
-    URL.revokeObjectURL(url);
   }
 
   function render() {
@@ -110,14 +147,18 @@ export function createUploadManager({
     dropzone.setState(dropzoneState);
     renderErrors();
     renderFileList();
-    statsRoot.replaceChildren(createUploadStats({ totalSize, count: state.files.length }));
+    statsRoot.replaceChildren(createUploadStats({ totalSize, count: state.files.length }, state.config));
 
-    countRoot.textContent = `${state.files.length} / ${MAX_FILES}`;
-    capacityRoot.textContent = `${state.files.length} / ${MAX_FILES}`;
-    if (qualityCountRoot) qualityCountRoot.textContent = `${state.files.length}/${MAX_FILES}`;
+    const maxFilesLabel = state.config.ready ? state.config.maxFiles : "...";
+    countRoot.textContent = `${state.files.length} / ${maxFilesLabel}`;
+    capacityRoot.textContent = `${state.files.length} / ${maxFilesLabel}`;
+    if (subtitleRoot) subtitleRoot.textContent = state.config.ready
+      ? `You can upload up to ${state.config.maxFiles} files.`
+      : "Loading upload limits...";
+    if (qualityCountRoot) qualityCountRoot.textContent = `${state.files.length}/${maxFilesLabel}`;
     if (qualityLabelRoot) qualityLabelRoot.textContent = uploadedCount
-      ? `تم رفع ${uploadedCount} من ${MAX_FILES} ملفات`
-      : "لا توجد ملفات مرفوعة بعد";
+      ? `Uploaded ${uploadedCount} of ${maxFilesLabel} files`
+      : "No uploaded files yet";
   }
 
   function renderErrors() {
@@ -135,7 +176,7 @@ export function createUploadManager({
       listRoot.replaceChildren();
       const empty = document.createElement("div");
       empty.className = "empty-panel";
-      empty.textContent = "لم يتم رفع أي ملفات بعد.";
+      empty.textContent = "No files have been uploaded yet.";
       listRoot.append(empty);
       return;
     }
@@ -174,6 +215,32 @@ export function createUploadManager({
   }
 
   render();
+
+  fetchUploadSettings().then((settings) => {
+    state.config = normalizeUploadConfig(settings);
+    dropzone.setConfig(state.config);
+    render();
+  }).catch((error) => {
+    state.errors = [error.message];
+    render();
+  });
+
+  fetchUploadedFiles().then((items) => {
+    state.files = items.map((item) => ({
+      id: item.id,
+      file: { name: item.name, size: item.size, type: "" },
+      status: UploadStatus.UPLOADED,
+      progress: 100,
+      speedBytesPerSecond: 0,
+      remainingSeconds: 0,
+      uploadedAt: item.uploaded_at,
+      chunkCount: item.chunk_count,
+    }));
+    render();
+  }).catch((error) => {
+    state.errors = [error.message];
+    render();
+  });
 
   return {
     getFiles() {

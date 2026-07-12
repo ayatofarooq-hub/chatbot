@@ -8,14 +8,14 @@ from copy import deepcopy
 
 DEFAULTS = {
     "model": {
-        "chat_model": "qwen2.5:7b", "embedding_model": "bge-m3",
-        "ollama_base_url": "http://127.0.0.1:11434", "request_timeout": 300,
-        "keep_alive": "10m", "max_answer_tokens": 400, "temperature": 0.0,
-        "top_p": 0.9, "context_length": 8192,
+        "chat_model": "qwen2.5:3b", "embedding_model": "bge-m3",
+        "ollama_base_url": "http://127.0.0.1:11434", "request_timeout": 600,
+        "keep_alive": "10m", "max_answer_tokens": 192, "temperature": 0.0,
+        "top_p": 0.9, "context_length": 4096,
     },
     "retrieval": {
         "chunk_size": 1100, "chunk_overlap": 120, "semantic_weight": 0.7,
-        "keyword_weight": 0.3, "result_count": 8, "hybrid_search": True,
+        "keyword_weight": 0.3, "result_count": 5, "hybrid_search": True,
         "debug_context": False, "ocr_enabled": True, "ocr_language": "ara",
     },
     "authentication": {
@@ -70,6 +70,7 @@ ENUMS = {
     ("appearance", "theme"): {"light", "dark", "system"},
     ("appearance", "primary_color"): {"green", "gold", "blue", "custom"},
     ("appearance", "interface_scale"): {"small", "medium", "large"},
+    ("upload", "max_file_size_mb"): {5, 10, 20, 25},
     ("upload", "ocr_language"): {"ara", "eng", "ara+eng"},
     ("backup", "automatic_frequency"): {"daily", "weekly", "monthly", None},
     ("fine_tuning", "learning_mode"): {"manual", "automatic"},

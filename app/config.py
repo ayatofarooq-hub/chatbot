@@ -13,7 +13,7 @@ CHROMA_FOLDER = PROJECT_ROOT / "data" / "chroma"
 CITATION_REGISTRY_FILE = PROJECT_ROOT / "data" / "citation_registry.json"
 
 # Models that will be used by the future RAG chatbot.
-CHAT_MODEL = "qwen2.5:7b"
+CHAT_MODEL = "qwen2.5:3b"
 EMBEDDING_MODEL = "bge-m3"
 
 # Local models can take time to load on CPU-only machines, but requests should

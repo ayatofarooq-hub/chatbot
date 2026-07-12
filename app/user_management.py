@@ -149,7 +149,17 @@ def deactivate_user(user_id: int, engine=None) -> None:
     _write_json(USERS_FILE, users)
 
 
-def audit_log(limit: int = 100, engine=None) -> list[dict]:
+def audit_log(
+    limit: int = 100,
+    offset: int = 0,
+    engine=None,
+) -> list[dict]:
     limit = max(1, min(int(limit), 500))
+    offset = max(0, int(offset))
     rows = _read_json(AUDIT_FILE)
-    return [dict(row) for row in rows[-limit:]][::-1]
+    newest_first = [dict(row) for row in reversed(rows)]
+    return newest_first[offset : offset + limit]
+
+
+def audit_log_count(engine=None) -> int:
+    return len(_read_json(AUDIT_FILE))

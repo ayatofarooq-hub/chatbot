@@ -25,13 +25,14 @@ from starlette.responses import JSONResponse, Response
 from .auth import COOKIE_NAME, admin_for_token, audit, authenticate, revoke_token
 from .build_index import main as build_index
 from .settings_schema import SettingsValidationError, validate_settings
+from .runtime_settings import runtime_settings
 from .settings_store import (
     create_classification, delete_classification, get_settings,
     list_classifications, reassign_classification, reset_settings,
     update_classification, update_settings,
 )
 from .user_management import (
-    audit_log, create_user, deactivate_user, list_users, reset_password,
+    audit_log, audit_log_count, create_user, deactivate_user, list_users, reset_password,
     roles as user_roles, update_user,
 )
 
@@ -99,7 +100,14 @@ async def logout(request: Request) -> JSONResponse:
 
 async def session(request: Request) -> JSONResponse:
     admin = await run_in_threadpool(admin_for_token, request.cookies.get(COOKIE_NAME))
-    return JSONResponse({"authenticated": bool(admin), "administrator": admin})
+    login_required = bool(runtime_settings()["authentication"]["login_enabled"])
+    return JSONResponse(
+        {
+            "authenticated": bool(admin),
+            "login_required": login_required,
+            "administrator": admin,
+        }
+    )
 
 
 async def settings_get(request: Request) -> JSONResponse:
@@ -374,5 +382,29 @@ async def audit_log_get(request: Request) -> JSONResponse:
     admin = require_admin(request, "view_audit_log")
     if isinstance(admin, Response):
         return admin
-    limit = request.query_params.get("limit", "100")
-    return JSONResponse({"items": await run_in_threadpool(audit_log, int(limit))})
+    try:
+        page = max(1, int(request.query_params.get("page", "1")))
+        page_size = max(
+            5,
+            min(100, int(request.query_params.get("page_size", "5"))),
+        )
+    except ValueError:
+        return error("Page and page_size must be integers.", 422, "validation_error")
+
+    total = await run_in_threadpool(audit_log_count)
+    total_pages = max(1, (total + page_size - 1) // page_size)
+    page = min(page, total_pages)
+    items = await run_in_threadpool(
+        audit_log,
+        page_size,
+        (page - 1) * page_size,
+    )
+    return JSONResponse(
+        {
+            "items": items,
+            "page": page,
+            "page_size": page_size,
+            "total": total,
+            "total_pages": total_pages,
+        }
+    )

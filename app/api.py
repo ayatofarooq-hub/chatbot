@@ -29,6 +29,12 @@ try:
     from .rag_answer import CITATION_PATTERN, generate_answer, get_quick_response
     from .search_index import search
     from .speech_to_text import inspect_audio, transcribe_audio
+    from .uploaded_documents import (
+        create_uploaded_document,
+        delete_uploaded_document,
+        list_uploaded_documents,
+        uploaded_file_path,
+    )
     from .settings_api import (
         backup_create, backup_restore, classification_delete,
         classification_put, classification_reassign, classifications_get,
@@ -53,6 +59,12 @@ except ImportError:
     from rag_answer import CITATION_PATTERN, generate_answer, get_quick_response
     from search_index import search
     from speech_to_text import inspect_audio, transcribe_audio
+    from uploaded_documents import (
+        create_uploaded_document,
+        delete_uploaded_document,
+        list_uploaded_documents,
+        uploaded_file_path,
+    )
     from settings_api import (
         backup_create, backup_restore, classification_delete,
         classification_put, classification_reassign, classifications_get,
@@ -166,7 +178,7 @@ def answer_question(question: str, include_snippets: bool = True) -> dict:
 
     results = search(question)
     registry = load_registry()
-    validated_results, citation_warnings = filter_results_to_registered(
+    validated_results, _ = filter_results_to_registered(
         results,
         registry=registry,
     )
@@ -178,7 +190,7 @@ def answer_question(question: str, include_snippets: bool = True) -> dict:
     return {
         "question": question,
         "answer": answer_result.content,
-        "warnings": answer_result.warnings + citation_warnings,
+        "warnings": list(dict.fromkeys(answer_result.warnings)),
         "citations": structured_citations,
         "snippets": extract_snippets(validated_results) if include_snippets else [],
     }
@@ -200,6 +212,93 @@ async def favicon(_: Request) -> Response:
     """Acknowledge the browser's default favicon request."""
 
     return Response(status_code=204)
+
+
+def authenticated_admin(request: Request):
+    from .auth import COOKIE_NAME, admin_for_token
+    from .runtime_settings import runtime_settings
+
+    if not runtime_settings()["authentication"]["login_enabled"]:
+        return {"authentication_disabled": True}
+    return admin_for_token(request.cookies.get(COOKIE_NAME))
+
+
+async def uploads_get(request: Request) -> JSONResponse:
+    if not authenticated_admin(request):
+        return JSONResponse({"detail": "Authentication required."}, status_code=401)
+    return JSONResponse({"items": await run_in_threadpool(list_uploaded_documents)})
+
+
+async def upload_settings_get(request: Request) -> JSONResponse:
+    if not authenticated_admin(request):
+        return JSONResponse({"detail": "Authentication required."}, status_code=401)
+    from .runtime_settings import runtime_settings
+
+    settings = runtime_settings()["upload"]
+    return JSONResponse(
+        {
+            "max_file_count": settings["max_file_count"],
+            "max_file_size_mb": settings["max_file_size_mb"],
+        }
+    )
+
+
+async def uploads_post(request: Request) -> JSONResponse:
+    if not authenticated_admin(request):
+        return JSONResponse({"detail": "Authentication required."}, status_code=401)
+    try:
+        form = await request.form()
+        uploaded = form.get("file")
+        if uploaded is None or not hasattr(uploaded, "read"):
+            return JSONResponse({"detail": "Field 'file' is required."}, status_code=422)
+        from .runtime_settings import runtime_settings
+
+        maximum = int(runtime_settings()["upload"]["max_file_size_mb"]) * 1024 * 1024
+        content = await uploaded.read(maximum + 1)
+        filename = str(getattr(uploaded, "filename", "") or "document")
+        await uploaded.close()
+        if len(content) > maximum:
+            return JSONResponse(
+                {"detail": f"File exceeds the {maximum // (1024 * 1024)} MB limit."},
+                status_code=413,
+            )
+        item = await run_in_threadpool(create_uploaded_document, filename, content)
+        return JSONResponse(item, status_code=201)
+    except ValueError as error:
+        return JSONResponse({"detail": str(error)}, status_code=422)
+    except NotFoundError:
+        return JSONResponse(
+            {"detail": "Search index is not initialized. Rebuild the index first."},
+            status_code=503,
+        )
+    except (ConnectionError, httpx.HTTPError, ollama.ResponseError) as error:
+        return JSONResponse({"detail": f"Indexing failed: {error}"}, status_code=503)
+
+
+async def upload_delete(request: Request) -> JSONResponse:
+    if not authenticated_admin(request):
+        return JSONResponse({"detail": "Authentication required."}, status_code=401)
+    try:
+        await run_in_threadpool(
+            delete_uploaded_document,
+            request.path_params["upload_id"],
+        )
+        return JSONResponse({"deleted": True})
+    except LookupError as error:
+        return JSONResponse({"detail": str(error)}, status_code=404)
+
+
+async def upload_download(request: Request) -> Response:
+    if not authenticated_admin(request):
+        return JSONResponse({"detail": "Authentication required."}, status_code=401)
+    try:
+        path, filename = await run_in_threadpool(
+            uploaded_file_path,
+            request.path_params["upload_id"],
+        )
+        return FileResponse(path, filename=filename)
+    except LookupError as error:
+        return JSONResponse({"detail": str(error)}, status_code=404)
 
 
 MAX_AUDIO_BYTES = 10 * 1024 * 1024
@@ -354,7 +453,13 @@ async def ask(request: Request) -> JSONResponse:
         )
     except httpx.TimeoutException:
         return JSONResponse(
-            {"detail": "The Ollama request timed out."},
+            {
+                "detail": (
+                    "انتهت مهلة انتظار نموذج Ollama. "
+                    "النموذج المحلي بطيء أو لا يملك موارد كافية؛ "
+                    "حاول مرة أخرى أو اختر نموذجاً أصغر من الإعدادات."
+                )
+            },
             status_code=504,
         )
     except ollama.ResponseError as error:
@@ -532,6 +637,11 @@ app = Starlette(
         Route("/transcribe", transcribe, methods=["POST"]),
         Route("/ask", ask, methods=["POST"]),
         Route("/api/export-chat", export_chat, methods=["POST"]),
+        Route("/api/uploads", uploads_get, methods=["GET"]),
+        Route("/api/uploads/settings", upload_settings_get, methods=["GET"]),
+        Route("/api/uploads", uploads_post, methods=["POST"]),
+        Route("/api/uploads/{upload_id:str}", upload_delete, methods=["DELETE"]),
+        Route("/api/uploads/{upload_id:str}/download", upload_download, methods=["GET"]),
         Route("/api/auth/login", login, methods=["POST"]),
         Route("/api/auth/logout", logout, methods=["POST"]),
         Route("/api/auth/session", session, methods=["GET"]),

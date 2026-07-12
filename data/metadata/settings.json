@@ -1,21 +1,21 @@
 {
   "model": {
-    "chat_model": "qwen2.5:7b",
+    "chat_model": "qwen2.5:3b",
     "embedding_model": "bge-m3",
     "ollama_base_url": "http://127.0.0.1:11434",
-    "request_timeout": 300,
+    "request_timeout": 600,
     "keep_alive": "10m",
-    "max_answer_tokens": 400,
+    "max_answer_tokens": 192,
     "temperature": 0.0,
     "top_p": 0.9,
-    "context_length": 8192
+    "context_length": 4096
   },
   "retrieval": {
     "chunk_size": 1100,
     "chunk_overlap": 120,
     "semantic_weight": 0.7,
     "keyword_weight": 0.3,
-    "result_count": 8,
+    "result_count": 5,
     "hybrid_search": true,
     "debug_context": false,
     "ocr_enabled": true,

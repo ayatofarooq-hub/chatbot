@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#145a38">
   <title>المساعد القانوني العراقي</title>
-  <link rel="stylesheet" href="/assets/styles.css?v=20260705-live-waveform">
+  <link rel="stylesheet" href="/assets/styles.css?v=20260706-audit-pagination">
 </head>
-<body>
+<body class="auth-gate-pending">
   <div class="app-shell">
     <aside class="primary-nav" id="primary-nav">
       <div class="brand-lockup">
@@ -54,8 +54,7 @@
       </nav>
 
       <div class="nav-footer">
-        <button type="button">؟ <span>مركز الدعم</span></button>
-        <button class="logout" type="button">↪ <span>تسجيل الخروج</span></button>
+        <button class="logout" id="logout-button" type="button">↪ <span>تسجيل الخروج</span></button>
       </div>
     </aside>
 
@@ -69,10 +68,10 @@
         </label>
         <div class="profile">
           <div>
-            <strong>المستخدم الداخلي</strong>
-            <span>الدائرة القانونية</span>
+            <strong id="profile-name">المستخدم الداخلي</strong>
+            <span id="profile-role">الدائرة القانونية</span>
           </div>
-          <div class="avatar">ق</div>
+          <div class="avatar" id="profile-avatar">ق</div>
           <i></i>
         </div>
       </header>
@@ -83,7 +82,7 @@
 
         <div class="landing-hero">
           <div class="landing-badge">مساعد قانوني عراقي محلي</div>
-          <h1><span aria-hidden="true">✺</span> أهلاً بك في المساعد القانوني</h1>
+          <h1>أهلاً بك في المساعد القانوني</h1>
           <p>
             ابدأ بسؤال قانوني، وسننقلك مباشرة إلى صفحة المحادثة الحالية مع إرسال السؤال تلقائياً
             دون تغيير منطق المحادثة أو مصادر الإجابة.
@@ -103,12 +102,12 @@
               <div class="landing-model" aria-hidden="true">النموذج المحلي · Ollama</div>
               <button class="landing-send" id="landing-send" type="submit" aria-label="إرسال السؤال">←</button>
               <div class="landing-recording-controls" id="landing-recording-controls" hidden>
+                <span class="recording-dot" aria-hidden="true"></span>
+                <strong>جارٍ التسجيل</strong>
                 <div class="landing-waveform" aria-label="جارٍ التسجيل">
                   <span></span><span></span><span></span><span></span><span></span><span></span>
                   <span></span><span></span><span></span><span></span><span></span><span></span>
                 </div>
-                <button class="landing-recording-cancel" id="landing-recording-cancel" type="button" aria-label="إلغاء التسجيل">×</button>
-                <button class="landing-recording-confirm" id="landing-recording-confirm" type="button" aria-label="إنهاء التسجيل وتحويله إلى نص">✓</button>
               </div>
             </div>
           </form>
@@ -142,7 +141,12 @@
         <section class="chat-panel panel">
           <div class="chat-toolbar">
             <div class="chat-identity">
-              <div class="chat-symbol" aria-hidden="true">▣</div>
+              <div class="chat-symbol" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <path d="M6.75 5.25h10.5A3.75 3.75 0 0 1 21 9v4.5a3.75 3.75 0 0 1-3.75 3.75H12l-5.25 3v-3A3.75 3.75 0 0 1 3 13.5V9a3.75 3.75 0 0 1 3.75-3.75Z"/>
+                  <path d="M8 9.5h8M8 13h5"/>
+                </svg>
+              </div>
               <div>
                 <strong id="conversation-title">محادثة قانونية جديدة</strong>
                 <span><i></i> نشط الآن · ذكاء اصطناعي محلي</span>
@@ -185,9 +189,20 @@
           </div>
 
           <form class="composer" id="question-form">
-            <button class="attach" type="button" disabled aria-label="إرفاق ملف">⌕</button>
-            <textarea id="question-input" rows="1" placeholder="اسأل عن أي قانون أو لائحة أو وثيقة عراقية..." required></textarea>
-            <button class="voice" id="voice-button" type="button" aria-label="بدء الإدخال الصوتي" title="إدخال صوتي">●</button>
+            <textarea id="question-input" rows="1" placeholder="اسأل عن أي قانون أو لائحة أو وثيقة عراقية..."></textarea>
+            <div class="composer-recording-status" aria-live="polite">
+              <span class="recording-dot" aria-hidden="true"></span>
+              <span class="recording-status-label">جارٍ التسجيل</span>
+              <span class="composer-waveform" aria-hidden="true">
+                <i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+              </span>
+            </div>
+            <button class="voice" id="voice-button" type="button" aria-label="بدء الإدخال الصوتي" title="إدخال صوتي">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 15.25a3.75 3.75 0 0 0 3.75-3.75v-5a3.75 3.75 0 0 0-7.5 0v5A3.75 3.75 0 0 0 12 15.25Z"/>
+                <path d="M5.75 11.25a6.25 6.25 0 0 0 12.5 0M12 17.5v3.25M9.25 20.75h5.5"/>
+              </svg>
+            </button>
             <button class="send" id="send-button" type="submit" aria-label="إرسال">←</button>
           </form>
           <label class="microphone-picker" id="microphone-picker" hidden>
@@ -231,7 +246,7 @@
               <div class="decision-card-header">
                 <div>
                   <h2 id="attachments-title">إدارة وثائق القرار</h2>
-                  <p>عدد الملفات: <strong id="upload-count">0 / 3</strong></p>
+                  <p>عدد الملفات: <strong id="upload-count">0 / ...</strong></p>
                 </div>
                 <span class="draft-badge">PDF, DOC, DOCX</span>
               </div>
@@ -243,9 +258,9 @@
                   <div class="current-files-header">
                     <div>
                       <h3 id="current-files-title">الملفات الحالية</h3>
-                      <span id="current-files-subtitle">يمكنك رفع 3 ملفات كحد أقصى</span>
+                      <span id="current-files-subtitle">Loading upload limits...</span>
                     </div>
-                    <span class="file-capacity" id="file-capacity">0 / 3</span>
+                    <span class="file-capacity" id="file-capacity">0 / ...</span>
                   </div>
                   <div class="file-list" id="upload-file-list" aria-live="polite"></div>
                 </section>
@@ -264,6 +279,6 @@
 
   <div class="toast" id="toast" role="alert"></div>
   <div id="modal-root"></div>
-  <script type="module" src="/assets/app.js?v=20260705-live-waveform"></script>
+  <script type="module" src="/assets/app.js?v=20260712-upload-settings"></script>
 </body>
 </html>

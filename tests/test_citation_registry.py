@@ -21,6 +21,7 @@ class CitationRegistryTests(unittest.TestCase):
                     "article_reference": "article 405",
                     "document_type": "law",
                     "source_file": "penal_code.docx",
+                    "page_number": 7,
                 }
             ],
             ingest_date="2026-06-11",
@@ -31,6 +32,8 @@ class CitationRegistryTests(unittest.TestCase):
         self.assertEqual(citation["article"], "article 405")
         self.assertEqual(citation["document_type"], "law")
         self.assertEqual(citation["source_file"], "penal_code.docx")
+        self.assertEqual(citation["page_number"], 7)
+        self.assertEqual(citation["legal_reference"], "penal law")
         self.assertEqual(citation["ingest_date"], "2026-06-11")
         self.assertEqual(
             registry["by_law_article"]["penal law"]["article 405"],

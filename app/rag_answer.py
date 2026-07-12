@@ -139,6 +139,9 @@ def get_quick_response(question: str) -> str | None:
 
     normalized_question = normalize_short_message(question)
 
+    if len(normalized_question) < 3:
+        return "يرجى كتابة سؤال قانوني مكتمل حتى أتمكن من البحث والإجابة."
+
     if normalized_question in GREETING_WORDS:
         return "مرحباً، كيف يمكنني مساعدتك في سؤالك القانوني العراقي؟"
 
@@ -157,6 +160,19 @@ def citation_for_metadata(metadata: dict, registry: dict) -> dict:
     return registry.get("by_chunk_id", {}).get(chunk_id, {})
 
 
+def citation_source_label(metadata: dict, registry: dict) -> str:
+    """Return a reader-facing legal source label instead of an internal id."""
+
+    citation = citation_for_metadata(metadata, registry)
+    return str(
+        citation.get("legal_reference")
+        or citation.get("law_name")
+        or metadata.get("document_title")
+        or metadata.get("source_file")
+        or "مصدر غير معروف"
+    ).strip()
+
+
 def build_context(results: dict, registry: dict | None = None) -> str:
     """Format retrieved chunks with registry-backed legal citation metadata."""
 
@@ -170,7 +186,7 @@ def build_context(results: dict, registry: dict | None = None) -> str:
         start=1,
     ):
         citation = citation_for_metadata(metadata, registry)
-        source_file = metadata.get("source_file", "غير معروف")
+        source_file = citation_source_label(metadata, registry)
         page_number = metadata.get("page_number", "غير معروف")
         legal_reference = metadata.get("legal_reference", "")
         document_title = metadata.get("document_title", "")
@@ -218,12 +234,19 @@ def print_retrieved_context(context: str) -> None:
     print("=== END RETRIEVED CONTEXT ===")
 
 
-def get_allowed_citations(results: dict) -> set[tuple[str, str]]:
+def get_allowed_citations(
+    results: dict,
+    registry: dict | None = None,
+) -> set[tuple[str, str]]:
     """Return valid source and page pairs from the retrieved results."""
 
+    registry = registry or load_registry()
     metadatas = results.get("metadatas", [[]])[0]
     return {
-        (str(metadata.get("source_file")), str(metadata.get("page_number")))
+        (
+            citation_source_label(metadata, registry),
+            str(metadata.get("page_number")),
+        )
         for metadata in metadatas
     }
 
@@ -304,6 +327,37 @@ def validate_answer(answer: str, context: str, results: dict) -> list[str]:
     return errors
 
 
+def ensure_answer_citations(answer: str, results: dict) -> str:
+    """Add valid source markers and the mandatory footer when omitted by Ollama."""
+
+    allowed = sorted(get_allowed_citations(results))
+    fallback_citation = (
+        f"[المصدر: {allowed[0][0]}، الصفحة: {allowed[0][1]}]"
+        if allowed
+        else ""
+    )
+    paragraphs = re.split(r"(\n\s*\n)", answer.strip())
+    repaired = []
+    for part in paragraphs:
+        if re.fullmatch(r"\n\s*\n", part):
+            repaired.append(part)
+            continue
+        paragraph = part.strip()
+        if (
+            paragraph
+            and fallback_citation
+            and not is_exempt_paragraph(paragraph)
+            and not CITATION_PATTERN.search(paragraph)
+        ):
+            paragraph = f"{paragraph}\n{fallback_citation}"
+        repaired.append(paragraph)
+
+    content = "".join(repaired).strip()
+    if not content.endswith(FINAL_WARNING):
+        content = f"{content}\n\n{FINAL_WARNING}"
+    return content
+
+
 def registry_metadata_warnings(results: dict, registry: dict) -> list[str]:
     """Return Arabic warnings for incomplete registry-backed legal metadata."""
 
@@ -313,7 +367,7 @@ def registry_metadata_warnings(results: dict, registry: dict) -> list[str]:
         citation = citation_for_metadata(metadata, registry)
         missing = [
             field
-            for field in ("law_number", "law_year", "article_number", "law_name")
+            for field in ("law_year", "law_name")
             if not str(citation.get(field, "")).strip()
         ]
         if missing:
@@ -399,7 +453,10 @@ def generate_answer(
         {"role": "system", "content": SYSTEM_PROMPT},
         {"role": "user", "content": build_user_prompt(question, context)},
     ]
-    answer = call_chat_model(messages, status_callback=status_callback)
+    answer = ensure_answer_citations(
+        call_chat_model(messages, status_callback=status_callback),
+        results,
+    )
     validation_errors = validate_answer(answer, context, results)
 
     if validation_errors:
@@ -416,13 +473,34 @@ def generate_answer(
                 },
             ]
         )
-        answer = call_chat_model(messages, status_callback=status_callback)
+        first_answer = answer
+        first_validation_errors = validation_errors
+        try:
+            answer = ensure_answer_citations(
+                call_chat_model(messages, status_callback=status_callback),
+                results,
+            )
+        except httpx.TimeoutException:
+            return AnswerResult(
+                content=first_answer,
+                warnings=(
+                    registry_filter_warnings
+                    + metadata_warnings
+                    + first_validation_errors
+                    + [
+                        "انتهت مهلة محاولة تصحيح الاستشهادات؛ "
+                        "تم عرض الإجابة الأولية بدلاً من فقدانها."
+                    ]
+                ),
+            )
         validation_errors = validate_answer(answer, context, results)
 
-    return AnswerResult(
-        content=answer,
-        warnings=registry_filter_warnings + metadata_warnings + validation_errors,
+    warnings = list(
+        dict.fromkeys(
+            registry_filter_warnings + metadata_warnings + validation_errors
+        )
     )
+    return AnswerResult(content=answer, warnings=warnings)
 
 
 def print_vetting_warnings(warnings: list[str]) -> None:

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-06-30",
+  "generated_at": "2026-07-12",
   "chunk_count": 54,
   "by_chunk_id": {
     "99fd6d4c2056-chunk-0": {
@@ -10,10 +10,12 @@
       "law_year": "2004",
       "article_number": "",
       "law_name": "قانون إدارة الدولة العراقية للمرحلة الانتقالية",
+      "legal_reference": "قانون إدارة الدولة العراقية للمرحلة الانتقالية لسنة 2004",
+      "page_number": 1,
       "classification": "قانون دستوري",
       "document_type": "قانون دستوري",
       "source_file": "postgres_iraqi_laws_1",
-      "ingest_date": "2026-06-30",
+      "ingest_date": "2026-07-12",
       "chunk_id": "99fd6d4c2056-chunk-0"
     },
     "be5c7fb69044-chunk-0": {
@@ -23,10 +25,12 @@
       "law_year": "2005",
       "article_number": "",
       "law_name": "الدستور العراقي الدائم",
+      "legal_reference": "الدستور العراقي الدائم لسنة 2005",
+      "page_number": 1,
       "classification": "قانون دستوري",
       "document_type": "قانون دستوري",
       "source_file": "postgres_iraqi_laws_2",
-      "ingest_date": "2026-06-30",
+      "ingest_date": "2026-07-12",
       "chunk_id": "be5c7fb69044-chunk-0"
     },
     "61244a52efdc-chunk-0": {
@@ -36,10 +40,12 @@
       "law_year": "2007",
       "article_number": "",
       "law_name": "قانون المفوضية العليا المستقلة للانتخابات",
+      "legal_reference": "قانون المفوضية العليا المستقلة للانتخابات رقم 11 لسنة 2007",
+      "page_number": 1,
       "classification": "قانون سياسي",
       "document_type": "قانون سياسي",
       "source_file": "postgres_iraqi_laws_3",
-      "ingest_date": "2026-06-30",
+      "ingest_date": "2026-07-12",
       "chunk_id": "61244a52efdc-chunk-0"
     },
     "88bce3851eb4-chunk-0": {
@@ -49,10 +55,12 @@
       "law_year": "2008",
       "article_number": "",
       "law_name": "قانون المحافظات غير المنتظمة في إقليم",
+      "legal_reference": "قانون المحافظات غير المنتظمة في إقليم رقم 21 لسنة 2008",
+      "page_number": 1,
       "classification": "قانون اداري",
       "document_type": "قانون اداري",
       "source_file": "postgres_iraqi_laws_4",
-      "ingest_date": "2026-06-30",
+      "ingest_date": "2026-07-12",
       "chunk_id": "88bce3851eb4-chunk-0"
     },
     "e2c1170ada27-chunk-0": {
@@ -62,10 +70,12 @@
       "law_year": "2015",
       "article_number": "",
       "law_name": "قانون الأحزاب السياسية",
+      "legal_reference": "قانون الأحزاب السياسية رقم 36 لسنة 2015",
+      "page_number": 1,
       "classification": "قانون سياسي",
       "document_type": "قانون سياسي",
       "source_file": "postgres_iraqi_laws_5",
-      "ingest_date": "2026-06-30",
+      "ingest_date": "2026-07-12",
       "chunk_id": "e2c1170ada27-chunk-0"
     },
     "753fc82d9f20-chunk-0": {
@@ -75,10 +85,12 @@
       "law_year": "2018",
       "article_number": "",
       "law_name": "قانون مجلس النواب وتشكيلاته",
+      "legal_reference": "قانون مجلس النواب وتشكيلاته رقم 13 لسنة 2018",
+      "page_number": 1,
       "classification": "قانون سياسي",
       "document_type": "قانون سياسي",
       "source_file": "postgres_iraqi_laws_6",
-      "ingest_date": "2026-06-30",
+      "ingest_date": "2026-07-12",
       "chunk_id": "753fc82d9f20-chunk-0"
     },
     "4312415ee337-chunk-0": {
@@ -88,10 +100,12 @@
       "law_year": "2020",
       "article_number": "",
       "law_name": "قانون انتخابات مجلس النواب",
+      "legal_reference": "قانون انتخابات مجلس النواب رقم 9 لسنة 2020",
+      "page_number": 1,
       "classification": "قانون سياسي",
       "document_type": "قانون سياسي",
       "source_file": "postgres_iraqi_laws_7",
-      "ingest_date": "2026-06-30",
+      "ingest_date": "2026-07-12",
       "chunk_id": "4312415ee337-chunk-0"
     },
     "cfea1aea7b84-chunk-0": {
@@ -101,10 +115,12 @@
       "law_year": "2023",
       "article_number": "",
       "law_name": "قانون التعديل الثالث لقانون انتخابات مجالس المحافظات",
+      "legal_reference": "قانون التعديل الثالث لقانون انتخابات مجالس المحافظات رقم 4 لسنة 2023",
+      "page_number": 1,
       "classification": "قانون سياسي",
       "document_type": "قانون سياسي",
       "source_file": "postgres_iraqi_laws_8",
-      "ingest_date": "2026-06-30",
+      "ingest_date": "2026-07-12",
       "chunk_id": "cfea1aea7b84-chunk-0"
     },
     "a4feeaf7eeca-chunk-0": {
@@ -114,10 +130,12 @@
       "law_year": "2005",
       "article_number": "",
       "law_name": "قانون مكافحة الإرهاب",
+      "legal_reference": "قانون مكافحة الإرهاب رقم 13 لسنة 2005",
+      "page_number": 1,
       "classification": "قانون جنائي",
       "document_type": "قانون جنائي",
       "source_file": "postgres_iraqi_laws_9",
-      "ingest_date": "2026-06-30",
+      "ingest_date": "2026-07-12",
       "chunk_id": "a4feeaf7eeca-chunk-0"
     },
     "1b46a10bbd9f-chunk-0": {
@@ -127,10 +145,12 @@
       "law_year": "2005",
       "article_number": "",
       "law_name": "قانون المحكمة الجنائية العراقية العليا",
+      "legal_reference": "قانون المحكمة الجنائية العراقية العليا رقم 10 لسنة 2005",
+      "page_number": 1,
       "classification": "قانون قضائي",
       "document_type": "قانون قضائي",
       "source_file": "postgres_iraqi_laws_10",
-      "ingest_date": "2026-06-30",
+      "ingest_date": "2026-07-12",
       "chunk_id": "1b46a10bbd9f-chunk-0"
     },
     "28209b29c2ad-chunk-0": {
@@ -140,10 +160,12 @@
       "law_year": "2008",
       "article_number": "",
       "law_name": "قانون العفو العام",
+      "legal_reference": "قانون العفو العام رقم 19 لسنة 2008",
+      "page_number": 1,
       "classification": "قانون عادي",
       "document_type": "قانون عادي",
       "source_file": "postgres_iraqi_laws_11",
-      "ingest_date": "2026-06-30",
+      "ingest_date": "2026-07-12",
       "chunk_id": "28209b29c2ad-chunk-0"
     },
     "22504221ea6b-chunk-0": {
@@ -153,10 +175,12 @@
       "law_year": "2013",
       "article_number": "",
       "law_name": "قانون حماية الأطباء",
+      "legal_reference": "قانون حماية الأطباء رقم 11 لسنة 2013",
+      "page_number": 1,
       "classification": "قانون جنائي",
       "document_type": "قانون جنائي",
       "source_file": "postgres_iraqi_laws_12",
-      "ingest_date": "2026-06-30",
+      "ingest_date": "2026-07-12",
       "chunk_id": "22504221ea6b-chunk-0"
     },
     "e7a99f4d2b64-chunk-0": {
@@ -166,10 +190,12 @@
       "law_year": "2016",
       "article_number": "",
       "law_name": "قانون هيئة الحشد الشعبي",
+      "legal_reference": "قانون هيئة الحشد الشعبي رقم 40 لسنة 2016",
+      "page_number": 1,
       "classification": "قانون أمني",
       "document_type": "قانون أمني",
       "source_file": "postgres_iraqi_laws_13",
-      "ingest_date": "2026-06-30",
+      "ingest_date": "2026-07-12",
       "chunk_id": "e7a99f4d2b64-chunk-0"
     },
     "f955ed4c6e26-chunk-0": {
@@ -179,10 +205,12 @@
       "law_year": "2017",
       "article_number": "",
       "law_name": "قانون الأسلحة",
+      "legal_reference": "قانون الأسلحة رقم 51 لسنة 2017",
+      "page_number": 1,
       "classification": "قانون جنائي",
       "document_type": "قانون جنائي",
       "source_file": "postgres_iraqi_laws_14",
-      "ingest_date": "2026-06-30",
+      "ingest_date": "2026-07-12",
       "chunk_id": "f955ed4c6e26-chunk-0"
     },
     "6254585b0e9f-chunk-0": {
@@ -192,10 +220,12 @@
       "law_year": "2017",
       "article_number": "",
       "law_name": "قانون مجلس القضاء الأعلى",
+      "legal_reference": "قانون مجلس القضاء الأعلى رقم 2 لسنة 2017",
+      "page_number": 1,
       "classification": "قانون قضائي",
       "document_type": "قانون قضائي",
       "source_file": "postgres_iraqi_laws_15",
-      "ingest_date": "2026-06-30",
+      "ingest_date": "2026-07-12",
       "chunk_id": "6254585b0e9f-chunk-0"
     },
     "6c4c287be1a9-chunk-0": {
@@ -205,10 +235,12 @@
       "law_year": "2019",
       "article_number": "",
       "law_name": "قانون مكافحة الكسب غير المشروع (تعديل قانون النزاهة)",
+      "legal_reference": "قانون مكافحة الكسب غير المشروع (تعديل قانون النزاهة) رقم 30 لسنة 2019",
+      "page_number": 1,
       "classification": "قانون اداري",
       "document_type": "قانون اداري",
       "source_file": "postgres_iraqi_laws_16",
-      "ingest_date": "2026-06-30",
+      "ingest_date": "2026-07-12",
       "chunk_id": "6c4c287be1a9-chunk-0"
     },
     "a59ed5be227c-chunk-0": {
@@ -218,10 +250,12 @@
       "law_year": "2006",
       "article_number": "",
       "law_name": "قانون الاستثمار",
+      "legal_reference": "قانون الاستثمار رقم 13 لسنة 2006",
+      "page_number": 1,
       "classification": "قانون مالي",
       "document_type": "قانون مالي",
       "source_file": "postgres_iraqi_laws_17",
-      "ingest_date": "2026-06-30",
+      "ingest_date": "2026-07-12",
       "chunk_id": "a59ed5be227c-chunk-0"
     },
     "839c9ac2a079-chunk-0": {
@@ -231,10 +265,12 @@
       "law_year": "2010",
       "article_number": "",
       "law_name": "قانون حماية المنتجات المحلية",
+      "legal_reference": "قانون حماية المنتجات المحلية رقم 11 لسنة 2010",
+      "page_number": 1,
       "classification": "قانون مالي",
       "document_type": "قانون مالي",
       "source_file": "postgres_iraqi_laws_18",
-      "ingest_date": "2026-06-30",
+      "ingest_date": "2026-07-12",
       "chunk_id": "839c9ac2a079-chunk-0"
     },
     "ada870d72d91-chunk-0": {
@@ -244,10 +280,12 @@
       "law_year": "2010",
       "article_number": "",
       "law_name": "قانون حماية المستهلك",
+      "legal_reference": "قانون حماية المستهلك رقم 1 لسنة 2010",
+      "page_number": 1,
       "classification": "قانون مالي",
       "document_type": "قانون مالي",
       "source_file": "postgres_iraqi_laws_19",
-      "ingest_date": "2026-06-30",
+      "ingest_date": "2026-07-12",
       "chunk_id": "ada870d72d91-chunk-0"
     },
     "d5debd2c4016-chunk-0": {
@@ -257,10 +295,12 @@
       "law_year": "2010",
       "article_number": "",
       "law_name": "قانون التعرفة الجمركية",
+      "legal_reference": "قانون التعرفة الجمركية رقم 22 لسنة 2010",
+      "page_number": 1,
       "classification": "قانون مالي",
       "document_type": "قانون مالي",
       "source_file": "postgres_iraqi_laws_20",
-      "ingest_date": "2026-06-30",
+      "ingest_date": "2026-07-12",
       "chunk_id": "d5debd2c4016-chunk-0"
     },
     "3278e9354895-chunk-0": {
@@ -270,10 +310,12 @@
       "law_year": "2015",
       "article_number": "",
       "law_name": "قانون العمل",
+      "legal_reference": "قانون العمل رقم 37 لسنة 2015",
+      "page_number": 1,
       "classification": "قانون عمالي",
       "document_type": "قانون عمالي",
       "source_file": "postgres_iraqi_laws_21",
-      "ingest_date": "2026-06-30",
+      "ingest_date": "2026-07-12",
       "chunk_id": "3278e9354895-chunk-0"
     },
     "79d65489d76c-chunk-0": {
@@ -283,10 +325,12 @@
       "law_year": "2018",
       "article_number": "",
       "law_name": "قانون الشركات التجاري المعدل",
+      "legal_reference": "قانون الشركات التجاري المعدل رقم 20 لسنة 2018",
+      "page_number": 1,
       "classification": "قانون تجاري",
       "document_type": "قانون تجاري",
       "source_file": "postgres_iraqi_laws_22",
-      "ingest_date": "2026-06-30",
+      "ingest_date": "2026-07-12",
       "chunk_id": "79d65489d76c-chunk-0"
     },
     "4f2b12e9bef0-chunk-0": {
@@ -296,10 +340,12 @@
       "law_year": "2019",
       "article_number": "",
       "law_name": "قانون الإدارة المالية الاتحادية",
+      "legal_reference": "قانون الإدارة المالية الاتحادية رقم 6 لسنة 2019",
+      "page_number": 1,
       "classification": "قانون مالي",
       "document_type": "قانون مالي",
       "source_file": "postgres_iraqi_laws_23",
-      "ingest_date": "2026-06-30",
+      "ingest_date": "2026-07-12",
       "chunk_id": "4f2b12e9bef0-chunk-0"
     },
     "9030e26048f1-chunk-0": {
@@ -309,10 +355,12 @@
       "law_year": "2022",
       "article_number": "",
       "law_name": "قانون الدعم الطارئ للأمن الغذائي والتنمية",
+      "legal_reference": "قانون الدعم الطارئ للأمن الغذائي والتنمية رقم 2 لسنة 2022",
+      "page_number": 1,
       "classification": "قانون مالي",
       "document_type": "قانون مالي",
       "source_file": "postgres_iraqi_laws_24",
-      "ingest_date": "2026-06-30",
+      "ingest_date": "2026-07-12",
       "chunk_id": "9030e26048f1-chunk-0"
     },
     "f77cb3aff617-chunk-0": {
@@ -322,10 +370,12 @@
       "law_year": "2005",
       "article_number": "",
       "law_name": "قانون مؤسسة الشهداء",
+      "legal_reference": "قانون مؤسسة الشهداء رقم 3 لسنة 2005",
+      "page_number": 1,
       "classification": "قانون اجتماعي",
       "document_type": "قانون اجتماعي",
       "source_file": "postgres_iraqi_laws_25",
-      "ingest_date": "2026-06-30",
+      "ingest_date": "2026-07-12",
       "chunk_id": "f77cb3aff617-chunk-0"
     },
     "fa0dfbc3142f-chunk-0": {
@@ -335,10 +385,12 @@
       "law_year": "2006",
       "article_number": "",
       "law_name": "قانون مؤسسة السجناء السياسيين",
+      "legal_reference": "قانون مؤسسة السجناء السياسيين رقم 4 لسنة 2006",
+      "page_number": 1,
       "classification": "قانون اجتماعي",
       "document_type": "قانون اجتماعي",
       "source_file": "postgres_iraqi_laws_26",
-      "ingest_date": "2026-06-30",
+      "ingest_date": "2026-07-12",
       "chunk_id": "fa0dfbc3142f-chunk-0"
     },
     "1505c719fd13-chunk-0": {
@@ -348,10 +400,12 @@
       "law_year": "2013",
       "article_number": "",
       "law_name": "قانون رعاية ذوي الإعاقة والاحتياجات الخاصة",
+      "legal_reference": "قانون رعاية ذوي الإعاقة والاحتياجات الخاصة رقم 38 لسنة 2013",
+      "page_number": 1,
       "classification": "قانون اجتماعي",
       "document_type": "قانون اجتماعي",
       "source_file": "postgres_iraqi_laws_27",
-      "ingest_date": "2026-06-30",
+      "ingest_date": "2026-07-12",
       "chunk_id": "1505c719fd13-chunk-0"
     },
     "2086a0455c2e-chunk-0": {
@@ -361,10 +415,12 @@
       "law_year": "2012",
       "article_number": "",
       "law_name": "قانون مكافحة الاتجار بالبشر",
+      "legal_reference": "قانون مكافحة الاتجار بالبشر رقم 28 لسنة 2012",
+      "page_number": 1,
       "classification": "قانون جنائي",
       "document_type": "قانون جنائي",
       "source_file": "postgres_iraqi_laws_28",
-      "ingest_date": "2026-06-30",
+      "ingest_date": "2026-07-12",
       "chunk_id": "2086a0455c2e-chunk-0"
     },
     "e6bef7426d74-chunk-0": {
@@ -374,10 +430,12 @@
       "law_year": "2012",
       "article_number": "",
       "law_name": "قانون الحجر الصحي الزراعي",
+      "legal_reference": "قانون الحجر الصحي الزراعي رقم 76 لسنة 2012",
+      "page_number": 1,
       "classification": "قانون زراعي",
       "document_type": "قانون زراعي",
       "source_file": "postgres_iraqi_laws_29",
-      "ingest_date": "2026-06-30",
+      "ingest_date": "2026-07-12",
       "chunk_id": "e6bef7426d74-chunk-0"
     },
     "a4567ed4c8ae-chunk-0": {
@@ -387,10 +445,12 @@
       "law_year": "2011",
       "article_number": "",
       "law_name": "قانون مكافحة الأمية",
+      "legal_reference": "قانون مكافحة الأمية رقم 23 لسنة 2011",
+      "page_number": 1,
       "classification": "قانون تعليمي",
       "document_type": "قانون تعليمي",
       "source_file": "postgres_iraqi_laws_30",
-      "ingest_date": "2026-06-30",
+      "ingest_date": "2026-07-12",
       "chunk_id": "a4567ed4c8ae-chunk-0"
     },
     "0992c90e1bfb-chunk-0": {
@@ -400,10 +460,12 @@
       "law_year": "2020",
       "article_number": "",
       "law_name": "قانون رعاية العلماء والمبدعين",
+      "legal_reference": "قانون رعاية العلماء والمبدعين رقم 1 لسنة 2020",
+      "page_number": 1,
       "classification": "قانون اجتماعي",
       "document_type": "قانون اجتماعي",
       "source_file": "postgres_iraqi_laws_31",
-      "ingest_date": "2026-06-30",
+      "ingest_date": "2026-07-12",
       "chunk_id": "0992c90e1bfb-chunk-0"
     },
     "54c01f0d4773-chunk-0": {
@@ -413,10 +475,12 @@
       "law_year": "2021",
       "article_number": "",
       "law_name": "قانون الناجيات الإيزيديات",
+      "legal_reference": "قانون الناجيات الإيزيديات رقم 8 لسنة 2021",
+      "page_number": 1,
       "classification": "قانون اجتماعي",
       "document_type": "قانون اجتماعي",
       "source_file": "postgres_iraqi_laws_32",
-      "ingest_date": "2026-06-30",
+      "ingest_date": "2026-07-12",
       "chunk_id": "54c01f0d4773-chunk-0"
     },
     "669b4c0f739b-chunk-0": {
@@ -426,10 +490,12 @@
       "law_year": "2022",
       "article_number": "",
       "law_name": "قانون الصحة العامة",
+      "legal_reference": "قانون الصحة العامة رقم 46 لسنة 2022",
+      "page_number": 1,
       "classification": "قانون صحي",
       "document_type": "قانون صحي",
       "source_file": "postgres_iraqi_laws_33",
-      "ingest_date": "2026-06-30",
+      "ingest_date": "2026-07-12",
       "chunk_id": "669b4c0f739b-chunk-0"
     },
     "2789d1d3d99b-chunk-0": {
@@ -439,10 +505,12 @@
       "law_year": "",
       "article_number": "",
       "law_name": "قانون مكافحة العنف الأسري",
+      "legal_reference": "قانون مكافحة العنف الأسري",
+      "page_number": 1,
       "classification": "قانون اجتماعي",
       "document_type": "قانون اجتماعي",
       "source_file": "postgres_iraqi_laws_34",
-      "ingest_date": "2026-06-30",
+      "ingest_date": "2026-07-12",
       "chunk_id": "2789d1d3d99b-chunk-0"
     },
     "244fe97ee28c-chunk-0": {
@@ -452,10 +520,12 @@
       "law_year": "2023",
       "article_number": "",
       "law_name": "قانون صندوق التنمية الاجتماعي",
+      "legal_reference": "قانون صندوق التنمية الاجتماعي رقم 2 لسنة 2023",
+      "page_number": 1,
       "classification": "قانون مالي",
       "document_type": "قانون مالي",
       "source_file": "postgres_iraqi_laws_35",
-      "ingest_date": "2026-06-30",
+      "ingest_date": "2026-07-12",
       "chunk_id": "244fe97ee28c-chunk-0"
     },
     "b2498d53d36c-chunk-0": {
@@ -465,10 +535,12 @@
       "law_year": "2023",
       "article_number": "",
       "law_name": "قانون التقاعد والضمان الاجتماعي للعمال",
+      "legal_reference": "قانون التقاعد والضمان الاجتماعي للعمال رقم 18 لسنة 2023",
+      "page_number": 1,
       "classification": "قانون عمالي",
       "document_type": "قانون عمالي",
       "source_file": "postgres_iraqi_laws_36",
-      "ingest_date": "2026-06-30",
+      "ingest_date": "2026-07-12",
       "chunk_id": "b2498d53d36c-chunk-0"
     },
     "700041eefc6f-chunk-0": {
@@ -478,10 +550,12 @@
       "law_year": "2024",
       "article_number": "",
       "law_name": "قانون إيجار العقار المعدل",
+      "legal_reference": "قانون إيجار العقار المعدل رقم 5 لسنة 2024",
+      "page_number": 1,
       "classification": "قانون مدني",
       "document_type": "قانون مدني",
       "source_file": "postgres_iraqi_laws_37",
-      "ingest_date": "2026-06-30",
+      "ingest_date": "2026-07-12",
       "chunk_id": "700041eefc6f-chunk-0"
     },
     "282a46aeedb4-chunk-0": {
@@ -491,10 +565,12 @@
       "law_year": "2024",
       "article_number": "",
       "law_name": "قانون الهيئة الوطنية للرقابة النووية والإشعاعية",
+      "legal_reference": "قانون الهيئة الوطنية للرقابة النووية والإشعاعية رقم 9 لسنة 2024",
+      "page_number": 1,
       "classification": "قانون تنظيمي",
       "document_type": "قانون تنظيمي",
       "source_file": "postgres_iraqi_laws_38",
-      "ingest_date": "2026-06-30",
+      "ingest_date": "2026-07-12",
       "chunk_id": "282a46aeedb4-chunk-0"
     },
     "041f0fdae569-chunk-0": {
@@ -504,10 +580,12 @@
       "law_year": "2025",
       "article_number": "",
       "law_name": "قانون حق الحصول على المعلومة",
+      "legal_reference": "قانون حق الحصول على المعلومة رقم 1 لسنة 2025",
+      "page_number": 1,
       "classification": "قانون اداري",
       "document_type": "قانون اداري",
       "source_file": "postgres_iraqi_laws_39",
-      "ingest_date": "2026-06-30",
+      "ingest_date": "2026-07-12",
       "chunk_id": "041f0fdae569-chunk-0"
     },
     "5880230fc2f0-chunk-0": {
@@ -517,10 +595,12 @@
       "law_year": "2025",
       "article_number": "",
       "law_name": "قانون مكافحة الجرائم المعلوماتية",
+      "legal_reference": "قانون مكافحة الجرائم المعلوماتية رقم 3 لسنة 2025",
+      "page_number": 1,
       "classification": "قانون جنائي",
       "document_type": "قانون جنائي",
       "source_file": "postgres_iraqi_laws_40",
-      "ingest_date": "2026-06-30",
+      "ingest_date": "2026-07-12",
       "chunk_id": "5880230fc2f0-chunk-0"
     },
     "63984efaad32-chunk-0": {
@@ -530,10 +610,12 @@
       "law_year": "2003",
       "article_number": "",
       "law_name": "الأمر رقم 1 لسنة 2003 (سلطة الائتلاف المؤقتة) - اجتثاث البعث",
+      "legal_reference": "الأمر رقم 1 لسنة 2003 (سلطة الائتلاف المؤقتة) - اجتثاث البعث رقم 1 لسنة 2003",
+      "page_number": 1,
       "classification": "قرار سياسي",
       "document_type": "قرار سياسي",
       "source_file": "postgres_iraqi_laws_41",
-      "ingest_date": "2026-06-30",
+      "ingest_date": "2026-07-12",
       "chunk_id": "63984efaad32-chunk-0"
     },
     "5bba4b93f8c0-chunk-0": {
@@ -543,10 +625,12 @@
       "law_year": "2003",
       "article_number": "",
       "law_name": "الأمر رقم 2 لسنة 2003 (سلطة الائتلاف المؤقتة) - حل الكيانات العسكرية",
+      "legal_reference": "الأمر رقم 2 لسنة 2003 (سلطة الائتلاف المؤقتة) - حل الكيانات العسكرية رقم 2 لسنة 2003",
+      "page_number": 1,
       "classification": "قرار أمني",
       "document_type": "قرار أمني",
       "source_file": "postgres_iraqi_laws_42",
-      "ingest_date": "2026-06-30",
+      "ingest_date": "2026-07-12",
       "chunk_id": "5bba4b93f8c0-chunk-0"
     },
     "e1a1933ff696-chunk-0": {
@@ -556,10 +640,12 @@
       "law_year": "2003",
       "article_number": "",
       "law_name": "قرار مجلس الحكم رقم 1 لسنة 2003 - إلغاء العطل الرسمية للنظام السابق",
+      "legal_reference": "قرار مجلس الحكم رقم 1 لسنة 2003 - إلغاء العطل الرسمية للنظام السابق رقم 1 لسنة 2003",
+      "page_number": 1,
       "classification": "قرار سياسي",
       "document_type": "قرار سياسي",
       "source_file": "postgres_iraqi_laws_43",
-      "ingest_date": "2026-06-30",
+      "ingest_date": "2026-07-12",
       "chunk_id": "e1a1933ff696-chunk-0"
     },
     "5f119cb0e2e7-chunk-0": {
@@ -569,10 +655,12 @@
       "law_year": "2003",
       "article_number": "",
       "law_name": "قرار مجلس الحكم رقم 30 لسنة 2003 - إلغاء المحاكم الاستثنائية",
+      "legal_reference": "قرار مجلس الحكم رقم 30 لسنة 2003 - إلغاء المحاكم الاستثنائية رقم 30 لسنة 2003",
+      "page_number": 1,
       "classification": "قرار قضائي",
       "document_type": "قرار قضائي",
       "source_file": "postgres_iraqi_laws_44",
-      "ingest_date": "2026-06-30",
+      "ingest_date": "2026-07-12",
       "chunk_id": "5f119cb0e2e7-chunk-0"
     },
     "b8e98370cce9-chunk-0": {
@@ -582,10 +670,12 @@
       "law_year": "2003",
       "article_number": "",
       "law_name": "قرار مجلس الحكم رقم 68 لسنة 2003 - تشكيل المحكمة الجنائية العراقية العليا",
+      "legal_reference": "قرار مجلس الحكم رقم 68 لسنة 2003 - تشكيل المحكمة الجنائية العراقية العليا رقم 68 لسنة 2003",
+      "page_number": 1,
       "classification": "قرار قضائي",
       "document_type": "قرار قضائي",
       "source_file": "postgres_iraqi_laws_45",
-      "ingest_date": "2026-06-30",
+      "ingest_date": "2026-07-12",
       "chunk_id": "b8e98370cce9-chunk-0"
     },
     "bb4a85541e83-chunk-0": {
@@ -595,10 +685,12 @@
       "law_year": "2003",
       "article_number": "",
       "law_name": "قرار مجلس الحكم رقم 102 لسنة 2003 - تأسيس المفوضية العليا للانتخابات",
+      "legal_reference": "قرار مجلس الحكم رقم 102 لسنة 2003 - تأسيس المفوضية العليا للانتخابات رقم 102 لسنة 2003",
+      "page_number": 1,
       "classification": "قرار اداري",
       "document_type": "قرار اداري",
       "source_file": "postgres_iraqi_laws_46",
-      "ingest_date": "2026-06-30",
+      "ingest_date": "2026-07-12",
       "chunk_id": "bb4a85541e83-chunk-0"
     },
     "440ea27d4413-chunk-0": {
@@ -608,10 +700,12 @@
       "law_year": "2003",
       "article_number": "",
       "law_name": "الأمر رقم 14 لسنة 2003 (سلطة الائتلاف) - تنظيم حيازة الأسلحة",
+      "legal_reference": "الأمر رقم 14 لسنة 2003 (سلطة الائتلاف) - تنظيم حيازة الأسلحة رقم 14 لسنة 2003",
+      "page_number": 1,
       "classification": "قرار أمني",
       "document_type": "قرار أمني",
       "source_file": "postgres_iraqi_laws_47",
-      "ingest_date": "2026-06-30",
+      "ingest_date": "2026-07-12",
       "chunk_id": "440ea27d4413-chunk-0"
     },
     "9d1b6db0aa48-chunk-0": {
@@ -621,10 +715,12 @@
       "law_year": "2003",
       "article_number": "",
       "law_name": "الأمر رقم 22 لسنة 2003 (سلطة الائتلاف) - إنشاء وزارة البيئة",
+      "legal_reference": "الأمر رقم 22 لسنة 2003 (سلطة الائتلاف) - إنشاء وزارة البيئة رقم 22 لسنة 2003",
+      "page_number": 1,
       "classification": "قرار اداري",
       "document_type": "قرار اداري",
       "source_file": "postgres_iraqi_laws_48",
-      "ingest_date": "2026-06-30",
+      "ingest_date": "2026-07-12",
       "chunk_id": "9d1b6db0aa48-chunk-0"
     },
     "5c2636484cbb-chunk-0": {
@@ -634,10 +730,12 @@
       "law_year": "2003",
       "article_number": "",
       "law_name": "الأمر رقم 35 لسنة 2003 (سلطة الائتلاف) - إعادة تفعيل الهيئة العامة للضرائب",
+      "legal_reference": "الأمر رقم 35 لسنة 2003 (سلطة الائتلاف) - إعادة تفعيل الهيئة العامة للضرائب رقم 35 لسنة 2003",
+      "page_number": 1,
       "classification": "قرار مالي",
       "document_type": "قرار مالي",
       "source_file": "postgres_iraqi_laws_49",
-      "ingest_date": "2026-06-30",
+      "ingest_date": "2026-07-12",
       "chunk_id": "5c2636484cbb-chunk-0"
     },
     "a6f5375ecef5-chunk-0": {
@@ -647,10 +745,12 @@
       "law_year": "2003",
       "article_number": "",
       "law_name": "الأمر رقم 43 لسنة 2003 (سلطة الائتلاف) - تنظيم قطاع الاتصالات",
+      "legal_reference": "الأمر رقم 43 لسنة 2003 (سلطة الائتلاف) - تنظيم قطاع الاتصالات رقم 43 لسنة 2003",
+      "page_number": 1,
       "classification": "قرار اقتصادي",
       "document_type": "قرار اقتصادي",
       "source_file": "postgres_iraqi_laws_50",
-      "ingest_date": "2026-06-30",
+      "ingest_date": "2026-07-12",
       "chunk_id": "a6f5375ecef5-chunk-0"
     },
     "edd01aaa416b-chunk-0": {
@@ -660,10 +760,12 @@
       "law_year": "2004",
       "article_number": "",
       "law_name": "الأمر رقم 56 لسنة 2004 (سلطة الائتلاف) - قانون البنك المركزي العراقي الجديد",
+      "legal_reference": "الأمر رقم 56 لسنة 2004 (سلطة الائتلاف) - قانون البنك المركزي العراقي الجديد رقم 56 لسنة 2004",
+      "page_number": 1,
       "classification": "قرار مالي",
       "document_type": "قرار مالي",
       "source_file": "postgres_iraqi_laws_51",
-      "ingest_date": "2026-06-30",
+      "ingest_date": "2026-07-12",
       "chunk_id": "edd01aaa416b-chunk-0"
     },
     "bbf7f0bfb316-chunk-0": {
@@ -673,10 +775,12 @@
       "law_year": "2004",
       "article_number": "",
       "law_name": "الأمر رقم 74 لسنة 2004 (سلطة الائتلاف) - الهيئة الوطنية العليا لاجتثاث البعث",
+      "legal_reference": "الأمر رقم 74 لسنة 2004 (سلطة الائتلاف) - الهيئة الوطنية العليا لاجتثاث البعث رقم 74 لسنة 2004",
+      "page_number": 1,
       "classification": "قرار سياسي",
       "document_type": "قرار سياسي",
       "source_file": "postgres_iraqi_laws_52",
-      "ingest_date": "2026-06-30",
+      "ingest_date": "2026-07-12",
       "chunk_id": "bbf7f0bfb316-chunk-0"
     },
     "a6d7550ba48a-chunk-0": {
@@ -686,10 +790,12 @@
       "law_year": "2004",
       "article_number": "",
       "law_name": "الأمر رقم 85 لسنة 2004 (سلطة الائتلاف) - تأسيس هيئة الإعلام والاتصالات",
+      "legal_reference": "الأمر رقم 85 لسنة 2004 (سلطة الائتلاف) - تأسيس هيئة الإعلام والاتصالات رقم 85 لسنة 2004",
+      "page_number": 1,
       "classification": "قرار اداري",
       "document_type": "قرار اداري",
       "source_file": "postgres_iraqi_laws_53",
-      "ingest_date": "2026-06-30",
+      "ingest_date": "2026-07-12",
       "chunk_id": "a6d7550ba48a-chunk-0"
     },
     "d7edc148edfd-chunk-0": {
@@ -699,10 +805,12 @@
       "law_year": "2004",
       "article_number": "",
       "law_name": "الأمر رقم 91 لسنة 2004 (سلطة الائتلاف) - تنظيم ودمج الميليشيات",
+      "legal_reference": "الأمر رقم 91 لسنة 2004 (سلطة الائتلاف) - تنظيم ودمج الميليشيات رقم 91 لسنة 2004",
+      "page_number": 1,
       "classification": "قرار أمني",
       "document_type": "قرار أمني",
       "source_file": "postgres_iraqi_laws_54",
-      "ingest_date": "2026-06-30",
+      "ingest_date": "2026-07-12",
       "chunk_id": "d7edc148edfd-chunk-0"
     }
   },

@@ -10,6 +10,16 @@ const labels = {
     ["require_symbols", "اشتراط رمز خاص في كلمة المرور", "checkbox"],
     ["require_uppercase", "اشتراط حرف لاتيني كبير", "checkbox"],
   ],
+  uploadFields: [
+    ["max_file_count", "Maximum number of uploaded files", "number"],
+    ["max_file_size_mb", "Maximum file size per file", "select", [5, 10, 20, 25]],
+  ],
+  fileSizeOptions: {
+    5: "5 MB",
+    10: "10 MB",
+    20: "20 MB",
+    25: "25 MB",
+  },
   sessionOptions: {
     15: "15 دقيقة",
     30: "30 دقيقة",
@@ -101,11 +111,13 @@ async function api(path, options = {}) {
   return payload;
 }
 
-export function createSettingsModule({ root, modalRoot, showToast }) {
+export function createSettingsModule({ root, modalRoot, showToast, onAuthenticated = () => {} }) {
   let state;
   let dirty = false;
   let users = [];
   let roles = {};
+  let auditPage = 1;
+  const auditPageSize = 5;
   const json = (method, body) => ({
     method,
     headers: { "Content-Type": "application/json" },
@@ -132,25 +144,66 @@ export function createSettingsModule({ root, modalRoot, showToast }) {
     if (banner) banner.hidden = false;
   }
 
-  function showLogin() {
+  function showLogin(loadSettingsAfterLogin = true) {
     modalRoot.innerHTML = `
-      <div class="settings-modal-backdrop">
-        <form class="settings-modal" id="settings-login">
-          <h2>${t("login", "ar")}</h2>
-          <label>${t("username", "ar")}<input name="username" required autocomplete="username"></label>
-          <label>${t("password", "ar")}<input name="password" type="password" required autocomplete="current-password"></label>
-          <p class="field-error"></p>
-          <button class="primary-button">دخول</button>
+      <div class="settings-modal-backdrop settings-login-backdrop">
+        <form class="settings-modal settings-login-card" id="settings-login">
+          <div class="settings-login-brand">
+            <div class="settings-login-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24">
+                <path d="M7.5 10V7.75a4.5 4.5 0 0 1 9 0V10"/>
+                <rect x="5" y="10" width="14" height="10.5" rx="2.5"/>
+                <path d="M12 14.25v2.25"/>
+              </svg>
+            </div>
+            <div>
+              <span>نظام إدارة القرارات</span>
+              <h2>${t("login", "ar")}</h2>
+            </div>
+          </div>
+          <p class="settings-login-intro">أدخل بيانات حسابك للوصول إلى النظام ومتابعة العمل.</p>
+          <label class="settings-login-field">
+            <span>${t("username", "ar")}</span>
+            <span class="settings-login-input">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M5.5 20a6.5 6.5 0 0 1 13 0"/></svg>
+              <input name="username" required autocomplete="username" autofocus placeholder="أدخل اسم المستخدم">
+            </span>
+          </label>
+          <label class="settings-login-field">
+            <span>${t("password", "ar")}</span>
+            <span class="settings-login-input">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="10" rx="2.5"/><path d="M8 10V7.5a4 4 0 0 1 8 0V10"/></svg>
+              <input name="password" type="password" required autocomplete="current-password" placeholder="أدخل كلمة المرور">
+              <button class="settings-password-toggle" type="button" aria-label="إظهار كلمة المرور">إظهار</button>
+            </span>
+          </label>
+          <p class="field-error" role="alert"></p>
+          <button class="primary-button settings-login-submit" type="submit">تسجيل الدخول</button>
+          <p class="settings-login-note">الدخول مخصص للمستخدمين المخولين فقط</p>
         </form>
       </div>`;
-    modalRoot.querySelector("form").onsubmit = async (event) => {
+    const form = modalRoot.querySelector("form");
+    const password = form.elements.password;
+    const toggle = form.querySelector(".settings-password-toggle");
+    toggle.onclick = () => {
+      const reveal = password.type === "password";
+      password.type = reveal ? "text" : "password";
+      toggle.textContent = reveal ? "إخفاء" : "إظهار";
+      toggle.setAttribute("aria-label", reveal ? "إخفاء كلمة المرور" : "إظهار كلمة المرور");
+    };
+    form.onsubmit = async (event) => {
       event.preventDefault();
+      const submit = event.currentTarget.querySelector(".settings-login-submit");
+      submit.disabled = true;
       try {
         await api("/api/auth/login", json("POST", Object.fromEntries(new FormData(event.currentTarget))));
+        await onAuthenticated();
         modalRoot.replaceChildren();
-        await load();
+        if (loadSettingsAfterLogin) await load();
       } catch (error) {
         modalRoot.querySelector(".field-error").textContent = error.message;
+      } finally {
+        submit.disabled = false;
       }
     };
   }
@@ -161,17 +214,27 @@ export function createSettingsModule({ root, modalRoot, showToast }) {
     label.className = `settings-field ${type === "checkbox" ? "checkbox-field" : ""}`;
     const input = type === "select" ? document.createElement("select") : document.createElement("input");
     if (type !== "select") input.type = type;
+    if (type === "number") {
+      input.min = "1";
+      input.step = "1";
+    }
     if (type === "select") {
       options.forEach((value) => {
         const rawValue = value ?? "";
-        input.add(new Option(labels.sessionOptions[String(rawValue)] || String(value), rawValue));
+        input.add(new Option(labels.sessionOptions[String(rawValue)] || labels.fileSizeOptions[String(rawValue)] || String(value), rawValue));
       });
     }
     if (type === "checkbox") input.checked = Boolean(state[section][key]);
     else input.value = state[section][key] ?? "";
     label.append(input, Object.assign(document.createElement("span"), { textContent: labelText }));
     input.onchange = () => {
-      const value = type === "checkbox" ? input.checked : type === "number" ? Number(input.value) : input.value || null;
+      const value = type === "checkbox"
+        ? input.checked
+        : type === "number"
+          ? Number(input.value)
+          : type === "select"
+            ? options.find((option) => String(option ?? "") === input.value) ?? null
+            : input.value || null;
       if (section === "authentication" && key === "login_enabled" && !value) {
         if (!confirm("تعطيل تسجيل الدخول يجعل النظام متاحاً لأي شخص يستطيع الوصول إلى الخادم. هل تريد المتابعة؟")) {
           input.checked = true;
@@ -193,6 +256,18 @@ export function createSettingsModule({ root, modalRoot, showToast }) {
       <div class="settings-fields"></div>`;
     const box = section.querySelector(".settings-fields");
     labels.authFields.forEach((definition) => box.append(control("authentication", definition)));
+    grid.append(section);
+  }
+
+  function renderUploadSettings(grid) {
+    const section = document.createElement("section");
+    section.className = "settings-card full-width";
+    section.innerHTML = `
+      <h2>Upload Settings</h2>
+      <p class="unsupported-note">These limits control the upload page message and client-side validation.</p>
+      <div class="settings-fields"></div>`;
+    const box = section.querySelector(".settings-fields");
+    labels.uploadFields.forEach((definition) => box.append(control("upload", definition)));
     grid.append(section);
   }
 
@@ -239,12 +314,16 @@ export function createSettingsModule({ root, modalRoot, showToast }) {
     }
   }
 
-  async function refreshAudit() {
+  async function refreshAudit(page = auditPage) {
     const body = root.querySelector("[data-audit-body]");
+    const pagination = root.querySelector("[data-audit-pagination]");
     if (!body) return;
     try {
-      const payload = await api("/api/settings/audit-log?limit=25");
+      const payload = await api(
+        `/api/settings/audit-log?page=${page}&page_size=${auditPageSize}`,
+      );
       const items = payload.items || [];
+      auditPage = payload.page || 1;
       body.innerHTML = items.map((item) => `
         <tr>
           <td>${new Date(item.created_at).toLocaleString("ar-IQ")}</td>
@@ -252,6 +331,14 @@ export function createSettingsModule({ root, modalRoot, showToast }) {
           <td>${escapeHtml(labels.actions[item.action] || item.action)}</td>
           <td>${escapeHtml(labels.targets[item.target_type] || item.target_type || "")} ${escapeHtml(item.target_id)}</td>
         </tr>`).join("") || `<tr><td colspan="4">لا توجد أحداث تدقيق بعد.</td></tr>`;
+      if (pagination) {
+        const previous = pagination.querySelector("[data-audit-previous]");
+        const next = pagination.querySelector("[data-audit-next]");
+        pagination.querySelector("[data-audit-page]").textContent =
+          `الصفحة ${auditPage} من ${payload.total_pages || 1} · ${payload.total || 0} سجل`;
+        previous.disabled = auditPage <= 1;
+        next.disabled = auditPage >= (payload.total_pages || 1);
+      }
     } catch (error) {
       body.innerHTML = `<tr><td colspan="4">${escapeHtml(error.message)}</td></tr>`;
     }
@@ -371,8 +458,19 @@ export function createSettingsModule({ root, modalRoot, showToast }) {
           <thead><tr><th>الوقت</th><th>الفاعل</th><th>الإجراء</th><th>الهدف</th></tr></thead>
           <tbody data-audit-body><tr><td colspan="4">جاري تحميل سجل التدقيق...</td></tr></tbody>
         </table>
+      </div>
+      <div class="audit-pagination" data-audit-pagination>
+        <button type="button" data-audit-previous>السابق</button>
+        <span data-audit-page>الصفحة 1</span>
+        <button type="button" data-audit-next>التالي</button>
       </div>`;
     grid.append(section);
+    section.querySelector("[data-audit-previous]").onclick = () => {
+      if (auditPage > 1) refreshAudit(auditPage - 1);
+    };
+    section.querySelector("[data-audit-next]").onclick = () => {
+      refreshAudit(auditPage + 1);
+    };
     refreshAudit();
   }
 
@@ -475,7 +573,7 @@ export function createSettingsModule({ root, modalRoot, showToast }) {
       `;
 
     const modelSelect = section.querySelector("[data-ft-model]");
-    [state.model.chat_model, "Legal-Base v3", "qwen2.5:7b"].filter(Boolean).forEach((model) => {
+    [state.model.chat_model, "qwen2.5:3b", "qwen2.5:7b"].filter(Boolean).forEach((model) => {
       if (![...modelSelect.options].some((option) => option.value === model)) {
         modelSelect.add(new Option(model, model));
       }
@@ -529,6 +627,7 @@ export function createSettingsModule({ root, modalRoot, showToast }) {
       <div class="settings-grid"></div>`;
     const grid = root.querySelector(".settings-grid");
     renderSecurity(grid);
+    renderUploadSettings(grid);
     renderUsers(grid);
     renderAuditLog(grid);
     renderFineTuning(grid, language);
@@ -537,6 +636,7 @@ export function createSettingsModule({ root, modalRoot, showToast }) {
       try {
         const body = {
           authentication: state.authentication,
+          upload: state.upload,
           model: { chat_model: state.model.chat_model },
           fine_tuning: state.fine_tuning,
         };
@@ -573,5 +673,10 @@ export function createSettingsModule({ root, modalRoot, showToast }) {
     }
   }
 
-  return { open: load };
+  return {
+    open: load,
+    requireLogin() {
+      showLogin(false);
+    },
+  };
 }

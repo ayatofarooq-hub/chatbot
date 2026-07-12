@@ -39,6 +39,16 @@ class SettingsValidationTests(unittest.TestCase):
             validate_settings({"fine_tuning": {"scheduled_start_time": "25:99"}})
         self.assertIn("fine_tuning.scheduled_start_time", context.exception.errors)
 
+    def test_accepts_supported_upload_file_sizes(self):
+        for size in (5, 10, 20, 25):
+            result = validate_settings({"upload": {"max_file_size_mb": size}})
+            self.assertEqual(result["upload"]["max_file_size_mb"], size)
+
+    def test_rejects_unsupported_upload_file_size(self):
+        with self.assertRaises(SettingsValidationError) as context:
+            validate_settings({"upload": {"max_file_size_mb": 30}})
+        self.assertIn("upload.max_file_size_mb", context.exception.errors)
+
 
 class SettingsApiTests(unittest.TestCase):
     def setUp(self):
@@ -72,6 +82,20 @@ class SettingsApiTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         mock_update.assert_called_once()
 
+    @patch("app.runtime_settings.runtime_settings")
+    @patch("app.api.authenticated_admin", return_value={"id": 1, "username": "admin"})
+    def test_upload_settings_endpoint_returns_upload_limits(self, _mock_admin, mock_runtime_settings):
+        mock_runtime_settings.return_value = {
+            "upload": {"max_file_count": 10, "max_file_size_mb": 25}
+        }
+        response = self.client.get(
+            "/api/uploads/settings", cookies={"legal_admin_session": "test"}
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.json(), {"max_file_count": 10, "max_file_size_mb": 25}
+        )
+
     @patch("app.settings_api.ollama.Client")
     @patch("app.settings_api.get_settings")
     @patch("app.settings_api.admin_for_token", return_value={"id": 1, "username": "admin", "permissions": ["manage_settings"]})
@@ -92,6 +116,51 @@ class SettingsApiTests(unittest.TestCase):
         )
         self.assertEqual(response.status_code, 503)
         self.assertEqual(response.json()["error"]["code"], "ollama_unavailable")
+
+    @patch("app.settings_api.audit_log")
+    @patch("app.settings_api.audit_log_count", return_value=37)
+    @patch(
+        "app.settings_api.admin_for_token",
+        return_value={
+            "id": 1,
+            "username": "admin",
+            "permissions": ["view_audit_log"],
+        },
+    )
+    def test_audit_log_pagination(
+        self,
+        _mock_admin,
+        _mock_count,
+        mock_audit_log,
+    ):
+        mock_audit_log.return_value = [{"id": 16}]
+
+        response = self.client.get(
+            "/api/settings/audit-log?page=2&page_size=15",
+            cookies={"legal_admin_session": "test"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["page"], 2)
+        self.assertEqual(response.json()["total_pages"], 3)
+        self.assertEqual(response.json()["total"], 37)
+        mock_audit_log.assert_called_once_with(15, 15)
+
+    @patch(
+        "app.settings_api.admin_for_token",
+        return_value={
+            "id": 1,
+            "username": "admin",
+            "permissions": ["view_audit_log"],
+        },
+    )
+    def test_audit_log_rejects_invalid_page(self, _mock_admin):
+        response = self.client.get(
+            "/api/settings/audit-log?page=bad",
+            cookies={"legal_admin_session": "test"},
+        )
+
+        self.assertEqual(response.status_code, 422)
 
 
 if __name__ == "__main__":

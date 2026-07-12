@@ -1,16 +1,16 @@
-import { MAX_FILES } from "./uploadTypes.js";
+import { uploadLimitText } from "./uploadConfig.js?v=20260712-upload-settings";
 
-export function createUploadDropzone({ onFilesSelected }) {
+export function createUploadDropzone({ config, onFilesSelected }) {
   const label = document.createElement("label");
   label.className = "upload-dropzone";
   label.tabIndex = 0;
   label.setAttribute("role", "button");
-  label.setAttribute("aria-label", "رفع ملفات القرار بصيغة PDF أو DOC أو DOCX");
+  label.setAttribute("aria-label", "Upload PDF, DOCX, or TXT files");
 
   const input = document.createElement("input");
   input.type = "file";
   input.multiple = true;
-  input.accept = ".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+  input.accept = ".pdf,.docx,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain";
 
   const icon = document.createElement("span");
   icon.className = "upload-illustration";
@@ -18,14 +18,14 @@ export function createUploadDropzone({ onFilesSelected }) {
   icon.textContent = "⇪";
 
   const title = document.createElement("strong");
-  title.textContent = "اسحب الملفات هنا أو اضغط للتصفح";
+  title.textContent = "Drop files here or browse";
 
   const subtitle = document.createElement("small");
-  subtitle.textContent = "الصيغ المدعومة: PDF, DOC, DOCX";
+  subtitle.textContent = "Supported formats: PDF, DOCX, TXT";
 
   const hint = document.createElement("span");
   hint.className = "upload-hint";
-  hint.textContent = `حتى ${MAX_FILES} ملفات، 100 ميغابايت لكل ملف`;
+  hint.textContent = uploadLimitText(config);
 
   label.append(input, icon, title, subtitle, hint);
 
@@ -64,6 +64,9 @@ export function createUploadDropzone({ onFilesSelected }) {
       label.classList.toggle("uploading", state === "uploading");
       label.classList.toggle("error", state === "error");
       label.setAttribute("data-state", state);
+    },
+    setConfig(nextConfig) {
+      hint.textContent = uploadLimitText(nextConfig);
     },
   };
 }

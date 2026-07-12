@@ -3,7 +3,15 @@
 import unittest
 from unittest.mock import patch
 
-from app.rag_answer import AnswerResult, generate_answer
+import httpx
+
+from app.prompts import FINAL_WARNING
+from app.rag_answer import (
+    AnswerResult,
+    ensure_answer_citations,
+    generate_answer,
+    get_quick_response,
+)
 from app.ui import answer_question
 
 
@@ -15,6 +23,48 @@ RESULTS = {
 
 
 class AnswerFlowTests(unittest.TestCase):
+    def test_incomplete_question_returns_without_calling_model(self):
+        self.assertIn("سؤال قانوني مكتمل", get_quick_response("ص"))
+
+    @patch("app.rag_answer.validate_answer")
+    @patch("app.rag_answer.call_chat_model")
+    @patch("app.rag_answer.load_registry")
+    @patch("app.rag_answer.filter_results_to_registered")
+    def test_generate_answer_keeps_first_answer_when_correction_times_out(
+        self,
+        mock_filter_results,
+        mock_load_registry,
+        mock_call_chat_model,
+        mock_validate_answer,
+    ):
+        mock_load_registry.return_value = {
+            "by_chunk_id": {
+                "chunk-1": {
+                    "law_number": "1",
+                    "law_year": "2020",
+                    "article_number": "2",
+                    "law_name": "Test Law",
+                    "classification": "civil",
+                }
+            }
+        }
+        mock_filter_results.return_value = (RESULTS, [])
+        mock_call_chat_model.side_effect = [
+            "first answer",
+            httpx.ReadTimeout("correction timed out"),
+        ]
+        mock_validate_answer.return_value = ["citation warning"]
+
+        result = generate_answer("question", RESULTS)
+
+        self.assertTrue(result.content.startswith("first answer"))
+        self.assertIn("[المصدر: Test Law، الصفحة: 1]", result.content)
+        self.assertTrue(result.content.endswith(FINAL_WARNING))
+        self.assertIn("citation warning", result.warnings)
+        self.assertTrue(
+            any("تم عرض الإجابة الأولية" in warning for warning in result.warnings)
+        )
+
     @patch("app.rag_answer.validate_answer")
     @patch("app.rag_answer.call_chat_model")
     @patch("app.rag_answer.load_registry")
@@ -46,14 +96,17 @@ class AnswerFlowTests(unittest.TestCase):
 
         result = generate_answer("السؤال", RESULTS)
 
-        self.assertEqual(
-            result,
-            AnswerResult(
-                content="الإجابة المصححة",
-                warnings=["الفقرة 1 لا تحتوي على استشهاد."],
-            ),
-        )
+        self.assertTrue(result.content.startswith("الإجابة المصححة"))
+        self.assertIn("[المصدر: Test Law، الصفحة: 1]", result.content)
+        self.assertTrue(result.content.endswith(FINAL_WARNING))
+        self.assertEqual(result.warnings, ["الفقرة 1 لا تحتوي على استشهاد."])
         self.assertEqual(mock_call_chat_model.call_count, 2)
+
+    def test_ensure_answer_citations_repairs_missing_source_and_footer(self):
+        answer = ensure_answer_citations("إجابة قانونية مختصرة", RESULTS)
+
+        self.assertIn("[المصدر: law.pdf، الصفحة: 1]", answer)
+        self.assertTrue(answer.endswith(FINAL_WARNING))
 
     @patch("app.rag_answer.load_registry")
     @patch("app.rag_answer.filter_results_to_registered")

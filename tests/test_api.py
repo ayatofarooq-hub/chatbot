@@ -177,6 +177,38 @@ class ApiTests(unittest.TestCase):
             404,
         )
 
+    @patch("app.auth.admin_for_token", return_value={"id": 1, "username": "admin"})
+    @patch("app.api.list_uploaded_documents")
+    def test_uploaded_documents_are_listed(self, mock_list, _mock_admin):
+        mock_list.return_value = [{"id": "abc", "name": "law.txt"}]
+
+        response = self.client.get("/api/uploads")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["items"][0]["id"], "abc")
+
+    @patch("app.auth.admin_for_token", return_value={"id": 1, "username": "admin"})
+    @patch("app.api.create_uploaded_document")
+    def test_uploaded_document_is_sent_to_indexing_service(
+        self,
+        mock_create,
+        _mock_admin,
+    ):
+        mock_create.return_value = {
+            "id": "abc",
+            "name": "law.txt",
+            "status": "indexed",
+        }
+
+        response = self.client.post(
+            "/api/uploads",
+            files={"file": ("law.txt", "نص قانوني".encode(), "text/plain")},
+        )
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.json()["status"], "indexed")
+        mock_create.assert_called_once()
+
 
 if __name__ == "__main__":
     unittest.main()

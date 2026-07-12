@@ -60,27 +60,45 @@ def citation_from_chunk(chunk: dict, ingest_date: str | None = None) -> dict:
         chunk.get("section_reference"),
     )
 
+    law_number = _first_text(
+        chunk.get("law_number"),
+        chunk.get("document_law_number"),
+    )
+    law_year = _first_text(
+        chunk.get("law_year"),
+        chunk.get("document_law_year"),
+        chunk.get("document_year"),
+    )
+    article_number = _first_text(
+        chunk.get("article_number"),
+        chunk.get("document_article_number"),
+    )
+    law_name = _first_text(
+        chunk.get("law_name"),
+        chunk.get("document_law_name"),
+        chunk.get("document_title"),
+        law,
+    )
+    legal_reference = _first_text(chunk.get("legal_reference"))
+    if not legal_reference:
+        reference_parts = [law_name]
+        if law_number:
+            reference_parts.append(f"رقم {law_number}")
+        if law_year:
+            reference_parts.append(f"لسنة {law_year}")
+        if article_number:
+            reference_parts.append(f"المادة {article_number}")
+        legal_reference = " ".join(reference_parts)
+
     return {
         "law": law,
         "article": article,
-        "law_number": _first_text(
-            chunk.get("law_number"),
-            chunk.get("document_law_number"),
-        ),
-        "law_year": _first_text(
-            chunk.get("law_year"),
-            chunk.get("document_law_year"),
-        ),
-        "article_number": _first_text(
-            chunk.get("article_number"),
-            chunk.get("document_article_number"),
-        ),
-        "law_name": _first_text(
-            chunk.get("law_name"),
-            chunk.get("document_law_name"),
-            chunk.get("document_title"),
-            law,
-        ),
+        "law_number": law_number,
+        "law_year": law_year,
+        "article_number": article_number,
+        "law_name": law_name,
+        "legal_reference": legal_reference,
+        "page_number": chunk.get("page_number", 1),
         "classification": _first_text(
             chunk.get("classification"),
             chunk.get("document_classification"),
@@ -260,9 +278,11 @@ def registry_warnings_for_metadatas(
             warnings.append(f"Retrieved chunk '{chunk_id}' is missing from citation_registry.json.")
         else:
             citation = by_chunk_id[chunk_id]
+            # PostgreSQL rows may represent a whole law rather than one article.
+            # Constitutions and orders may also have no separate law number.
             missing = [
                 field
-                for field in ("law_number", "law_year", "article_number", "law_name")
+                for field in ("law_year", "law_name")
                 if not _first_text(citation.get(field))
             ]
             if missing:

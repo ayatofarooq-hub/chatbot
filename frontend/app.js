@@ -1,5 +1,5 @@
-import { createUploadManager } from "./components/upload/useUploadManager.js";
-import { createSettingsModule } from "./components/settings/SettingsPage.js";
+import { createUploadManager } from "./components/upload/useUploadManager.js?v=20260712-upload-settings";
+import { createSettingsModule } from "./components/settings/SettingsPage.js?v=20260712-upload-settings";
 
 const storageKey = "iraqi-legal-assistant-conversations";
 const decisionDraftKey = "iraqi-legal-assistant-decision-draft";
@@ -12,6 +12,7 @@ const elements = {
   clearHistory: document.querySelector("#clear-history"),
   conversationTitle: document.querySelector("#conversation-title"),
   countRoot: document.querySelector("#upload-count"),
+  currentFilesSubtitle: document.querySelector("#current-files-subtitle"),
   decisionContent: document.querySelector("#decision-content"),
   decisionForm: document.querySelector("#decision-form"),
   decisionMinistry: document.querySelector("#decision-ministry"),
@@ -31,14 +32,13 @@ const elements = {
   insightList: document.querySelector("#insight-list"),
   landingForm: document.querySelector("#landing-form"),
   landingInput: document.querySelector("#landing-input"),
-  landingRecordingCancel: document.querySelector("#landing-recording-cancel"),
-  landingRecordingConfirm: document.querySelector("#landing-recording-confirm"),
   landingRecordingControls: document.querySelector("#landing-recording-controls"),
   landingSend: document.querySelector("#landing-send"),
   landingSuggestions: document.querySelector("#landing-suggestions"),
   landingVoiceButton: document.querySelector("#landing-voice-button"),
   landingView: document.querySelector("#landing-view"),
   listRoot: document.querySelector("#upload-file-list"),
+  logoutButton: document.querySelector("#logout-button"),
   messages: document.querySelector("#messages"),
   mobileMenu: document.querySelector("#mobile-menu"),
   microphonePicker: document.querySelector("#microphone-picker"),
@@ -46,6 +46,9 @@ const elements = {
   nav: document.querySelector("#primary-nav"),
   newChatInline: document.querySelector("#new-chat-inline"),
   priorityOptions: document.querySelector("#priority-options"),
+  profileAvatar: document.querySelector("#profile-avatar"),
+  profileName: document.querySelector("#profile-name"),
+  profileRole: document.querySelector("#profile-role"),
   qualityCountRoot: document.querySelector("#upload-quality-count"),
   qualityLabelRoot: document.querySelector("#upload-quality-label"),
   referenceCount: document.querySelector("#reference-count"),
@@ -60,6 +63,12 @@ const elements = {
   wordCount: document.querySelector("#word-count"),
 };
 const landingVoiceIconMarkup = elements.landingVoiceButton?.innerHTML || "";
+const voiceIconMarkup = elements.voiceButton?.innerHTML || "";
+const stopRecordingIconMarkup = `
+  <svg viewBox="0 0 24 24" aria-hidden="true">
+    <rect x="7.5" y="7.5" width="9" height="9" rx="1.5" fill="currentColor" stroke="none"></rect>
+  </svg>
+`;
 
 let conversations = loadConversations();
 let activeConversationId = conversations[0]?.id ?? null;
@@ -91,6 +100,7 @@ const uploadManager = createUploadManager({
   statsRoot: elements.statsRoot,
   countRoot: elements.countRoot,
   capacityRoot: elements.capacityRoot,
+  subtitleRoot: elements.currentFilesSubtitle,
   qualityCountRoot: elements.qualityCountRoot,
   qualityLabelRoot: elements.qualityLabelRoot,
   showToast,
@@ -100,7 +110,51 @@ const settingsModule = createSettingsModule({
   root: document.querySelector("#settings-root"),
   modalRoot: document.querySelector("#modal-root"),
   showToast,
+  onAuthenticated: refreshSession,
 });
+
+const roleNames = {
+  super_admin: "مدير عام",
+  admin: "مدير النظام",
+  viewer: "مراجع",
+};
+
+async function refreshSession() {
+  try {
+    const response = await fetch("/api/auth/session", { credentials: "same-origin" });
+    const payload = await response.json();
+    const administrator = payload.authenticated ? payload.administrator : null;
+    const loginRequired = payload.login_required !== false;
+    const displayName = administrator?.display_name || administrator?.username || "غير مسجل";
+    elements.profileName.textContent = displayName;
+    elements.profileRole.textContent = administrator
+      ? (roleNames[administrator.role] || administrator.role)
+      : "يلزم تسجيل الدخول";
+    elements.profileAvatar.textContent = administrator
+      ? displayName.trim().charAt(0).toLocaleUpperCase("ar")
+      : "؟";
+    document.body.classList.toggle("authenticated", Boolean(administrator));
+    document.body.classList.remove("auth-gate-pending");
+    document.body.classList.toggle(
+      "auth-gate-active",
+      loginRequired && !administrator,
+    );
+    return { administrator, loginRequired };
+  } catch {
+    elements.profileName.textContent = "تعذر التحقق";
+    elements.profileRole.textContent = "الخادم غير متاح";
+    elements.profileAvatar.textContent = "!";
+    document.body.classList.remove("authenticated");
+    document.body.classList.remove("auth-gate-pending");
+    document.body.classList.add("auth-gate-active");
+    return { administrator: null, loginRequired: true };
+  }
+}
+
+async function bootstrapAuthentication() {
+  const { administrator, loginRequired } = await refreshSession();
+  if (loginRequired && !administrator) settingsModule.requireLogin();
+}
 
 function loadConversations() {
   try {
@@ -182,7 +236,7 @@ function consumeInitialPrompt() {
 
   elements.input.value = prompt;
   elements.input.style.height = "auto";
-  elements.input.style.height = `${Math.min(elements.input.scrollHeight, 120)}px`;
+  elements.input.style.height = `${Math.min(elements.input.scrollHeight, 180)}px`;
   elements.form.requestSubmit();
 }
 
@@ -298,7 +352,11 @@ function renderConversation() {
       citations.append(
         document.createTextNode(
           message.citations
-            .map((citation) => citation.legal_reference || `${citation.source_file}، الصفحة ${citation.page_number}`)
+            .map((citation) => {
+              if (citation.legal_reference) return citation.legal_reference;
+              const page = citation.page_number ?? "غير معروف";
+              return `${citation.source_file || "مصدر غير معروف"}، الصفحة ${page}`;
+            })
             .join(" · "),
         ),
       );
@@ -428,6 +486,11 @@ async function submitQuestion(question) {
       body: JSON.stringify({ question: cleanQuestion, include_snippets: true }),
     });
     const payload = await response.json();
+    if (response.status === 401) {
+      await refreshSession();
+      showView("settings");
+      throw new Error("انتهت جلسة الدخول. يرجى تسجيل الدخول ثم إعادة إرسال السؤال.");
+    }
     if (!response.ok) throw new Error(payload.detail || "تعذر إنشاء الإجابة.");
 
     conversation.messages.push({
@@ -545,7 +608,7 @@ function resetRecorder() {
     if (recordingButton === elements.landingVoiceButton) {
       recordingButton.innerHTML = landingVoiceIconMarkup;
     } else {
-      recordingButton.textContent = "●";
+      recordingButton.innerHTML = voiceIconMarkup;
     }
     recordingButton.setAttribute("aria-label", "بدء الإدخال الصوتي");
   }
@@ -592,12 +655,15 @@ async function transcribeRecording(blob) {
     if (!response.ok) throw new Error(payload.detail || "تعذر تحويل الصوت إلى نص.");
     const separator = recordingInput.value.trim() ? " " : "";
     recordingInput.value = `${recordingInput.value.trimEnd()}${separator}${payload.text}`;
-    recordingInput.dispatchEvent(new Event("input"));
-    recordingInput.focus();
   } catch (error) {
     showToast(error.message || "تعذر تحويل الصوت إلى نص.");
   } finally {
+    const completedInput = recordingInput;
     resetRecorder();
+    window.requestAnimationFrame(() => {
+      completedInput?.dispatchEvent(new Event("input"));
+      completedInput?.focus();
+    });
   }
 }
 
@@ -701,7 +767,7 @@ async function toggleRecording(button = elements.voiceButton, input = elements.i
     recordingStartedAt = Date.now();
     recordingActive = true;
     recordingButton.classList.add("recording");
-    if (recordingButton !== elements.landingVoiceButton) recordingButton.textContent = "■";
+    recordingButton.innerHTML = stopRecordingIconMarkup;
     recordingButton.setAttribute("aria-label", "إيقاف التسجيل");
     setLandingRecordingUi(recordingButton === elements.landingVoiceButton);
     showToast("بدأ التسجيل. اضغط على المربع الأحمر عند الانتهاء.");
@@ -727,37 +793,6 @@ function setLandingRecordingUi(active) {
   elements.landingForm?.classList.toggle("recording-mode", active);
   if (elements.landingRecordingControls) elements.landingRecordingControls.hidden = !active;
   elements.landingRecordingControls?.classList.remove("transcribing");
-  if (elements.landingRecordingCancel) elements.landingRecordingCancel.disabled = false;
-  if (elements.landingRecordingConfirm) {
-    elements.landingRecordingConfirm.disabled = false;
-    elements.landingRecordingConfirm.textContent = "✓";
-  }
-}
-
-function cancelRecording() {
-  if (!recordingActive || recordingButton !== elements.landingVoiceButton) return;
-  recordingActive = false;
-  discardRecording = true;
-  window.clearTimeout(recordingTimer);
-  setLandingRecordingUi(false);
-  if (mediaRecorder?.state === "recording") {
-    mediaRecorder.stop();
-  } else {
-    resetRecorder();
-  }
-  showToast("تم إلغاء التسجيل.");
-}
-
-function confirmLandingRecording() {
-  if (!recordingActive || recordingButton !== elements.landingVoiceButton) return;
-  elements.landingRecordingControls?.classList.add("transcribing");
-  if (elements.landingRecordingCancel) elements.landingRecordingCancel.disabled = true;
-  if (elements.landingRecordingConfirm) {
-    elements.landingRecordingConfirm.disabled = true;
-    elements.landingRecordingConfirm.textContent = "…";
-  }
-  showToast("جارٍ تحويل التسجيل إلى نص...");
-  finishRecording();
 }
 
 elements.form.addEventListener("submit", (event) => {
@@ -807,7 +842,9 @@ elements.input.addEventListener("keydown", (event) => {
 
 elements.input.addEventListener("input", () => {
   elements.input.style.height = "auto";
-  elements.input.style.height = `${Math.min(elements.input.scrollHeight, 120)}px`;
+  const nextHeight = Math.min(elements.input.scrollHeight, 180);
+  elements.input.style.height = `${nextHeight}px`;
+  elements.input.style.overflowY = elements.input.scrollHeight > 180 ? "auto" : "hidden";
 });
 
 elements.suggestions.addEventListener("click", (event) => {
@@ -821,6 +858,17 @@ elements.assistantNav.addEventListener("click", () => {
 });
 elements.decisionNav.addEventListener("click", () => showView("decision"));
 elements.settingsNav.addEventListener("click", () => showView("settings"));
+elements.logoutButton?.addEventListener("click", async () => {
+  try {
+    await fetch("/api/auth/logout", {
+      method: "POST",
+      credentials: "same-origin",
+    });
+  } finally {
+    await refreshSession();
+    showView("settings");
+  }
+});
 elements.newChatInline.addEventListener("click", createConversation);
 elements.clearHistory.addEventListener("click", removeAllConversations);
 elements.historySearch.addEventListener("input", renderHistory);
@@ -847,16 +895,7 @@ document.addEventListener("click", () => {
 // Landing voice button
 elements.landingVoiceButton?.addEventListener("click", async (event) => {
   event.preventDefault();
-  if (recordingActive) return;
   await toggleRecording(elements.landingVoiceButton, elements.landingInput);
-});
-elements.landingRecordingControls?.addEventListener("click", (event) => {
-  const button = event.target.closest("button");
-  if (!button) return;
-  event.preventDefault();
-  event.stopPropagation();
-  if (button === elements.landingRecordingCancel) cancelRecording();
-  if (button === elements.landingRecordingConfirm) confirmLandingRecording();
 });
 
 elements.priorityOptions?.addEventListener("click", (event) => {
@@ -933,6 +972,7 @@ async function exportConversation(format = "pdf") {
 
 loadDecisionDraft();
 render();
+bootstrapAuthentication();
 if (window.location.hash === "#chat" || new URLSearchParams(window.location.search).has("prompt")) {
   showView("assistant");
 } else {
