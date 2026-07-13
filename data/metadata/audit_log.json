@@ -772,5 +772,53 @@
       ]
     },
     "created_at": "2026-07-12T11:21:14.984509+00:00"
+  },
+  {
+    "id": 59,
+    "action": "admin_password_reset",
+    "actor_user_id": null,
+    "actor_username": "create_admin.py",
+    "target_type": "admin_user",
+    "target_id": "Shams2000",
+    "ip_address": null,
+    "user_agent": null,
+    "details": {},
+    "created_at": "2026-07-13T09:38:02.026977+00:00"
+  },
+  {
+    "id": 60,
+    "action": "login_success",
+    "actor_user_id": 3,
+    "actor_username": "Shams2000",
+    "target_type": null,
+    "target_id": null,
+    "ip_address": "127.0.0.1",
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36 Edg/150.0.0.0",
+    "details": {},
+    "created_at": "2026-07-13T09:38:26.728726+00:00"
+  },
+  {
+    "id": 61,
+    "action": "login_success",
+    "actor_user_id": 3,
+    "actor_username": "Shams2000",
+    "target_type": null,
+    "target_id": null,
+    "ip_address": "127.0.0.1",
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36 Edg/150.0.0.0",
+    "details": {},
+    "created_at": "2026-07-13T10:08:02.637392+00:00"
+  },
+  {
+    "id": 62,
+    "action": "login_success",
+    "actor_user_id": 3,
+    "actor_username": "Shams2000",
+    "target_type": null,
+    "target_id": null,
+    "ip_address": "127.0.0.1",
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36 Edg/150.0.0.0",
+    "details": {},
+    "created_at": "2026-07-13T11:22:18.971367+00:00"
   }
 ]
