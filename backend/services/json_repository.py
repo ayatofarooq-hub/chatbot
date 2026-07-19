@@ -1,59 +1,30 @@
 from __future__ import annotations
 
-import json
-import threading
 from pathlib import Path
 from typing import Any
 
 from app.config import PROJECT_ROOT
+from app.json_storage import read_json, write_json
+from app.text_encoding import repair_json_text
 
 DATA_ROOT = PROJECT_ROOT / "data"
-DEFAULT_DOCUMENT_ROOTS = {
-    "law": DATA_ROOT / "laws",
-    "decision": DATA_ROOT / "decisions",
-    "order": DATA_ROOT / "orders",
-    "instruction": DATA_ROOT / "instructions",
-    "regulation": DATA_ROOT / "regulations",
-    "constitution": DATA_ROOT / "constitution",
-    "amendment": DATA_ROOT / "amendments",
-}
-METADATA_ROOT = DATA_ROOT / "metadata"
+SEED_DATASET_ROOT = PROJECT_ROOT / "dataset"
 
 
 class JsonRepository:
     def __init__(self, data_root: Path | None = None) -> None:
         self.data_root = data_root or DATA_ROOT
-        self._cache: dict[str, dict[str, Any]] = {}
-        self._cache_mtimes: dict[str, float] = {}
-        self._lock = threading.RLock()
-        self._document_roots = DEFAULT_DOCUMENT_ROOTS.copy()
-        self._metadata_root = METADATA_ROOT
-        self._metadata_root.mkdir(parents=True, exist_ok=True)
-        for folder in self._document_roots.values():
-            folder.mkdir(parents=True, exist_ok=True)
+        self._document_root = self.data_root / "legal_documents"
+        self._extracted_text_root = self.data_root / "extracted_text"
+        self._metadata_file = self.data_root / "metadata.json"
+        self._document_root.mkdir(parents=True, exist_ok=True)
+        self._extracted_text_root.mkdir(parents=True, exist_ok=True)
 
     def _load_json(self, path: Path) -> dict[str, Any]:
-        with self._lock:
-            if path.exists():
-                mtime = path.stat().st_mtime
-                cached = self._cache.get(str(path))
-                if cached is not None and self._cache_mtimes.get(str(path)) == mtime:
-                    return cached
-            if not path.exists():
-                return {}
-            with path.open("r", encoding="utf-8") as handle:
-                payload = json.load(handle)
-            self._cache[str(path)] = payload
-            self._cache_mtimes[str(path)] = path.stat().st_mtime
-            return payload
+        return repair_json_text(read_json(path, {}))
 
     def _save_json(self, path: Path, payload: Any) -> None:
-        path.parent.mkdir(parents=True, exist_ok=True)
-        with path.open("w", encoding="utf-8") as handle:
-            json.dump(payload, handle, ensure_ascii=False, indent=2)
-            handle.write("\n")
-        self._cache[str(path)] = payload
-        self._cache_mtimes[str(path)] = path.stat().st_mtime
+        write_json(path, payload)
 
     def load_json(self, path: str | Path) -> dict[str, Any]:
         return self._load_json(Path(path))
@@ -69,26 +40,31 @@ class JsonRepository:
         return updated
 
     def append_document(self, document: dict[str, Any]) -> dict[str, Any]:
-        folder = self._document_roots.get(document.get("document_type"), self._document_roots["law"])
-        file_path = folder / f"{document['id']}.json"
+        file_path = self._document_root / f"{document['id']}.json"
         self._save_json(file_path, document)
         return document
 
     def remove_document(self, document_id: str) -> None:
-        for folder in self._document_roots.values():
+        for folder in (self._document_root, self._extracted_text_root):
             path = folder / f"{document_id}.json"
             if path.exists():
                 path.unlink()
 
     def list_documents(self) -> list[dict[str, Any]]:
         documents: list[dict[str, Any]] = []
-        for folder in self._document_roots.values():
+        seen_ids: set[str] = set()
+        for folder in (self._document_root, self._extracted_text_root, SEED_DATASET_ROOT):
             if not folder.exists():
                 continue
-            for path in sorted(folder.glob("*.json")):
+            for path in sorted(folder.rglob("*.json")):
                 payload = self._load_json(path)
-                if payload:
-                    documents.append(payload)
+                if not payload:
+                    continue
+                document_id = str(payload.get("id") or path.stem)
+                if document_id in seen_ids:
+                    continue
+                seen_ids.add(document_id)
+                documents.append(payload)
         return documents
 
     def find_by_id(self, document_id: str) -> dict[str, Any] | None:
@@ -127,8 +103,11 @@ class JsonRepository:
         return [document for document in self.list_documents() if str(document.get("document_type", "")).lower() == document_type.lower()]
 
     def load_metadata(self, file_name: str) -> dict[str, Any]:
-        metadata_path = self._metadata_root / file_name
-        return self._load_json(metadata_path)
+        metadata = self._load_json(self._metadata_file)
+        value = metadata.get(Path(file_name).stem, {})
+        return value if isinstance(value, dict) else {}
 
     def save_metadata(self, file_name: str, payload: dict[str, Any]) -> None:
-        self._save_json(self._metadata_root / file_name, payload)
+        metadata = self._load_json(self._metadata_file)
+        metadata[Path(file_name).stem] = payload
+        self._save_json(self._metadata_file, metadata)

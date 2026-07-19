@@ -58,14 +58,34 @@
       </div>
     </aside>
 
+    <aside class="chat-history-sidebar" id="chat-history-sidebar" aria-label="سجل المحادثات">
+      <div class="chat-sidebar-header">
+        <div class="chat-sidebar-user">
+          <div class="chat-sidebar-avatar" id="sidebar-profile-avatar">ق</div>
+          <div class="chat-sidebar-user-text">
+            <strong id="sidebar-profile-name">المستخدم الداخلي</strong>
+            <span id="sidebar-profile-role">الدائرة القانونية</span>
+          </div>
+        </div>
+        <button class="chat-sidebar-close" id="chat-sidebar-close" type="button" aria-label="إغلاق سجل المحادثات">×</button>
+      </div>
+
+      <button class="chat-new-button" id="new-chat-inline" type="button" aria-label="محادثة جديدة">
+        <span aria-hidden="true">+</span>
+        <strong>محادثة جديدة</strong>
+      </button>
+
+      <div class="chat-history-heading">Recent Chats</div>
+      <div class="chat-sidebar-scroll">
+        <div class="history-list chatgpt-history-list" id="history-list"></div>
+      </div>
+    </aside>
+    <div class="chat-sidebar-backdrop" id="chat-sidebar-backdrop" hidden></div>
+
     <main class="application">
       <header class="global-header">
-        <button class="mobile-menu" id="mobile-menu" type="button" aria-label="فتح القائمة">☰</button>
+        <button class="mobile-menu" id="mobile-menu" type="button" aria-label="فتح سجل المحادثات">☰</button>
         <div class="header-title">مجلس الوزراء - إدارة القرارات</div>
-        <label class="global-search">
-          <span aria-hidden="true">⌕</span>
-          <input type="search" placeholder="البحث في القرارات والتشريعات..." disabled>
-        </label>
         <div class="profile">
           <div>
             <strong id="profile-name">المستخدم الداخلي</strong>
@@ -122,22 +142,6 @@
       </section>
 
       <div class="workspace-grid app-view" id="assistant-view" hidden>
-        <aside class="history-panel panel">
-          <div class="panel-header">
-            <strong>سجل المحادثات</strong>
-            <button id="new-chat-inline" type="button" aria-label="محادثة جديدة">＋</button>
-          </div>
-          <label class="panel-search">
-            <span aria-hidden="true">⌕</span>
-            <input id="history-search" type="search" placeholder="بحث في المحفوظات...">
-          </label>
-          <div class="section-label">الأحدث</div>
-          <div class="history-list" id="history-list"></div>
-          <button class="clear-history" id="clear-history" type="button">
-            <span aria-hidden="true">↻</span> مسح سجل المحادثة
-          </button>
-        </aside>
-
         <section class="chat-panel panel">
           <div class="chat-toolbar">
             <div class="chat-identity">

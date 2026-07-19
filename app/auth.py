@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import hashlib
-import json
 import secrets
 import uuid
 from datetime import datetime, timedelta, timezone
@@ -11,14 +10,12 @@ from pathlib import Path
 
 import bcrypt
 
+from .json_storage import read_json, write_json
 from .settings_schema import DEFAULTS
 
 COOKIE_NAME = "legal_admin_session"
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-METADATA_ROOT = PROJECT_ROOT / "data" / "metadata"
-USERS_FILE = METADATA_ROOT / "admin_users.json"
-SESSIONS_FILE = METADATA_ROOT / "admin_sessions.json"
-AUDIT_FILE = METADATA_ROOT / "audit_log.json"
+METADATA_FILE = PROJECT_ROOT / "data" / "metadata.json"
 
 ROLES = {
     "super_admin": {
@@ -50,20 +47,26 @@ ROLES = {
 
 
 def _ensure_files() -> None:
-    METADATA_ROOT.mkdir(parents=True, exist_ok=True)
-    for path in (USERS_FILE, SESSIONS_FILE, AUDIT_FILE):
-        if not path.exists():
-            path.write_text("[]\n", encoding="utf-8")
+    METADATA_FILE.parent.mkdir(parents=True, exist_ok=True)
+    if not METADATA_FILE.exists():
+        write_json(METADATA_FILE, {})
 
 
-def _read_json(path: Path) -> list[dict]:
+def _metadata() -> dict:
     _ensure_files()
-    return json.loads(path.read_text(encoding="utf-8")) if path.exists() else []
+    payload = read_json(METADATA_FILE, {})
+    return payload if isinstance(payload, dict) else {}
 
 
-def _write_json(path: Path, payload: list[dict]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+def _read_list(section: str) -> list[dict]:
+    rows = _metadata().get(section) or []
+    return [dict(row) for row in rows if isinstance(row, dict)]
+
+
+def _write_list(section: str, payload: list[dict]) -> None:
+    metadata = _metadata()
+    metadata[section] = payload
+    write_json(METADATA_FILE, metadata)
 
 
 def role_permissions(role: str) -> list[str]:
@@ -92,7 +95,7 @@ def validate_password_policy(password: str, policy: dict | None = None) -> None:
 
 def audit(action: str, *, actor: dict | None = None, target_type: str | None = None, target_id: object | None = None, details: dict | None = None, request=None, engine=None) -> None:
     _ensure_files()
-    entries = _read_json(AUDIT_FILE)
+    entries = _read_list("audit_log")
     entry = {
         "id": len(entries) + 1,
         "action": action,
@@ -106,14 +109,14 @@ def audit(action: str, *, actor: dict | None = None, target_type: str | None = N
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
     entries.append(entry)
-    _write_json(AUDIT_FILE, entries)
+    _write_list("audit_log", entries)
 
 
 def create_admin(username: str, password: str, engine=None) -> None:
     if not username.strip():
         raise ValueError("Administrator username cannot be empty.")
     validate_password_policy(password, _policy())
-    users = _read_json(USERS_FILE)
+    users = _read_list("admin_users")
     existing = next((user for user in users if user.get("username") == username.strip()), None)
     password_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
     if existing:
@@ -128,12 +131,12 @@ def create_admin(username: str, password: str, engine=None) -> None:
             "display_name": username.strip(),
             "email": "",
         })
-    _write_json(USERS_FILE, users)
+    _write_list("admin_users", users)
     audit("admin_password_reset", actor={"username": "create_admin.py"}, target_type="admin_user", target_id=username.strip())
 
 
 def authenticate(username: str, password: str, engine=None) -> tuple[str, datetime | None, bool] | None:
-    users = _read_json(USERS_FILE)
+    users = _read_list("admin_users")
     user = next((item for item in users if item.get("username") == username and item.get("is_active", True)), None)
     if not user or not bcrypt.checkpw(password.encode(), user["password_hash"].encode()):
         return None
@@ -141,22 +144,22 @@ def authenticate(username: str, password: str, engine=None) -> tuple[str, dateti
     timeout = auth.get("session_timeout_minutes")
     expires = datetime.now(timezone.utc) + timedelta(minutes=timeout) if timeout else None
     token = secrets.token_urlsafe(48)
-    sessions = _read_json(SESSIONS_FILE)
+    sessions = _read_list("admin_sessions")
     sessions.append({
         "id": str(uuid.uuid4()),
         "admin_user_id": user["id"],
         "token_hash": hashlib.sha256(token.encode()).hexdigest(),
         "expires_at": expires.isoformat() if expires else None,
     })
-    _write_json(SESSIONS_FILE, sessions)
+    _write_list("admin_sessions", sessions)
     return token, expires, bool(auth.get("remember_login", False))
 
 
 def admin_for_token(token: str | None, engine=None) -> dict | None:
     if not token:
         return None
-    sessions = _read_json(SESSIONS_FILE)
-    users = _read_json(USERS_FILE)
+    sessions = _read_list("admin_sessions")
+    users = _read_list("admin_users")
     users_by_id = {user["id"]: user for user in users}
     token_hash = hashlib.sha256(token.encode()).hexdigest()
     for session in sessions:
@@ -182,7 +185,7 @@ def admin_for_token(token: str | None, engine=None) -> dict | None:
 def revoke_token(token: str | None, engine=None) -> None:
     if not token:
         return
-    sessions = _read_json(SESSIONS_FILE)
+    sessions = _read_list("admin_sessions")
     token_hash = hashlib.sha256(token.encode()).hexdigest()
     remaining = [session for session in sessions if session.get("token_hash") != token_hash]
-    _write_json(SESSIONS_FILE, remaining)
+    _write_list("admin_sessions", remaining)

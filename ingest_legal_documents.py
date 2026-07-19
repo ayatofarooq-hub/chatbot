@@ -1,4 +1,4 @@
-"""Rebuild the legal search index from PostgreSQL."""
+"""Rebuild the legal search index from JSON legal documents."""
 
 from app.build_index import main
 

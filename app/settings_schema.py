@@ -36,7 +36,7 @@ DEFAULTS = {
     "notifications": {
         "browser_notifications": False, "processing_completed": True,
         "upload_failed": True, "model_error": True,
-        "index_rebuild_completed": True, "database_backup_completed": True,
+        "index_rebuild_completed": True, "json_backup_completed": True,
     },
     "backup": {"automatic_frequency": None, "local_destination": None},
     "fine_tuning": {

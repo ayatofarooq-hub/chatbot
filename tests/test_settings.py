@@ -32,7 +32,7 @@ class SettingsValidationTests(unittest.TestCase):
 
     def test_rejects_unknown_fields_that_could_expose_secrets(self):
         with self.assertRaises(SettingsValidationError):
-            validate_settings({"model": {"database_password": "secret"}})
+            validate_settings({"model": {"secret_password": "secret"}})
 
     def test_rejects_invalid_fine_tuning_schedule_time(self):
         with self.assertRaises(SettingsValidationError) as context:

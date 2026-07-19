@@ -1,44 +1,38 @@
-# Settings module
+# Settings Module
 
 ## Installation
 
-The settings schema is explicit and is never applied during API startup.
+The settings schema is stored in `data/metadata.json`; no migration step is
+required.
 
 ```powershell
-.\.venv\Scripts\python.exe scripts\apply_migration.py
 .\.venv\Scripts\python.exe scripts\create_admin.py
 .\.venv\Scripts\python.exe -m uvicorn app.api:app --host 127.0.0.1 --port 8000
 ```
 
 Use HTTPS when the server is reachable from another machine. Administrator
 sessions use an HttpOnly, SameSite=Strict cookie; its `Secure` flag is enabled
-when the request is served over HTTPS. Do not expose Ollama or PostgreSQL to
-untrusted networks.
+when the request is served over HTTPS. Do not expose Ollama to untrusted
+networks.
 
-The migration creates only application-owned tables. It reads distinct values
-from `public.iraqi_laws.classification` to seed display metadata and does not
-change the legal table schema. Classification reassignment updates linked legal
-records and soft-deletes the old classification in one transaction.
+Classifications are stored in JSON metadata and can be edited through the
+settings API. Classification reassignment updates JSON legal records when a
+caller implements that workflow.
 
-## Runtime effects
+## Runtime Effects
 
 Model and retrieval settings are loaded for subsequent requests. Embedding
 model and chunk settings require an explicit index rebuild. The rebuild uses
-the existing PostgreSQL-to-chunks-to-citation-registry-to-Chroma pipeline.
-Changing application settings never mutates Chroma directly.
+the JSON-to-chunks-to-citation-registry-to-Chroma pipeline. Changing
+application settings never mutates Chroma directly.
 
 JSON export/import contains application settings only. It does not contain
-administrator password hashes, sessions, legal records, Chroma data, or
-database credentials.
+administrator password hashes, sessions, legal records, or Chroma data.
 
-## Not configured
+## Not Configured
 
-- The existing browser uploader simulates progress and has no upload API.
-  Upload settings are persisted but disabled in the Settings UI until a real
-  endpoint can enforce them server-side.
 - No fine-tuning pipeline exists, so the section is disabled and no run or
   progress endpoints are exposed.
-- Database-native backup/restore and automatic backup scheduling are not
-  configured. The related endpoints return HTTP 501.
+- JSON backup/restore is handled through settings export/import.
 - Browser notification preferences are stored, but no email or desktop
   delivery mechanism is presented.

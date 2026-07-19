@@ -1,16 +1,17 @@
 # Install Legal Chatbot Desktop On Another PC
 
-This package contains the Windows desktop shell only. It opens the existing Python chatbot backend inside a native Windows app.
+This package contains the Windows desktop shell only. It opens the existing
+Python chatbot backend inside a native Windows app.
 
 ## Required On The Other PC
 
-- The full Python chatbot backend folder
+- The full Python chatbot backend folder, including `data/` and `dataset/`
 - Python and the backend virtual environment
-- PostgreSQL with the legal database restored
-- Ollama and the required model
+- Ollama and the required models
 - Microsoft Edge WebView2 Runtime
 
-The desktop app is self-contained for .NET, so the other PC does not need the .NET SDK.
+The desktop app is self-contained for .NET, so the other PC does not need the
+.NET SDK.
 
 ## Basic Setup
 
@@ -23,20 +24,20 @@ python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
 ```
 
-3. Configure `.env` with that PC's database connection:
+3. Copy the `data/` folder or rebuild the index from JSON:
 
-```text
-DATABASE_URL=postgresql+psycopg://USER:PASSWORD@localhost:5432/DB_NAME
+```powershell
+.\.venv\Scripts\python.exe -m app.build_index
 ```
 
-4. Restore the PostgreSQL database.
-5. Install Ollama and pull the required model:
+4. Install Ollama and pull the required models:
 
 ```powershell
 ollama pull qwen2.5:7b
+ollama pull bge-m3
 ```
 
-6. Test the backend:
+5. Test the backend:
 
 ```powershell
 .\.venv\Scripts\python.exe -m uvicorn app.api:app --host 127.0.0.1 --port 8000
@@ -54,13 +55,14 @@ Expected:
 {"status":"ok"}
 ```
 
-7. Edit `appsettings.json` next to `LegalChatbotDesktop.exe`:
+6. Edit `appsettings.json` next to `LegalChatbotDesktop.exe`:
 
 ```json
 "PythonExecutablePath": "C:\\Path\\To\\chatbot\\.venv\\Scripts\\python.exe",
 "BackendWorkingDirectory": "C:\\Path\\To\\chatbot"
 ```
 
-8. Run `LegalChatbotDesktop.exe`.
+7. Run `LegalChatbotDesktop.exe`.
 
-The app starts the backend if needed, or attaches to an already-running healthy backend on port `8000`.
+The app starts the backend if needed, or attaches to an already-running healthy
+backend on port `8000`.

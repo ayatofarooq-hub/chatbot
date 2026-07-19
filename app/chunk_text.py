@@ -97,6 +97,10 @@ def _chunk_id(source_file: str, chunk_index: int) -> str:
     return f"{source_hash}-chunk-{chunk_index}"
 
 
+def _has_value(value) -> bool:
+    return value not in (None, "") and value != [] and value != {}
+
+
 def _normalize_document(document) -> SimpleNamespace:
     if isinstance(document, dict):
         blocks = []
@@ -110,14 +114,26 @@ def _normalize_document(document) -> SimpleNamespace:
                     )
                 )
         if not blocks:
-            blocks.append(DocumentBlock(text=str(document.get("summary", "") or "")))
+            fallback_text = (
+                document.get("content")
+                or document.get("embedding_text")
+                or document.get("summary")
+                or document.get("title")
+                or ""
+            )
+            blocks.append(DocumentBlock(text=str(fallback_text)))
         return SimpleNamespace(
             source_file=str(document.get("source") or document.get("id") or "document"),
             source_type="json",
             title=str(document.get("title", "") or ""),
             blocks=blocks,
             document_type=str(document.get("document_type", "") or ""),
-            metadata={k: v for k, v in document.items() if k not in {"title", "articles", "summary"} and v not in {None, "", [], {}}},
+            metadata={
+                k: v
+                for k, v in document.items()
+                if k not in {"title", "articles", "summary", "content", "embedding_text"}
+                and _has_value(v)
+            },
         )
     return document
 
@@ -189,13 +205,13 @@ def main() -> None:
     """Load and chunk every JSON-backed legal record as JSON Lines."""
 
     try:
-        from .postgres_laws import load_postgres_documents
+        from .json_legal_documents import load_json_documents
     except ImportError:
-        from postgres_laws import load_postgres_documents
+        from json_legal_documents import load_json_documents
 
-    documents = load_postgres_documents()
+    documents = load_json_documents()
     if not documents:
-        print("No JSON laws found. Check the data/laws folder.")
+        print("No JSON legal documents found. Check data/legal_documents or dataset.")
         return
 
     all_chunks = []

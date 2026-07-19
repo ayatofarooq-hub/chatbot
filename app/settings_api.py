@@ -2,23 +2,12 @@
 
 from __future__ import annotations
 
-import asyncio
-import io
 import json
 import threading
-from pathlib import Path
 
 import httpx
 import ollama
 from starlette.concurrency import run_in_threadpool
-
-try:
-    from sqlalchemy.exc import IntegrityError
-except ImportError:  # pragma: no cover - fallback for offline environments
-    class IntegrityError(Exception):
-        """Fallback exception used when SQLAlchemy is unavailable."""
-
-        pass
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 
@@ -156,8 +145,6 @@ async def classifications_post(request: Request) -> JSONResponse:
         item = await run_in_threadpool(create_classification, await json_body(request))
         await run_in_threadpool(audit, "classification_created", actor=admin, target_type="classification", target_id=item["id"], request=request)
         return JSONResponse(item, status_code=201)
-    except IntegrityError:
-        return error("Arabic or English classification name already exists.", 409, "duplicate")
     except ValueError as exc:
         return error(str(exc), 422, "validation_error")
 
@@ -170,8 +157,6 @@ async def classification_put(request: Request) -> JSONResponse:
         item = await run_in_threadpool(update_classification, int(request.path_params["id"]), await json_body(request))
         await run_in_threadpool(audit, "classification_updated", actor=admin, target_type="classification", target_id=item["id"], request=request)
         return JSONResponse(item)
-    except IntegrityError:
-        return error("Arabic or English classification name already exists.", 409, "duplicate")
     except LookupError as exc:
         return error(str(exc), 404, "not_found")
     except ValueError as exc:
@@ -295,7 +280,7 @@ async def backup_create(request: Request) -> JSONResponse:
     if isinstance(admin, Response):
         return admin
     return error(
-        "Database-native backup is not configured. Export JSON backs up application settings only.",
+        "Use settings export to back up JSON application settings.",
         501, "not_configured",
     )
 
@@ -304,7 +289,7 @@ async def backup_restore(request: Request) -> JSONResponse:
     admin = require_admin(request, "run_maintenance")
     if isinstance(admin, Response):
         return admin
-    return error("Database-native restore is not configured.", 501, "not_configured")
+    return error("Use settings import to restore JSON application settings.", 501, "not_configured")
 
 
 async def users_get(request: Request) -> JSONResponse:
@@ -324,8 +309,6 @@ async def users_post(request: Request) -> JSONResponse:
         return JSONResponse(item, status_code=201)
     except ValueError as exc:
         return error(str(exc), 422, "validation_error")
-    except IntegrityError:
-        return error("Username or email already exists.", 409, "duplicate")
 
 
 async def user_put(request: Request) -> JSONResponse:
@@ -340,8 +323,6 @@ async def user_put(request: Request) -> JSONResponse:
         return error(str(exc), 404, "not_found")
     except ValueError as exc:
         return error(str(exc), 422, "validation_error")
-    except IntegrityError:
-        return error("Username or email already exists.", 409, "duplicate")
 
 
 async def user_delete(request: Request) -> JSONResponse:

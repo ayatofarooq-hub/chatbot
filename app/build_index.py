@@ -20,7 +20,6 @@ try:
         OLLAMA_REQUEST_TIMEOUT_SECONDS,
     )
     from .ollama_client import client as ollama_client
-    from backend.services.document_service import DocumentService
     from backend.services.json_repository import JsonRepository
 except ImportError:
     # Support direct execution with: python app/build_index.py
@@ -33,7 +32,6 @@ except ImportError:
         OLLAMA_REQUEST_TIMEOUT_SECONDS,
     )
     from ollama_client import client as ollama_client
-    from backend.services.document_service import DocumentService
     from backend.services.json_repository import JsonRepository
 
 
@@ -197,13 +195,13 @@ def load_source_chunks() -> list[dict]:
     for document in repository.list_documents():
         documents.append(document)
     if not documents:
-        raise ValueError("No JSON legal records were found in data/laws or related folders.")
+        raise ValueError("No JSON legal records were found in data/legal_documents or dataset.")
 
     chunks = []
     for document in documents:
         document_chunks = build_chunks_from_document(document)
         chunks.extend(document_chunks)
-        print(f"{document.source_file}: {len(document_chunks)} chunks")
+        print(f"{document.get('source') or document.get('id')}: {len(document_chunks)} chunks")
 
     print(f"Loaded {len(documents)} JSON legal records.")
 

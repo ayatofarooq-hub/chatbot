@@ -9,8 +9,10 @@ from typing import Any
 
 try:
     from .config import CITATION_REGISTRY_FILE
+    from .text_encoding import repair_json_text
 except ImportError:
     from config import CITATION_REGISTRY_FILE
+    from text_encoding import repair_json_text
 
 
 REGISTRY_VERSION = 1
@@ -165,7 +167,7 @@ def load_registry(registry_path: Path = CITATION_REGISTRY_FILE) -> dict:
             "by_law_article": {},
         }
 
-    data = json.loads(registry_path.read_text(encoding="utf-8"))
+    data = repair_json_text(json.loads(registry_path.read_text(encoding="utf-8-sig")))
     data.setdefault("by_chunk_id", {})
     data.setdefault("by_law_article", {})
     data.setdefault("chunk_count", len(data["by_chunk_id"]))

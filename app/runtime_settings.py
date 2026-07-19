@@ -1,4 +1,4 @@
-"""Resolve current database settings with safe code defaults."""
+"""Resolve current JSON-backed settings with safe code defaults."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from .settings_store import get_settings
 
 
 def runtime_settings() -> dict:
-    """Read current settings for each request; migrations may not yet be applied."""
+    """Read current settings for each request with defaults as fallback."""
 
     try:
         return get_settings()

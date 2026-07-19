@@ -20,11 +20,11 @@ from .build_index import COLLECTION_NAME, add_chunks, create_embeddings
 from .chunk_text import CHUNKS_FILE, build_chunks_from_document
 from .citation_registry import save_registry
 from .config import CHROMA_FOLDER, PROJECT_ROOT
-from .postgres_laws import document_to_loaded_document
+from .json_legal_documents import document_to_loaded_document
 from .text_cleaning import clean_text
 
 
-UPLOAD_ROOT = PROJECT_ROOT / "data" / "uploads"
+UPLOAD_ROOT = PROJECT_ROOT / "data" / "legal_documents" / "uploads"
 SUPPORTED_EXTENSIONS = {".pdf", ".docx", ".txt"}
 _upload_lock = threading.RLock()
 

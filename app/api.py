@@ -28,6 +28,7 @@ try:
     )
     from .rag_answer import CITATION_PATTERN, generate_answer, get_quick_response
     from .search_index import search
+    from .text_encoding import repair_json_text
     from .speech_to_text import inspect_audio, transcribe_audio
     from .uploaded_documents import (
         create_uploaded_document,
@@ -58,6 +59,7 @@ except ImportError:
     )
     from rag_answer import CITATION_PATTERN, generate_answer, get_quick_response
     from search_index import search
+    from text_encoding import repair_json_text
     from speech_to_text import inspect_audio, transcribe_audio
     from uploaded_documents import (
         create_uploaded_document,
@@ -114,14 +116,14 @@ def extract_snippets(results: dict) -> list[dict]:
         snippets.append(
             {
                 "rank": index,
-                "source_file": metadata.get("source_file"),
+                "source_file": repair_json_text(metadata.get("source_file")),
                 "page_number": metadata.get("page_number"),
-                "document_title": metadata.get("document_title"),
-                "document_type": metadata.get("document_type"),
-                "legal_reference": metadata.get("legal_reference"),
-                "article_reference": metadata.get("article_reference"),
-                "section_title": metadata.get("section_title"),
-                "source_type": metadata.get("source_type"),
+                "document_title": repair_json_text(metadata.get("document_title")),
+                "document_type": repair_json_text(metadata.get("document_type")),
+                "legal_reference": repair_json_text(metadata.get("legal_reference")),
+                "article_reference": repair_json_text(metadata.get("article_reference")),
+                "section_title": repair_json_text(metadata.get("section_title")),
+                "source_type": repair_json_text(metadata.get("source_type")),
                 "distance": (
                     distances[index - 1]
                     if index <= len(distances)
@@ -137,7 +139,7 @@ def extract_snippets(results: dict) -> list[dict]:
                     if index <= len(bm25_scores)
                     else None
                 ),
-                "text": document,
+                "text": repair_json_text(document),
             }
         )
 

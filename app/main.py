@@ -12,7 +12,6 @@ from app.config import (
     EMBEDDING_MODEL,
     create_data_directories,
 )
-from app.database import create_database_engine, connection_identity
 
 
 def main() -> None:
@@ -20,16 +19,7 @@ def main() -> None:
 
     create_data_directories()
 
-    engine = create_database_engine()
-    try:
-        database_name, database_user = connection_identity(engine)
-    finally:
-        if engine is not None:
-            engine.dispose()
-
-    print(
-        f"Offline source: database '{database_name}' as '{database_user}'"
-    )
+    print("Offline source: JSON files in data/legal_documents")
     print(f"Chroma folder: {CHROMA_FOLDER}")
     print(f"Chat model: {CHAT_MODEL}")
     print(f"Embedding model: {EMBEDDING_MODEL}")

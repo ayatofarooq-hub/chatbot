@@ -4,18 +4,14 @@ from __future__ import annotations
 
 from datetime import date, datetime
 from pathlib import Path
-import json
 
 import bcrypt
 
 from .auth import ROLES, validate_password_policy
-from .database import create_database_engine
+from .json_storage import read_json, write_json
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-METADATA_ROOT = PROJECT_ROOT / "data" / "metadata"
-USERS_FILE = METADATA_ROOT / "admin_users.json"
-SESSIONS_FILE = METADATA_ROOT / "admin_sessions.json"
-AUDIT_FILE = METADATA_ROOT / "audit_log.json"
+METADATA_FILE = PROJECT_ROOT / "data" / "metadata.json"
 
 
 def _json_value(value):
@@ -29,20 +25,26 @@ def _json_row(row) -> dict:
 
 
 def _ensure_files() -> None:
-    METADATA_ROOT.mkdir(parents=True, exist_ok=True)
-    for path in (USERS_FILE, SESSIONS_FILE, AUDIT_FILE):
-        if not path.exists():
-            path.write_text("[]\n", encoding="utf-8")
+    METADATA_FILE.parent.mkdir(parents=True, exist_ok=True)
+    if not METADATA_FILE.exists():
+        write_json(METADATA_FILE, {})
 
 
-def _read_json(path: Path) -> list[dict]:
+def _metadata() -> dict:
     _ensure_files()
-    return json.loads(path.read_text(encoding="utf-8")) if path.exists() else []
+    payload = read_json(METADATA_FILE, {})
+    return payload if isinstance(payload, dict) else {}
 
 
-def _write_json(path: Path, payload: list[dict]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+def _read_list(section: str) -> list[dict]:
+    rows = _metadata().get(section) or []
+    return [dict(row) for row in rows if isinstance(row, dict)]
+
+
+def _write_list(section: str, payload: list[dict]) -> None:
+    metadata = _metadata()
+    metadata[section] = payload
+    write_json(METADATA_FILE, metadata)
 
 
 def roles() -> dict:
@@ -50,7 +52,7 @@ def roles() -> dict:
 
 
 def list_users(engine=None) -> list[dict]:
-    users = _read_json(USERS_FILE)
+    users = _read_list("admin_users")
     return [_json_row({key: user.get(key) for key in user}) for user in users]
 
 
@@ -60,7 +62,7 @@ def _assert_role(role: str) -> None:
 
 
 def _assert_last_super_admin_safe(user_id: int, new_role: str | None = None, active: bool | None = None) -> None:
-    users = _read_json(USERS_FILE)
+    users = _read_list("admin_users")
     row = next((user for user in users if user.get("id") == user_id), None)
     if row is None:
         raise LookupError("User not found.")
@@ -79,11 +81,11 @@ def create_user(payload: dict, actor: dict | None = None, engine=None) -> dict:
     if not username:
         raise ValueError("Username is required.")
     _assert_role(role)
-    users = _read_json(USERS_FILE)
+    users = _read_list("admin_users")
     if any(user.get("username") == username for user in users):
         raise ValueError("Username already exists.")
     user = {
-        "id": len(users) + 1,
+        "id": max([int(user.get("id", 0)) for user in users] or [0]) + 1,
         "username": username,
         "password_hash": bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode(),
         "display_name": str(payload.get("display_name") or "").strip() or None,
@@ -97,7 +99,7 @@ def create_user(payload: dict, actor: dict | None = None, engine=None) -> dict:
         "last_login_at": None,
     }
     users.append(user)
-    _write_json(USERS_FILE, users)
+    _write_list("admin_users", users)
     return _json_row(user)
 
 
@@ -115,19 +117,19 @@ def update_user(user_id: int, payload: dict, actor: dict | None = None, engine=N
         values["email"] = str(values["email"] or "").strip() or None
     if "is_active" in values:
         values["is_active"] = bool(values["is_active"])
-    users = _read_json(USERS_FILE)
+    users = _read_list("admin_users")
     user = next((item for item in users if item.get("id") == user_id), None)
     if user is None:
         raise LookupError("User not found.")
     _assert_last_super_admin_safe(user_id, values.get("role"), values.get("is_active"))
     user.update(values)
     user["updated_at"] = datetime.now().isoformat()
-    _write_json(USERS_FILE, users)
+    _write_list("admin_users", users)
     return _json_row(user)
 
 
 def reset_password(user_id: int, password: str, engine=None) -> None:
-    users = _read_json(USERS_FILE)
+    users = _read_list("admin_users")
     user = next((item for item in users if item.get("id") == user_id and item.get("is_active", True)), None)
     if user is None:
         raise LookupError("Active user not found.")
@@ -135,18 +137,18 @@ def reset_password(user_id: int, password: str, engine=None) -> None:
     user["password_hash"] = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
     user["password_changed_at"] = datetime.now().isoformat()
     user["updated_at"] = datetime.now().isoformat()
-    _write_json(USERS_FILE, users)
+    _write_list("admin_users", users)
 
 
 def deactivate_user(user_id: int, engine=None) -> None:
-    users = _read_json(USERS_FILE)
+    users = _read_list("admin_users")
     user = next((item for item in users if item.get("id") == user_id), None)
     if user is None:
         raise LookupError("User not found.")
     _assert_last_super_admin_safe(user_id, active=False)
     user["is_active"] = False
     user["updated_at"] = datetime.now().isoformat()
-    _write_json(USERS_FILE, users)
+    _write_list("admin_users", users)
 
 
 def audit_log(
@@ -156,10 +158,10 @@ def audit_log(
 ) -> list[dict]:
     limit = max(1, min(int(limit), 500))
     offset = max(0, int(offset))
-    rows = _read_json(AUDIT_FILE)
+    rows = _read_list("audit_log")
     newest_first = [dict(row) for row in reversed(rows)]
     return newest_first[offset : offset + limit]
 
 
 def audit_log_count(engine=None) -> int:
-    return len(_read_json(AUDIT_FILE))
+    return len(_read_list("audit_log"))

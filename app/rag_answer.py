@@ -35,6 +35,7 @@ try:
         build_user_prompt,
     )
     from .search_index import search
+    from .text_encoding import repair_mojibake
 except ImportError:
     # Support direct execution with: python app/rag_answer.py
     from build_index import COLLECTION_NAME
@@ -60,6 +61,7 @@ except ImportError:
         build_user_prompt,
     )
     from search_index import search
+    from text_encoding import repair_mojibake
 
 
 CITATION_PATTERN = re.compile(
@@ -186,11 +188,11 @@ def build_context(results: dict, registry: dict | None = None) -> str:
         start=1,
     ):
         citation = citation_for_metadata(metadata, registry)
-        source_file = citation_source_label(metadata, registry)
+        source_file = repair_mojibake(citation_source_label(metadata, registry))
         page_number = metadata.get("page_number", "غير معروف")
-        legal_reference = metadata.get("legal_reference", "")
-        document_title = metadata.get("document_title", "")
-        document_type = metadata.get("document_type", "")
+        legal_reference = repair_mojibake(str(metadata.get("legal_reference", "")))
+        document_title = repair_mojibake(str(metadata.get("document_title", "")))
+        document_type = repair_mojibake(str(metadata.get("document_type", "")))
         classification = (
             citation.get("classification")
             or metadata.get("document_classification")
@@ -218,7 +220,7 @@ def build_context(results: dict, registry: dict | None = None) -> str:
                     f"[المقطع {rank}]",
                     *metadata_lines,
                     "النص:",
-                    document,
+                    repair_mojibake(document),
                 ]
             )
         )
@@ -244,7 +246,7 @@ def get_allowed_citations(
     metadatas = results.get("metadatas", [[]])[0]
     return {
         (
-            citation_source_label(metadata, registry),
+            repair_mojibake(citation_source_label(metadata, registry)),
             str(metadata.get("page_number")),
         )
         for metadata in metadatas

@@ -1,4 +1,4 @@
-# Frontend Migration
+﻿# Frontend Migration
 
 ## Decision
 
@@ -50,7 +50,7 @@ Streamlit fallback design system uses the same font token.
 
 ## Decision Upload Redesign
 
-The `قرار جديد` page now uses a document-management uploader instead of the old
+The `Ù‚Ø±Ø§Ø± Ø¬Ø¯ÙŠØ¯` page now uses a document-management uploader instead of the old
 single attachment field.
 
 - Supported files: PDF, DOC, DOCX.
@@ -61,7 +61,7 @@ single attachment field.
   are still uploading.
 - Completed files show name, size, upload date/time, status, preview, download,
   delete, reorder, and more-actions controls.
-- The current-files section displays `عدد الملفات: n / 3`.
+- The current-files section displays `Ø¹Ø¯Ø¯ Ø§Ù„Ù…Ù„ÙØ§Øª: n / 3`.
 - The statistics panel displays total uploaded size, maximum file size, current
   count, and remaining capacity.
 
@@ -106,4 +106,5 @@ The Streamlit interface remains available through `app/ui.py` as a fallback.
 ## Rollback
 
 The migration can be rolled back operationally by launching Streamlit instead
-of the Starlette browser frontend. No backend or database migration is needed.
+of the Starlette browser frontend. No backend storage migration is needed.
+
