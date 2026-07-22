@@ -1,10 +1,13 @@
 """Tests for the Postman-compatible chatbot API."""
 
 import unittest
+from pathlib import Path
+from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
 from starlette.testclient import TestClient
 
+import app.api as api_module
 from app.api import app
 
 
@@ -33,6 +36,29 @@ class ApiTests(unittest.TestCase):
         script_response = self.client.get("/assets/app.js")
         self.assertEqual(script_response.status_code, 200)
         self.assertIn('fetch("/ask"', script_response.text)
+
+    def test_chat_history_is_persisted_on_server(self):
+        payload = {
+            "activeConversationId": "conversation-1",
+            "conversations": [
+                {
+                    "id": "conversation-1",
+                    "title": "test",
+                    "messages": [{"role": "user", "content": "question"}],
+                }
+            ],
+        }
+
+        with TemporaryDirectory() as temporary_directory:
+            history_file = Path(temporary_directory) / "chat_history.json"
+            with patch.object(api_module, "CHAT_HISTORY_FILE", history_file):
+                save_response = self.client.post("/api/chat-history", json=payload)
+                load_response = self.client.get("/api/chat-history")
+
+        self.assertEqual(save_response.status_code, 200)
+        self.assertEqual(load_response.status_code, 200)
+        self.assertEqual(load_response.json()["activeConversationId"], "conversation-1")
+        self.assertEqual(load_response.json()["conversations"][0]["messages"][0]["content"], "question")
 
     def test_favicon_request_is_acknowledged(self):
         response = self.client.get("/favicon.ico")

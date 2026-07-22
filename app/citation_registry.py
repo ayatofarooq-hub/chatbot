@@ -280,11 +280,12 @@ def registry_warnings_for_metadatas(
             warnings.append(f"Retrieved chunk '{chunk_id}' is missing from citation_registry.json.")
         else:
             citation = by_chunk_id[chunk_id]
-            # PostgreSQL rows may represent a whole law rather than one article.
-            # Constitutions and orders may also have no separate law number.
+            # Some uploaded or extracted sources do not expose a reliable year.
+            # Treat law_year as optional: include it when present, but do not
+            # show a user-facing warning for that field alone.
             missing = [
                 field
-                for field in ("law_year", "law_name")
+                for field in ("law_name",)
                 if not _first_text(citation.get(field))
             ]
             if missing:

@@ -7,6 +7,7 @@ from chromadb.errors import NotFoundError
 
 try:
     from .build_index import COLLECTION_NAME
+    from .legal_lookup import answer_exact_law
     from .rag_answer import CITATION_PATTERN, generate_answer, get_quick_response
     from .search_index import search
     from .ui_components import (
@@ -24,6 +25,7 @@ try:
 except ImportError:
     try:
         from app.build_index import COLLECTION_NAME
+        from app.legal_lookup import answer_exact_law
         from app.rag_answer import CITATION_PATTERN, generate_answer, get_quick_response
         from app.search_index import search
         from app.ui_components import (
@@ -40,6 +42,7 @@ except ImportError:
         )
     except ImportError:
         from build_index import COLLECTION_NAME
+        from legal_lookup import answer_exact_law
         from rag_answer import CITATION_PATTERN, generate_answer, get_quick_response
         from search_index import search
         from ui_components import (
@@ -173,9 +176,6 @@ def render_assistant_message(message: dict) -> None:
     """Display one assistant answer and all supporting information."""
 
     st.markdown(message["content"])
-    render_vetting_warnings(message.get("warnings", []))
-    render_citations(message.get("citations", []))
-    render_snippets(message.get("snippets", []))
 
 
 def initialize_state() -> None:
@@ -226,6 +226,16 @@ def answer_question(question: str) -> dict:
             "warnings": [],
             "citations": [],
             "snippets": [],
+        }
+
+    exact_answer = answer_exact_law(question)
+    if exact_answer:
+        return {
+            "role": "assistant",
+            "content": exact_answer["answer"],
+            "warnings": [],
+            "citations": exact_answer["citations"],
+            "snippets": exact_answer["snippets"],
         }
 
     results = search(question)

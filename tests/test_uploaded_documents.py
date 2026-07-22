@@ -1,8 +1,12 @@
 """Normalization tests for persistent uploaded legal documents."""
 
 import unittest
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from unittest.mock import patch
 
-from app.uploaded_documents import _normalized_document
+from app.uploaded_documents import _normalized_document, delete_uploaded_document
+from backend.services.json_repository import JsonRepository
 
 
 class UploadedDocumentTests(unittest.TestCase):
@@ -22,3 +26,30 @@ class UploadedDocumentTests(unittest.TestCase):
         self.assertEqual(document["upload_id"], "abc123")
         self.assertTrue(document["source"].startswith("uploaded_abc123_"))
 
+    def test_delete_promotes_upload_to_source_corpus(self):
+        with TemporaryDirectory() as temporary_directory:
+            repository = JsonRepository(Path(temporary_directory))
+            repository.append_document(
+                {
+                    "id": "upload_abc123",
+                    "upload_id": "abc123",
+                    "original_filename": "law.pdf",
+                    "uploaded_at": "2026-07-22T00:00:00+00:00",
+                    "source": "uploaded_abc123_law.pdf",
+                    "title": "law",
+                    "articles": [{"text": "legal text"}],
+                }
+            )
+
+            with patch(
+                "app.uploaded_documents.JsonRepository",
+                return_value=repository,
+            ):
+                delete_uploaded_document("abc123")
+
+            promoted = repository.find_by_id("upload_abc123")
+
+        self.assertIsNotNone(promoted)
+        self.assertNotIn("upload_id", promoted)
+        self.assertEqual(promoted["source_origin"], "uploaded")
+        self.assertEqual(promoted["source"], "uploaded_abc123_law.pdf")

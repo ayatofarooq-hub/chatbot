@@ -110,7 +110,7 @@ export function createUploadManager({
       state.cancelUploadById.delete(fileId);
       state.files = state.files.filter((fileItem) => fileItem.id !== fileId);
       render();
-      showToast("File removed from storage and search index.");
+      showToast("File moved to source library and remains searchable.");
     } catch (error) {
       card?.classList.remove("removing");
       showToast(error.message);

@@ -26,6 +26,9 @@ try:
         load_registry,
         registry_warnings_for_metadatas,
     )
+    from .legal_lookup import answer_exact_law
+    from .config import PROJECT_ROOT
+    from .json_storage import read_json, write_json
     from .rag_answer import CITATION_PATTERN, generate_answer, get_quick_response
     from .search_index import search
     from .text_encoding import repair_json_text
@@ -57,6 +60,9 @@ except ImportError:
         load_registry,
         registry_warnings_for_metadatas,
     )
+    from legal_lookup import answer_exact_law
+    from config import PROJECT_ROOT
+    from json_storage import read_json, write_json
     from rag_answer import CITATION_PATTERN, generate_answer, get_quick_response
     from search_index import search
     from text_encoding import repair_json_text
@@ -78,6 +84,7 @@ except ImportError:
 
 
 FRONTEND_FOLDER = Path(__file__).resolve().parent.parent / "frontend"
+CHAT_HISTORY_FILE = PROJECT_ROOT / "data" / "chat_history.json"
 
 
 def extract_citations(answer: str) -> list[dict]:
@@ -176,6 +183,16 @@ def answer_question(question: str, include_snippets: bool = True) -> dict:
             "warnings": [],
             "citations": [],
             "snippets": [],
+        }
+
+    exact_answer = answer_exact_law(question)
+    if exact_answer:
+        return {
+            "question": question,
+            "answer": exact_answer["answer"],
+            "warnings": [],
+            "citations": exact_answer["citations"],
+            "snippets": exact_answer["snippets"] if include_snippets else [],
         }
 
     results = search(question)
@@ -285,7 +302,7 @@ async def upload_delete(request: Request) -> JSONResponse:
             delete_uploaded_document,
             request.path_params["upload_id"],
         )
-        return JSONResponse({"deleted": True})
+        return JSONResponse({"removed_from_uploads": True, "retained_as_source": True})
     except LookupError as error:
         return JSONResponse({"detail": str(error)}, status_code=404)
 
@@ -473,6 +490,45 @@ async def ask(request: Request) -> JSONResponse:
         return JSONResponse({"detail": str(error)}, status_code=422)
 
 
+def normalized_chat_history_payload(payload: object) -> dict:
+    if not isinstance(payload, dict):
+        return {"conversations": [], "activeConversationId": None}
+    conversations = payload.get("conversations", [])
+    if not isinstance(conversations, list):
+        conversations = []
+    return {
+        "conversations": conversations,
+        "activeConversationId": payload.get("activeConversationId"),
+        "updatedAt": payload.get("updatedAt") or datetime.now().isoformat(),
+    }
+
+
+async def chat_history_get(_: Request) -> JSONResponse:
+    """Return browser-independent chat history persisted on the server."""
+
+    return JSONResponse(
+        normalized_chat_history_payload(
+            await run_in_threadpool(read_json, CHAT_HISTORY_FILE, {})
+        )
+    )
+
+
+async def chat_history_put(request: Request) -> JSONResponse:
+    """Persist chat history so refreshes do not depend only on localStorage."""
+
+    try:
+        payload = await request.json()
+    except ValueError:
+        return JSONResponse(
+            {"detail": "Request body must be valid JSON."},
+            status_code=400,
+        )
+
+    normalized = normalized_chat_history_payload(payload)
+    await run_in_threadpool(write_json, CHAT_HISTORY_FILE, normalized)
+    return JSONResponse({"saved": True})
+
+
 async def export_chat(request: Request) -> Response:
     """Export a conversation as Markdown or plain text."""
 
@@ -638,6 +694,8 @@ app = Starlette(
         Route("/health", health, methods=["GET"]),
         Route("/transcribe", transcribe, methods=["POST"]),
         Route("/ask", ask, methods=["POST"]),
+        Route("/api/chat-history", chat_history_get, methods=["GET"]),
+        Route("/api/chat-history", chat_history_put, methods=["POST", "PUT"]),
         Route("/api/export-chat", export_chat, methods=["POST"]),
         Route("/api/uploads", uploads_get, methods=["GET"]),
         Route("/api/uploads/settings", upload_settings_get, methods=["GET"]),

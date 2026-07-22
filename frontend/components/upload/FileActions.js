@@ -5,7 +5,7 @@ export function createFileActions({ fileItem, onPreview, onDownload, onDelete, o
 
   const preview = createAction("معاينة", () => onPreview(fileItem));
   const download = createAction("تنزيل", () => onDownload(fileItem));
-  const deleteButton = createAction("حذف", () => onDelete(fileItem.id), "danger-action");
+  const deleteButton = createAction("إلى المصادر", () => onDelete(fileItem.id));
   const moveUp = createAction("أعلى", () => onMoveUp(fileItem.id));
   const moveDown = createAction("أسفل", () => onMoveDown(fileItem.id));
   const moreWrapper = document.createElement("div");

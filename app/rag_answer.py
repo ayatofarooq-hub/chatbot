@@ -26,6 +26,7 @@ try:
         OLLAMA_REQUEST_TIMEOUT_SECONDS,
         retrieved_context_debug,
     )
+    from .legal_lookup import answer_exact_law
     from .ollama_client import client as ollama_client
     from .prompts import (
         FINAL_WARNING,
@@ -52,6 +53,7 @@ except ImportError:
         OLLAMA_REQUEST_TIMEOUT_SECONDS,
         retrieved_context_debug,
     )
+    from legal_lookup import answer_exact_law
     from ollama_client import client as ollama_client
     from prompts import (
         FINAL_WARNING,
@@ -68,10 +70,22 @@ CITATION_PATTERN = re.compile(
     r"\[المصدر:\s*(.+?)،\s*الصفحة:\s*([0-9٠-٩]+)\]"
 )
 NUMBER_PATTERN = re.compile(r"[0-9٠-٩]+")
+LEGAL_TITLE_ONLY_PATTERN = re.compile(
+    r"^\s*(?:[-•]\s*)?"
+    r"(?:قانون|قرار|تعليمات|نظام)\s+.+?"
+    r"(?:رقم\s*\(?[0-9٠-٩]+\)?\s+لسنة\s*\(?[0-9٠-٩]+\)?|"
+    r"لسنة\s*\(?[0-9٠-٩]+\)?)\s*[.،؛:]*\s*$"
+)
+SECTION_SOURCE_PATTERN = re.compile(
+    r"تفكيك القوانين من\s*\([^)]+\)\s*إلى\s*\([^)]+\)\s*-\s*[^\n\r]+"
+)
+LAW_ITEM_PATTERN = re.compile(
+    r"(?<!\S)([0-9٠-٩]+)\.\s+(?:قانون|قرار|تعليمات|نظام)\s+"
+)
 SECTION_HEADING_PATTERN = re.compile(
     r"^\s*[1-4١-٤][.)-]?\s*"
     r"(خلاصة مختصرة|التفاصيل القانونية ذات الصلة|"
-    r"ملاحظات لصانع القرار|المصادر)\s*:?\s*$"
+    r"ملاحظات لصانع القرار|المصادر|الجواب|المصدر)\s*:?\s*$"
 )
 PENALTY_STEMS = ("عقوب", "غرام", "سجن", "حبس", "إعدام")
 ARABIC_INDIC_DIGITS = str.maketrans("٠١٢٣٤٥٦٧٨٩", "0123456789")
@@ -253,6 +267,265 @@ def get_allowed_citations(
     }
 
 
+def _clean_source_value(value: object) -> str:
+    """Return a readable metadata value for source display."""
+
+    text = repair_mojibake(str(value or "")).strip()
+    return "" if text.lower() == "missing" else text
+
+
+def _legal_group_heading(item_number: int) -> str:
+    """Return known folder heading for a numbered item in the uploaded compendium."""
+
+    if 1 <= item_number <= 10:
+        return "تفكيك القوانين من (١) إلى (١٠) - المبادئ الدستورية والجنائية"
+    if 11 <= item_number <= 20:
+        return "تفكيك القوانين من (١١) إلى (٢٠) - التشريعات القضائية والأمنية والاستثمارية"
+    return ""
+
+
+def source_heading_from_document(document: object) -> str:
+    """Return the most specific source heading embedded in a retrieved chunk."""
+
+    text = repair_mojibake(str(document or ""))
+    law_items = [
+        int(match.translate(ARABIC_INDIC_DIGITS))
+        for match in LAW_ITEM_PATTERN.findall(text)
+    ]
+    if law_items:
+        inferred = _legal_group_heading(max(law_items))
+        if inferred:
+            return inferred
+
+    headings = SECTION_SOURCE_PATTERN.findall(text)
+    return _clean_source_value(headings[-1]) if headings else ""
+
+
+def exact_law_sources(
+    results: dict,
+    registry: dict | None = None,
+    limit: int = 1,
+) -> list[str]:
+    """Return exact source labels from the highest-ranked retrieved chunks."""
+
+    registry = registry or load_registry()
+    sources = []
+    seen = set()
+    documents = results.get("documents", [[]])[0]
+    metadatas = results.get("metadatas", [[]])[0]
+
+    for document in documents:
+        section_source = source_heading_from_document(document)
+        if section_source and section_source not in seen:
+            seen.add(section_source)
+            sources.append(section_source)
+            if len(sources) >= limit:
+                return sources
+    if sources:
+        return sources
+
+    for document, metadata in zip(documents, metadatas):
+        citation = citation_for_metadata(metadata, registry)
+        law_name = _clean_source_value(
+            citation.get("law_name")
+            or citation.get("legal_reference")
+            or metadata.get("section_title")
+            or metadata.get("document_title")
+            or metadata.get("legal_reference")
+            or metadata.get("source_file")
+        )
+        law_number = _clean_source_value(citation.get("law_number"))
+        law_year = _clean_source_value(citation.get("law_year"))
+        article = _clean_source_value(
+            citation.get("article_number")
+            or citation.get("article")
+            or metadata.get("article_reference")
+        )
+
+        if not law_name:
+            continue
+
+        label = law_name
+        if law_number and law_year and law_number not in label:
+            label = f"{label} رقم {law_number} لسنة {law_year}"
+        elif law_number and law_number not in label:
+            label = f"{label} رقم {law_number}"
+        elif law_year and law_year not in label:
+            label = f"{label} لسنة {law_year}"
+
+        if article:
+            label = f"{label}، المادة {article}"
+
+        if label not in seen:
+            seen.add(label)
+            sources.append(label)
+            if len(sources) >= limit:
+                break
+
+    return sources
+
+
+def normalized_answer_text(text: str) -> str:
+    """Normalize answer/source text for simple equality checks."""
+
+    text = re.sub(r"[^\w\u0600-\u06FF]+", " ", text)
+    return re.sub(r"\s+", " ", text).strip().lower()
+
+
+def is_legal_title_only(text: str) -> bool:
+    """Return whether the answer is only a legal document title."""
+
+    stripped = answer_body_only(text).strip()
+    if "\n" in stripped:
+        return False
+    return bool(LEGAL_TITLE_ONLY_PATTERN.fullmatch(stripped))
+
+
+def source_like_answer_labels(results: dict, registry: dict | None = None) -> set[str]:
+    """Return source labels that should not appear as the whole answer body."""
+
+    registry = registry or load_registry()
+    labels = set()
+    for metadata in results.get("metadatas", [[]])[0]:
+        citation = citation_for_metadata(metadata, registry)
+        for value in (
+            citation.get("law_name"),
+            citation.get("legal_reference"),
+            metadata.get("document_title"),
+            metadata.get("legal_reference"),
+        ):
+            cleaned = _clean_source_value(value)
+            if cleaned:
+                labels.add(normalized_answer_text(cleaned))
+    return labels
+
+
+def meaningful_answer_from_context(question: str, results: dict) -> str:
+    """Extract a concise answer line from retrieved text when the model gives a title."""
+
+    normalized_question = repair_mojibake(question)
+    question_terms = {
+        term
+        for term in re.findall(r"[\w\u0600-\u06FF]+", normalized_question)
+        if len(term) > 2
+    }
+    wants_law_overview = bool(
+        LEGAL_TITLE_ONLY_PATTERN.fullmatch(normalized_question.strip())
+        or re.search(
+            r"(?:ما\s*هو|ماهو|عرّف|عرف|تعريف)\s+(?:هذا\s+)?قانون",
+            normalized_question,
+        )
+    )
+    best_line = ""
+    best_score = -1
+    prefixes = (
+        "المادة",
+        "الشرح التفصيلي",
+        "الأسباب الموجبة",
+        "الهيكل التنظيمي",
+        "العنوان",
+    )
+
+    for document in results.get("documents", [[]])[0]:
+        for raw_line in repair_mojibake(str(document or "")).splitlines():
+            line = raw_line.strip()
+            if not line or source_heading_from_document(line):
+                continue
+            if LEGAL_TITLE_ONLY_PATTERN.fullmatch(line):
+                continue
+            if not any(line.startswith(prefix) for prefix in prefixes):
+                continue
+            content = re.sub(
+                r"^(?:المادة\s*\([^)]+\)(?:\s*-\s*[^:]+)?|"
+                r"الشرح التفصيلي|الأسباب الموجبة|الهيكل التنظيمي|العنوان)\s*:\s*",
+                "",
+                line,
+            ).strip()
+            if not content or LEGAL_TITLE_ONLY_PATTERN.fullmatch(content):
+                continue
+            line_terms = set(re.findall(r"[\w\u0600-\u06FF]+", line))
+            score = len(question_terms & line_terms)
+            if wants_law_overview:
+                if line.startswith("الأسباب الموجبة"):
+                    score += 12
+                elif line.startswith("الشرح التفصيلي"):
+                    score += 8
+                elif line.startswith("المادة"):
+                    score -= 2
+            else:
+                if line.startswith("المادة"):
+                    score += 2
+                if "تعريف" in question_terms and line.startswith("المادة"):
+                    score += 2
+            if score > best_score:
+                best_score = score
+                best_line = content
+
+    return best_line
+
+
+def answer_body_only(answer: str) -> str:
+    """Remove generated citations, source sections, and old footer text."""
+
+    answer = repair_mojibake(CITATION_PATTERN.sub("", answer or "")).strip()
+    if FINAL_WARNING:
+        answer = answer.replace(FINAL_WARNING, "").strip()
+
+    body_lines = []
+    skip_source_section = False
+    for line in answer.splitlines():
+        stripped = line.strip()
+        normalized = stripped.strip("#*_ ").rstrip(":")
+        if normalized in {
+            "Analysis / Relevant Legal Sources",
+            "Legal Sources",
+            "Relevant Legal Sources",
+            "المصدر",
+            "المصادر",
+            "Source",
+            "Sources",
+        }:
+            skip_source_section = True
+            continue
+        if normalized in {"الجواب", "Answer"}:
+            skip_source_section = False
+            continue
+        if skip_source_section:
+            continue
+        body_lines.append(line.rstrip())
+
+    body = "\n".join(body_lines).strip()
+    return body or INSUFFICIENT_CONTEXT_MESSAGE
+
+
+def format_legal_sources_section(
+    results: dict,
+    registry: dict | None = None,
+) -> str:
+    """Format retrieved legal sources for the required response section."""
+
+    sources = exact_law_sources(results, registry=registry)
+    source_text = "\n".join(f"{source}" for source in sources) or "Not specified"
+    return f"Analysis / Relevant Legal Sources\n\n{source_text}"
+
+
+def format_concise_answer(
+    answer: str,
+    results: dict,
+    registry: dict | None = None,
+) -> str:
+    """Format the final answer using the required two-section structure."""
+
+    body = answer_body_only(answer)
+    return "\n\n".join(
+        [
+            format_legal_sources_section(results, registry=registry),
+            "Answer",
+            body,
+        ]
+    ).strip()
+
+
 def is_exempt_paragraph(paragraph: str) -> bool:
     """Return whether a paragraph is structural rather than factual."""
 
@@ -270,27 +543,17 @@ def validate_answer(answer: str, context: str, results: dict) -> list[str]:
     """Validate citations and context-sensitive legal details."""
 
     errors = []
-    allowed_citations = get_allowed_citations(results)
-    paragraphs = re.split(r"\n\s*\n", answer.strip())
+    answer_without_citations = answer_body_only(answer)
+    normalized_body = normalized_answer_text(answer_without_citations)
+    if normalized_body in source_like_answer_labels(results):
+        errors.append(
+            "الإجابة تكرر اسم القانون أو المصدر فقط ولا تتضمن مضمون التعريف أو الحكم."
+        )
+    if is_legal_title_only(answer_without_citations):
+        errors.append(
+            "الإجابة هي عنوان قانون فقط؛ يجب استخراج مضمون التعريف أو الحكم من النص."
+        )
 
-    for paragraph_number, paragraph in enumerate(paragraphs, start=1):
-        if is_exempt_paragraph(paragraph):
-            continue
-
-        citations = CITATION_PATTERN.findall(paragraph)
-        if not citations:
-            errors.append(
-                f"الفقرة {paragraph_number} لا تحتوي على استشهاد."
-            )
-            continue
-
-        for source_file, page_number in citations:
-            if (source_file.strip(), page_number) not in allowed_citations:
-                errors.append(
-                    f"الفقرة {paragraph_number} تستخدم مصدراً أو صفحة غير مسترجعة."
-                )
-
-    answer_without_citations = CITATION_PATTERN.sub("", answer)
     answer_without_headings = "\n".join(
         line
         for line in answer_without_citations.splitlines()
@@ -323,41 +586,23 @@ def validate_answer(answer: str, context: str, results: dict) -> list[str]:
                 "رغم عدم وروده في السياق المسترجع."
             )
 
-    if not answer.rstrip().endswith(FINAL_WARNING):
-        errors.append("التحذير الختامي الإلزامي مفقود أو غير مطابق.")
-
     return errors
 
 
 def ensure_answer_citations(answer: str, results: dict) -> str:
-    """Add valid source markers and the mandatory footer when omitted by Ollama."""
+    """Apply the concise answer plus exact law source response format."""
 
-    allowed = sorted(get_allowed_citations(results))
-    fallback_citation = (
-        f"[المصدر: {allowed[0][0]}، الصفحة: {allowed[0][1]}]"
-        if allowed
-        else ""
-    )
-    paragraphs = re.split(r"(\n\s*\n)", answer.strip())
-    repaired = []
-    for part in paragraphs:
-        if re.fullmatch(r"\n\s*\n", part):
-            repaired.append(part)
-            continue
-        paragraph = part.strip()
-        if (
-            paragraph
-            and fallback_citation
-            and not is_exempt_paragraph(paragraph)
-            and not CITATION_PATTERN.search(paragraph)
-        ):
-            paragraph = f"{paragraph}\n{fallback_citation}"
-        repaired.append(paragraph)
+    return format_concise_answer(answer, results)
 
-    content = "".join(repaired).strip()
-    if not content.endswith(FINAL_WARNING):
-        content = f"{content}\n\n{FINAL_WARNING}"
-    return content
+
+def repair_empty_or_title_answer(question: str, answer: str, results: dict) -> str:
+    """Replace title-only answers with a direct line from retrieved context."""
+
+    body = answer_body_only(answer)
+    if not is_legal_title_only(body):
+        return body
+    fallback = meaningful_answer_from_context(question, results)
+    return fallback or INSUFFICIENT_CONTEXT_MESSAGE
 
 
 def registry_metadata_warnings(results: dict, registry: dict) -> list[str]:
@@ -446,7 +691,11 @@ def generate_answer(
     context = build_context(results, registry=registry)
     if not context:
         return AnswerResult(
-            content=f"{INSUFFICIENT_CONTEXT_MESSAGE}\n\n{FINAL_WARNING}",
+            content=format_concise_answer(
+                INSUFFICIENT_CONTEXT_MESSAGE,
+                results,
+                registry=registry,
+            ),
             warnings=registry_filter_warnings,
         )
 
@@ -455,10 +704,12 @@ def generate_answer(
         {"role": "system", "content": SYSTEM_PROMPT},
         {"role": "user", "content": build_user_prompt(question, context)},
     ]
-    answer = ensure_answer_citations(
+    raw_answer = repair_empty_or_title_answer(
+        question,
         call_chat_model(messages, status_callback=status_callback),
         results,
     )
+    answer = ensure_answer_citations(raw_answer, results)
     validation_errors = validate_answer(answer, context, results)
 
     if validation_errors:
@@ -478,10 +729,12 @@ def generate_answer(
         first_answer = answer
         first_validation_errors = validation_errors
         try:
-            answer = ensure_answer_citations(
+            raw_answer = repair_empty_or_title_answer(
+                question,
                 call_chat_model(messages, status_callback=status_callback),
                 results,
             )
+            answer = ensure_answer_citations(raw_answer, results)
         except httpx.TimeoutException:
             return AnswerResult(
                 content=first_answer,
@@ -526,6 +779,12 @@ def main() -> None:
         if quick_response:
             print()
             print(quick_response)
+            return
+
+        exact_answer = answer_exact_law(question)
+        if exact_answer:
+            print()
+            print(exact_answer["answer"])
             return
 
         started_at = time.perf_counter()

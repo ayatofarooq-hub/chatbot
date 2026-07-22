@@ -205,30 +205,19 @@ def public_upload(
 
 
 def delete_uploaded_document(upload_id: str) -> None:
+    """Remove upload-list tracking while keeping the document in the source corpus."""
+
     with _upload_lock:
         repository = JsonRepository()
         document = repository.find_by_id(f"upload_{upload_id}")
         if not document or str(document.get("upload_id", "")) != upload_id:
             raise LookupError("Uploaded document not found.")
-        chunks = _read_chunks()
-        removed_ids = [
-            chunk["id"]
-            for chunk in chunks
-            if str(chunk.get("document_upload_id", "")) == upload_id
-        ]
-        remaining = [
-            chunk
-            for chunk in chunks
-            if str(chunk.get("document_upload_id", "")) != upload_id
-        ]
-        if removed_ids:
-            client = chromadb.PersistentClient(path=str(CHROMA_FOLDER))
-            client.get_collection(COLLECTION_NAME).delete(ids=removed_ids)
-        _write_chunks(remaining)
-        save_registry(remaining)
-        repository.remove_document(f"upload_{upload_id}")
-        extension = Path(str(document.get("original_filename", ""))).suffix.lower()
-        (UPLOAD_ROOT / f"{upload_id}{extension}").unlink(missing_ok=True)
+
+        promoted = dict(document)
+        promoted.pop("upload_id", None)
+        promoted["source_origin"] = "uploaded"
+        promoted["promoted_to_source_at"] = datetime.now(timezone.utc).isoformat()
+        repository.append_document(promoted)
 
 
 def uploaded_file_path(upload_id: str) -> tuple[Path, str]:

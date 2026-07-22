@@ -6,6 +6,9 @@
     <UseWPF>true</UseWPF>
     <ImplicitUsings>enable</ImplicitUsings>
     <ApplicationIcon>Assets\app-icon.ico</ApplicationIcon>
+    <AssemblyTitle>Jalsah</AssemblyTitle>
+    <Product>Jalsah</Product>
+    <Description>Jalsah desktop legal assistant</Description>
   </PropertyGroup>
 
   <ItemGroup>

@@ -2,12 +2,18 @@ import { createUploadManager } from "./components/upload/useUploadManager.js?v=2
 import { createSettingsModule } from "./components/settings/SettingsPage.js?v=20260712-upload-settings";
 
 const storageKey = "iraqi-legal-assistant-conversations";
+const storageBackupKey = "iraqi-legal-assistant-conversations-backup";
+const activeConversationStorageKey = "iraqi-legal-assistant-active-conversation";
+const chatHistoryEndpoint = "/api/chat-history";
 const decisionDraftKey = "iraqi-legal-assistant-decision-draft";
 
 const elements = {
   assistantNav: document.querySelector("#assistant-nav-button"),
   assistantView: document.querySelector("#assistant-view"),
   capacityRoot: document.querySelector("#file-capacity"),
+  chatSidebar: document.querySelector("#chat-history-sidebar"),
+  chatSidebarBackdrop: document.querySelector("#chat-sidebar-backdrop"),
+  chatSidebarClose: document.querySelector("#chat-sidebar-close"),
   chatScroll: document.querySelector("#chat-scroll"),
   clearHistory: document.querySelector("#clear-history"),
   conversationTitle: document.querySelector("#conversation-title"),
@@ -54,6 +60,9 @@ const elements = {
   referenceCount: document.querySelector("#reference-count"),
   saveDraft: document.querySelector("#save-draft"),
   sendButton: document.querySelector("#send-button"),
+  sidebarProfileAvatar: document.querySelector("#sidebar-profile-avatar"),
+  sidebarProfileName: document.querySelector("#sidebar-profile-name"),
+  sidebarProfileRole: document.querySelector("#sidebar-profile-role"),
   sourceList: document.querySelector("#source-list"),
   statsRoot: document.querySelector("#upload-stats-root"),
   suggestions: document.querySelector("#suggestions"),
@@ -71,7 +80,7 @@ const stopRecordingIconMarkup = `
 `;
 
 let conversations = loadConversations();
-let activeConversationId = conversations[0]?.id ?? null;
+let activeConversationId = loadActiveConversationId(conversations);
 let mediaRecorder = null;
 let microphoneStream = null;
 let recordingChunks = [];
@@ -90,8 +99,67 @@ const maximumRecordingMs = 60_000;
 const minimumRecordingMs = 2_000;
 const microphoneStorageKey = "jalssa-selected-microphone";
 let pending = false;
-let selectedPriority = "عالية";
+let selectedPriority = "Ø¹Ø§Ù„ÙŠØ©";
 const initialPromptKey = "iraqi-legal-assistant-initial-prompt";
+
+const cp1252Bytes = new Map([
+  ["€", 0x80], ["‚", 0x82], ["ƒ", 0x83], ["„", 0x84], ["…", 0x85],
+  ["†", 0x86], ["‡", 0x87], ["ˆ", 0x88], ["‰", 0x89], ["Š", 0x8a],
+  ["‹", 0x8b], ["Œ", 0x8c], ["Ž", 0x8e], ["‘", 0x91], ["’", 0x92],
+  ["“", 0x93], ["”", 0x94], ["•", 0x95], ["–", 0x96], ["—", 0x97],
+  ["˜", 0x98], ["™", 0x99], ["š", 0x9a], ["›", 0x9b], ["œ", 0x9c],
+  ["ž", 0x9e], ["Ÿ", 0x9f],
+]);
+const mojibakePattern = /(?:Ø|Ù|Û|Ã|Â|â€|â€¦|â†|â‡|ï¼|ðŸ|�)/;
+
+function repairMojibake(value) {
+  if (typeof value !== "string" || !mojibakePattern.test(value)) return value;
+  const bytes = [];
+  for (const character of value) {
+    const code = character.charCodeAt(0);
+    if (code <= 0xff) {
+      bytes.push(code);
+    } else if (cp1252Bytes.has(character)) {
+      bytes.push(cp1252Bytes.get(character));
+    } else {
+      return value;
+    }
+  }
+  try {
+    const repaired = new TextDecoder("utf-8", { fatal: true }).decode(new Uint8Array(bytes));
+    return repaired.includes("�") ? value : repaired;
+  } catch {
+    return value;
+  }
+}
+
+function repairTextTree(root = document.body) {
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  const nodes = [];
+  while (walker.nextNode()) nodes.push(walker.currentNode);
+  nodes.forEach((node) => {
+    node.nodeValue = repairMojibake(node.nodeValue);
+  });
+  root.querySelectorAll?.("[aria-label], [title], [placeholder]").forEach((node) => {
+    ["aria-label", "title", "placeholder"].forEach((attribute) => {
+      if (node.hasAttribute(attribute)) {
+        node.setAttribute(attribute, repairMojibake(node.getAttribute(attribute)));
+      }
+    });
+  });
+}
+
+function repairConversationText(message) {
+  if (!message || typeof message !== "object") return message;
+  if (Array.isArray(message)) return message.map(repairConversationText);
+  return Object.fromEntries(
+    Object.entries(message).map(([key, value]) => {
+      if (typeof value === "string") return [key, repairMojibake(value)];
+      if (value && typeof value === "object") return [key, repairConversationText(value)];
+      return [key, value];
+    }),
+  );
+}
 
 const uploadManager = createUploadManager({
   dropzoneRoot: elements.dropzoneRoot,
@@ -114,9 +182,9 @@ const settingsModule = createSettingsModule({
 });
 
 const roleNames = {
-  super_admin: "مدير عام",
-  admin: "مدير النظام",
-  viewer: "مراجع",
+  super_admin: "Ù…Ø¯ÙŠØ± Ø¹Ø§Ù…",
+  admin: "Ù…Ø¯ÙŠØ± Ø§Ù„Ù†Ø¸Ø§Ù…",
+  viewer: "Ù…Ø±Ø§Ø¬Ø¹",
 };
 
 async function refreshSession() {
@@ -125,14 +193,19 @@ async function refreshSession() {
     const payload = await response.json();
     const administrator = payload.authenticated ? payload.administrator : null;
     const loginRequired = payload.login_required !== false;
-    const displayName = administrator?.display_name || administrator?.username || "غير مسجل";
-    elements.profileName.textContent = displayName;
-    elements.profileRole.textContent = administrator
+    const displayName = administrator?.display_name || administrator?.username || "ØºÙŠØ± Ù…Ø³Ø¬Ù„";
+    const displayRole = administrator
       ? (roleNames[administrator.role] || administrator.role)
-      : "يلزم تسجيل الدخول";
-    elements.profileAvatar.textContent = administrator
+      : "ÙŠÙ„Ø²Ù… ØªØ³Ø¬ÙŠÙ„ Ø§Ù„Ø¯Ø®ÙˆÙ„";
+    const displayAvatar = administrator
       ? displayName.trim().charAt(0).toLocaleUpperCase("ar")
-      : "؟";
+      : "ØŸ";
+    if (elements.profileName) elements.profileName.textContent = repairMojibake(displayName);
+    if (elements.profileRole) elements.profileRole.textContent = repairMojibake(displayRole);
+    if (elements.profileAvatar) elements.profileAvatar.textContent = repairMojibake(displayAvatar);
+    if (elements.sidebarProfileName) elements.sidebarProfileName.textContent = repairMojibake(displayName);
+    if (elements.sidebarProfileRole) elements.sidebarProfileRole.textContent = repairMojibake(displayRole);
+    if (elements.sidebarProfileAvatar) elements.sidebarProfileAvatar.textContent = repairMojibake(displayAvatar);
     document.body.classList.toggle("authenticated", Boolean(administrator));
     document.body.classList.remove("auth-gate-pending");
     document.body.classList.toggle(
@@ -141,9 +214,12 @@ async function refreshSession() {
     );
     return { administrator, loginRequired };
   } catch {
-    elements.profileName.textContent = "تعذر التحقق";
-    elements.profileRole.textContent = "الخادم غير متاح";
-    elements.profileAvatar.textContent = "!";
+    if (elements.profileName) elements.profileName.textContent = "ØªØ¹Ø°Ø± Ø§Ù„ØªØ­Ù‚Ù‚";
+    if (elements.profileRole) elements.profileRole.textContent = "Ø§Ù„Ø®Ø§Ø¯Ù… ØºÙŠØ± Ù…ØªØ§Ø­";
+    if (elements.profileAvatar) elements.profileAvatar.textContent = "!";
+    if (elements.sidebarProfileName) elements.sidebarProfileName.textContent = "ØªØ¹Ø°Ø± Ø§Ù„ØªØ­Ù‚Ù‚";
+    if (elements.sidebarProfileRole) elements.sidebarProfileRole.textContent = "Ø§Ù„Ø®Ø§Ø¯Ù… ØºÙŠØ± Ù…ØªØ§Ø­";
+    if (elements.sidebarProfileAvatar) elements.sidebarProfileAvatar.textContent = "!";
     document.body.classList.remove("authenticated");
     document.body.classList.remove("auth-gate-pending");
     document.body.classList.add("auth-gate-active");
@@ -157,23 +233,109 @@ async function bootstrapAuthentication() {
 }
 
 function loadConversations() {
+  const readStoredConversations = (key) => {
+    const raw = localStorage.getItem(key);
+    if (!raw) return [];
+    const stored = JSON.parse(raw);
+    if (!Array.isArray(stored)) return [];
+    return stored
+      .map(repairConversationText)
+      .map((conversation) => ({
+        ...conversation,
+        timestamp: conversation.timestamp || conversation.createdAt || new Date().toISOString(),
+        createdAt: conversation.createdAt || conversation.timestamp || new Date().toISOString(),
+        messages: Array.isArray(conversation.messages) ? conversation.messages : [],
+        evidence: conversation.evidence || { snippets: [], warnings: [], citations: [] },
+      }));
+  };
+
   try {
-    const stored = JSON.parse(localStorage.getItem(storageKey) || "[]");
-    return Array.isArray(stored) ? stored : [];
-  } catch {
+    const primary = readStoredConversations(storageKey);
+    if (primary.length) return primary;
+  } catch (error) {
+    console.warn("Could not read primary chat history:", error);
+  }
+
+  try {
+    return readStoredConversations(storageBackupKey);
+  } catch (error) {
+    console.warn("Could not read backup chat history:", error);
     return [];
   }
 }
 
-function saveConversations() {
-  localStorage.setItem(storageKey, JSON.stringify(conversations));
+function writeLocalConversations() {
+  try {
+    const serialized = JSON.stringify(conversations);
+    localStorage.setItem(storageKey, serialized);
+    localStorage.setItem(storageBackupKey, serialized);
+    if (activeConversationId) {
+      localStorage.setItem(activeConversationStorageKey, activeConversationId);
+    } else {
+      localStorage.removeItem(activeConversationStorageKey);
+    }
+  } catch (error) {
+    console.warn("Could not persist chat history:", error);
+  }
 }
 
-function createConversation() {
+function chatHistoryPayload() {
+  return {
+    conversations,
+    activeConversationId,
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+function hasStoredMessages(items = conversations) {
+  return items.some((conversation) => conversation.messages?.length);
+}
+
+function storedMessageCount(items = conversations) {
+  return items.reduce((total, conversation) => total + (conversation.messages?.length || 0), 0);
+}
+
+function persistChatHistoryToServer({ allowEmpty = false } = {}) {
+  if (!allowEmpty && !hasStoredMessages()) return;
+  const serialized = JSON.stringify(chatHistoryPayload());
+  try {
+    if (navigator.sendBeacon) {
+      const blob = new Blob([serialized], { type: "application/json" });
+      if (navigator.sendBeacon(chatHistoryEndpoint, blob)) return;
+    }
+  } catch {
+    // Fall back to fetch below.
+  }
+  fetch(chatHistoryEndpoint, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: serialized,
+    keepalive: true,
+  }).catch((error) => console.warn("Could not persist server chat history:", error));
+}
+
+function saveConversations(options = {}) {
+  writeLocalConversations();
+  persistChatHistoryToServer(options);
+}
+
+function loadActiveConversationId(items) {
+  try {
+    const storedId = localStorage.getItem(activeConversationStorageKey);
+    if (storedId && items.some(({ id }) => id === storedId)) return storedId;
+  } catch {
+    // Fall back to the newest conversation when localStorage is unavailable.
+  }
+  return items[0]?.id ?? null;
+}
+
+function createConversation(initialTitle = "") {
+  const timestamp = new Date().toISOString();
   const conversation = {
     id: crypto.randomUUID(),
-    title: "محادثة قانونية جديدة",
-    createdAt: new Date().toISOString(),
+    title: initialTitle ? truncate(initialTitle, 40) : "Ù…Ø­Ø§Ø¯Ø«Ø© Ù‚Ø§Ù†ÙˆÙ†ÙŠØ© Ø¬Ø¯ÙŠØ¯Ø©",
+    timestamp,
+    createdAt: timestamp,
     messages: [],
     evidence: { snippets: [], warnings: [], citations: [] },
   };
@@ -183,6 +345,15 @@ function createConversation() {
   render();
   elements.input.focus();
   return conversation;
+}
+
+function startNewConversation() {
+  activeConversationId = null;
+  saveConversations();
+  render();
+  closeChatSidebarOnMobile();
+  showView("assistant");
+  elements.input.focus();
 }
 
 function showView(viewName) {
@@ -199,6 +370,12 @@ function showView(viewName) {
   elements.settingsNav.classList.toggle("active", showSettings);
   elements.nav.classList.remove("open");
   document.body.classList.toggle("decision-mode", showDecision);
+  document.body.classList.toggle("chat-sidebar-enabled", showAssistant || showLanding);
+  if (!showAssistant && !showLanding) {
+    document.body.classList.remove("chat-sidebar-open");
+    elements.chatSidebarBackdrop?.classList.remove("visible");
+    if (elements.chatSidebarBackdrop) elements.chatSidebarBackdrop.hidden = true;
+  }
   if (showLanding) {
     elements.landingInput.focus();
   } else if (showAssistant) {
@@ -208,6 +385,50 @@ function showView(viewName) {
     elements.dropzoneRoot.querySelector(".upload-dropzone")?.focus();
   } else if (showSettings) {
     settingsModule.open();
+  }
+}
+
+function isOverlaySidebar() {
+  return window.matchMedia("(max-width: 1020px)").matches;
+}
+
+function openChatSidebar() {
+  document.body.classList.add("chat-sidebar-open");
+  if (elements.chatSidebarBackdrop) {
+    elements.chatSidebarBackdrop.hidden = false;
+    requestAnimationFrame(() => elements.chatSidebarBackdrop.classList.add("visible"));
+  }
+}
+
+function closeChatSidebarOnMobile() {
+  if (!isOverlaySidebar()) return;
+  document.body.classList.remove("chat-sidebar-open");
+  elements.chatSidebarBackdrop?.classList.remove("visible");
+  window.setTimeout(() => {
+    if (!document.body.classList.contains("chat-sidebar-open") && elements.chatSidebarBackdrop) {
+      elements.chatSidebarBackdrop.hidden = true;
+    }
+  }, 240);
+}
+
+function toggleChatSidebar() {
+  if (isOverlaySidebar()) {
+    if (document.body.classList.contains("chat-sidebar-open")) {
+      closeChatSidebarOnMobile();
+    } else {
+      openChatSidebar();
+    }
+    return;
+  }
+
+  document.body.classList.toggle("chat-sidebar-collapsed");
+}
+
+function closeOrCollapseChatSidebar() {
+  if (isOverlaySidebar()) {
+    closeChatSidebarOnMobile();
+  } else {
+    document.body.classList.add("chat-sidebar-collapsed");
   }
 }
 
@@ -246,14 +467,16 @@ function activeConversation() {
 
 function selectConversation(id) {
   activeConversationId = id;
+  saveConversations();
   render();
-  elements.nav.classList.remove("open");
+  closeChatSidebarOnMobile();
+  showView("assistant");
 }
 
 function removeAllConversations() {
   conversations = [];
   activeConversationId = null;
-  saveConversations();
+  saveConversations({ allowEmpty: true });
   render();
 }
 
@@ -271,7 +494,7 @@ function formatTime(date = new Date()) {
 function makeElement(tagName, className, text) {
   const node = document.createElement(tagName);
   if (className) node.className = className;
-  if (text !== undefined) node.textContent = text;
+  if (text !== undefined) node.textContent = repairMojibake(text);
   return node;
 }
 
@@ -282,43 +505,74 @@ function render() {
 }
 
 function renderHistory() {
-  const searchTerm = elements.historySearch.value.trim().toLowerCase();
   elements.historyList.replaceChildren();
-  const filtered = conversations.filter(({ title }) =>
-    title.toLowerCase().includes(searchTerm),
-  );
+  const filtered = conversations.filter(({ messages }) => messages?.length);
 
   if (!filtered.length) {
-    elements.historyList.append(makeElement("div", "empty-panel", "لا توجد محادثات محفوظة."));
+    elements.historyList.append(makeElement("div", "empty-panel", "Ù„Ø§ ØªÙˆØ¬Ø¯ Ù…Ø­Ø§Ø¯Ø«Ø§Øª Ù…Ø­ÙÙˆØ¸Ø©."));
     return;
   }
 
-  filtered.forEach((conversation) => {
-    const button = makeElement(
-      "button",
-      `history-entry${conversation.id === activeConversationId ? " active" : ""}`,
-    );
-    button.type = "button";
-    button.append(
-      makeElement("strong", "", truncate(conversation.title, 45)),
-      makeElement(
-        "span",
-        "",
-        new Intl.DateTimeFormat("ar-IQ", {
-          day: "numeric",
-          month: "short",
-        }).format(new Date(conversation.createdAt)),
-      ),
-    );
-    button.addEventListener("click", () => selectConversation(conversation.id));
-    elements.historyList.append(button);
+  groupConversationsByDate(filtered).forEach(({ label, items }) => {
+    const group = makeElement("section", "chat-history-group");
+    group.append(makeElement("div", "chat-history-group-title", label));
+
+    items.forEach((conversation) => {
+      const button = makeElement(
+        "button",
+        `chat-history-item${conversation.id === activeConversationId ? " active" : ""}`,
+      );
+      button.type = "button";
+      button.title = conversation.title;
+      button.append(makeElement("span", "chat-history-item-title", conversation.title));
+      button.addEventListener("click", () => selectConversation(conversation.id));
+      group.append(button);
+    });
+
+    elements.historyList.append(group);
   });
+}
+
+function groupConversationsByDate(items) {
+  const today = startOfDay(new Date());
+  const yesterday = new Date(today);
+  yesterday.setDate(today.getDate() - 1);
+  const lastSevenDays = new Date(today);
+  lastSevenDays.setDate(today.getDate() - 7);
+
+  const buckets = [
+    { label: "Ø§Ù„ÙŠÙˆÙ…", items: [] },
+    { label: "Ø§Ù„Ø£Ù…Ø³", items: [] },
+    { label: "Ø¢Ø®Ø± Ù§ Ø£ÙŠØ§Ù…", items: [] },
+    { label: "Ø§Ù„Ø£Ù‚Ø¯Ù…", items: [] },
+  ];
+
+  items.forEach((conversation) => {
+    const date = startOfDay(new Date(conversation.timestamp || conversation.createdAt));
+    if (date.getTime() === today.getTime()) {
+      buckets[0].items.push(conversation);
+    } else if (date.getTime() === yesterday.getTime()) {
+      buckets[1].items.push(conversation);
+    } else if (date >= lastSevenDays) {
+      buckets[2].items.push(conversation);
+    } else {
+      buckets[3].items.push(conversation);
+    }
+  });
+
+  return buckets.filter(({ items: bucketItems }) => bucketItems.length);
+}
+
+function startOfDay(date) {
+  const nextDate = Number.isNaN(date.getTime()) ? new Date() : new Date(date);
+  nextDate.setHours(0, 0, 0, 0);
+  return nextDate;
 }
 
 function renderConversation() {
   const conversation = activeConversation();
   elements.messages.replaceChildren();
-  elements.conversationTitle.textContent = conversation?.title ?? "محادثة قانونية جديدة";
+  elements.conversationTitle.textContent = repairMojibake(conversation?.title ?? "Ù…Ø­Ø§Ø¯Ø«Ø© Ù‚Ø§Ù†ÙˆÙ†ÙŠØ© Ø¬Ø¯ÙŠØ¯Ø©");
 
   const hasMessages = Boolean(conversation?.messages.length);
   elements.welcome.hidden = hasMessages;
@@ -333,35 +587,9 @@ function renderConversation() {
 
   conversation.messages.forEach((message) => {
     const article = makeElement("article", `message ${message.role}`);
-    article.append(makeElement("div", "message-content", message.content));
+    article.append(makeElement("div", "message-content", repairMojibake(message.content)));
 
-    if (message.warnings?.length) {
-      const warningBox = makeElement("div", "warnings");
-      warningBox.append(makeElement("strong", "", "تحذيرات التحقق من الاستشهادات"));
-      const list = document.createElement("ul");
-      message.warnings.forEach((warning) => {
-        list.append(makeElement("li", "", warning));
-      });
-      warningBox.append(list);
-      article.append(warningBox);
-    }
 
-    if (message.citations?.length) {
-      const citations = makeElement("div", "citations");
-      citations.append(makeElement("strong", "", "المصادر: "));
-      citations.append(
-        document.createTextNode(
-          message.citations
-            .map((citation) => {
-              if (citation.legal_reference) return citation.legal_reference;
-              const page = citation.page_number ?? "غير معروف";
-              return `${citation.source_file || "مصدر غير معروف"}، الصفحة ${page}`;
-            })
-            .join(" · "),
-        ),
-      );
-      article.append(citations);
-    }
 
     article.append(makeElement("span", "message-meta", message.time || formatTime()));
     elements.messages.append(article);
@@ -372,6 +600,19 @@ function renderConversation() {
   });
 }
 
+function filterVisibleWarnings(warnings = []) {
+  return warnings.filter((warning) => {
+    const text = String(warning || "");
+    return !(
+      text.includes("law_year")
+      && (
+        text.includes("incomplete citation metadata")
+        || text.includes("Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ø§Ø³ØªØ´Ù‡Ø§Ø¯ Ù†Ø§Ù‚ØµØ©")
+      )
+    );
+  });
+}
+
 function renderEvidence() {
   const evidence = activeConversation()?.evidence ?? {
     snippets: [],
@@ -379,17 +620,17 @@ function renderEvidence() {
     citations: [],
   };
 
-  elements.referenceCount.textContent = `${evidence.snippets.length} مراجع`;
+  elements.referenceCount.textContent = repairMojibake(`${evidence.snippets.length} Ù…Ø±Ø§Ø¬Ø¹`);
   elements.sourceList.replaceChildren();
 
   if (!evidence.snippets.length) {
-    elements.sourceList.append(makeElement("div", "empty-panel", "ستظهر المراجع المسترجعة هنا بعد طرح السؤال."));
+    elements.sourceList.append(makeElement("div", "empty-panel", "Ø³ØªØ¸Ù‡Ø± Ø§Ù„Ù…Ø±Ø§Ø¬Ø¹ Ø§Ù„Ù…Ø³ØªØ±Ø¬Ø¹Ø© Ù‡Ù†Ø§ Ø¨Ø¹Ø¯ Ø·Ø±Ø­ Ø§Ù„Ø³Ø¤Ø§Ù„."));
   } else {
     evidence.snippets.slice(0, 3).forEach((snippet) => {
       const card = makeElement("article", "source-card");
-      const reference = snippet.legal_reference || snippet.article_reference || `الصفحة ${snippet.page_number ?? "غير معروف"}`;
+      const reference = repairMojibake(snippet.legal_reference || snippet.article_reference || `Ø§Ù„ØµÙØ­Ø© ${snippet.page_number ?? "ØºÙŠØ± Ù…Ø¹Ø±ÙˆÙ"}`);
       card.append(
-        makeElement("div", "source-name", snippet.document_title || snippet.source_file || "مصدر غير معروف"),
+        makeElement("div", "source-name", repairMojibake(snippet.document_title || snippet.source_file || "Ù…ØµØ¯Ø± ØºÙŠØ± Ù…Ø¹Ø±ÙˆÙ")),
         makeElement("p", "", truncate(normalizeWhitespace(snippet.text), 135)),
         makeElement("small", "", reference),
       );
@@ -399,9 +640,9 @@ function renderEvidence() {
 
   elements.insightList.replaceChildren();
   const insights = [];
-  if (evidence.citations.length) insights.push(`تم العثور على ${evidence.citations.length} استشهادات.`);
-  if (evidence.warnings.length) insights.push(`توجد ${evidence.warnings.length} ملاحظات تحتاج إلى مراجعة.`);
-  if (!insights.length) insights.push("ستظهر نتائج التحقق والاستشهادات هنا بعد إنشاء الإجابة.");
+  if (evidence.citations.length) insights.push(`ØªÙ… Ø§Ù„Ø¹Ø«ÙˆØ± Ø¹Ù„Ù‰ ${evidence.citations.length} Ø§Ø³ØªØ´Ù‡Ø§Ø¯Ø§Øª.`);
+  if (evidence.warnings.length) insights.push(`ØªÙˆØ¬Ø¯ ${evidence.warnings.length} Ù…Ù„Ø§Ø­Ø¸Ø§Øª ØªØ­ØªØ§Ø¬ Ø¥Ù„Ù‰ Ù…Ø±Ø§Ø¬Ø¹Ø©.`);
+  if (!insights.length) insights.push("Ø³ØªØ¸Ù‡Ø± Ù†ØªØ§Ø¦Ø¬ Ø§Ù„ØªØ­Ù‚Ù‚ ÙˆØ§Ù„Ø§Ø³ØªØ´Ù‡Ø§Ø¯Ø§Øª Ù‡Ù†Ø§ Ø¨Ø¹Ø¯ Ø¥Ù†Ø´Ø§Ø¡ Ø§Ù„Ø¥Ø¬Ø§Ø¨Ø©.");
   insights.forEach((insight) => elements.insightList.append(makeElement("li", "", insight)));
 }
 
@@ -416,7 +657,7 @@ function countWords(value) {
 
 function updateWordCount() {
   if (!elements.wordCount || !elements.decisionContent) return;
-  elements.wordCount.textContent = `عدد الكلمات: ${countWords(elements.decisionContent.value)} كلمة`;
+  elements.wordCount.textContent = `Ø¹Ø¯Ø¯ Ø§Ù„ÙƒÙ„Ù…Ø§Øª: ${countWords(elements.decisionContent.value)} ÙƒÙ„Ù…Ø©`;
 }
 
 function currentDecisionDraft() {
@@ -435,7 +676,7 @@ function currentDecisionDraft() {
 
 function saveDecisionDraft(showConfirmation = true) {
   localStorage.setItem(decisionDraftKey, JSON.stringify(currentDecisionDraft()));
-  if (showConfirmation) showToast("تم حفظ مسودة القرار محلياً.");
+  if (showConfirmation) showToast("ØªÙ… Ø­ÙØ¸ Ù…Ø³ÙˆØ¯Ø© Ø§Ù„Ù‚Ø±Ø§Ø± Ù…Ø­Ù„ÙŠØ§Ù‹.");
 }
 
 function loadDecisionDraft() {
@@ -445,7 +686,7 @@ function loadDecisionDraft() {
     if (elements.decisionMinistry) elements.decisionMinistry.value = draft.ministry || elements.decisionMinistry.value;
     if (elements.decisionTitle) elements.decisionTitle.value = draft.title || "";
     if (elements.decisionContent) elements.decisionContent.value = draft.content || "";
-    selectedPriority = draft.priority || "عالية";
+    selectedPriority = draft.priority || "Ø¹Ø§Ù„ÙŠØ©";
     elements.priorityOptions?.querySelectorAll("button").forEach((button) => {
       button.classList.toggle("selected", button.dataset.priority === selectedPriority);
     });
@@ -459,22 +700,54 @@ function setPending(value) {
   pending = value;
   elements.sendButton.disabled = value;
   elements.input.disabled = value;
-  elements.sendButton.textContent = value ? "…" : "←";
+  elements.sendButton.textContent = value ? "..." : "←";
+}
+
+async function hydrateServerChatHistory() {
+  try {
+    const response = await fetch(chatHistoryEndpoint, { credentials: "same-origin" });
+    if (!response.ok) return;
+    const payload = await response.json();
+    const serverConversations = Array.isArray(payload.conversations)
+      ? payload.conversations.map(repairConversationText)
+      : [];
+    if (!hasStoredMessages(serverConversations)) return;
+    if (hasStoredMessages(conversations) && storedMessageCount(conversations) >= storedMessageCount(serverConversations)) return;
+
+    conversations = serverConversations.map((conversation) => ({
+      ...conversation,
+      timestamp: conversation.timestamp || conversation.createdAt || new Date().toISOString(),
+      createdAt: conversation.createdAt || conversation.timestamp || new Date().toISOString(),
+      messages: Array.isArray(conversation.messages) ? conversation.messages : [],
+      evidence: conversation.evidence || { snippets: [], warnings: [], citations: [] },
+    }));
+    activeConversationId = (
+      payload.activeConversationId
+      && conversations.some(({ id }) => id === payload.activeConversationId)
+    )
+      ? payload.activeConversationId
+      : conversations[0]?.id ?? null;
+    writeLocalConversations();
+    render();
+    if (activeConversation()?.messages.length) showView("assistant");
+  } catch (error) {
+    console.warn("Could not load server chat history:", error);
+  }
 }
 
 async function submitQuestion(question) {
   if (pending || !question.trim()) return;
-  let conversation = activeConversation();
-  if (!conversation) conversation = createConversation();
-
   const cleanQuestion = question.trim();
-  if (!conversation.messages.length) conversation.title = truncate(cleanQuestion, 48);
+  let conversation = activeConversation();
+  if (!conversation) conversation = createConversation(cleanQuestion);
+  if (!conversation.messages.length) conversation.title = truncate(cleanQuestion, 40);
+  conversation.timestamp = conversation.timestamp || conversation.createdAt || new Date().toISOString();
   conversation.messages.push({ role: "user", content: cleanQuestion, time: formatTime() });
   saveConversations();
   render();
   setPending(true);
 
-  const loading = makeElement("article", "message assistant", "جارٍ البحث وإعداد الإجابة...");
+  const loading = makeElement("article", "message assistant", "Ø¬Ø§Ø±Ù Ø§Ù„Ø¨Ø­Ø« ÙˆØ¥Ø¹Ø¯Ø§Ø¯ Ø§Ù„Ø¥Ø¬Ø§Ø¨Ø©...");
   loading.id = "loading-message";
   elements.messages.append(loading);
   elements.chatScroll.scrollTop = elements.chatScroll.scrollHeight;
@@ -489,30 +762,31 @@ async function submitQuestion(question) {
     if (response.status === 401) {
       await refreshSession();
       showView("settings");
-      throw new Error("انتهت جلسة الدخول. يرجى تسجيل الدخول ثم إعادة إرسال السؤال.");
+      throw new Error("Ø§Ù†ØªÙ‡Øª Ø¬Ù„Ø³Ø© Ø§Ù„Ø¯Ø®ÙˆÙ„. ÙŠØ±Ø¬Ù‰ ØªØ³Ø¬ÙŠÙ„ Ø§Ù„Ø¯Ø®ÙˆÙ„ Ø«Ù… Ø¥Ø¹Ø§Ø¯Ø© Ø¥Ø±Ø³Ø§Ù„ Ø§Ù„Ø³Ø¤Ø§Ù„.");
     }
-    if (!response.ok) throw new Error(payload.detail || "تعذر إنشاء الإجابة.");
+    if (!response.ok) throw new Error(payload.detail || "ØªØ¹Ø°Ø± Ø¥Ù†Ø´Ø§Ø¡ Ø§Ù„Ø¥Ø¬Ø§Ø¨Ø©.");
 
     conversation.messages.push({
       role: "assistant",
-      content: payload.answer,
-      warnings: payload.warnings || [],
-      citations: payload.citations || [],
+      content: repairMojibake(payload.answer),
+      warnings: (payload.warnings || []).map(repairMojibake),
+      citations: (payload.citations || []).map(repairConversationText),
       time: formatTime(),
     });
     conversation.evidence = {
-      snippets: payload.snippets || [],
-      warnings: payload.warnings || [],
-      citations: payload.citations || [],
+      snippets: (payload.snippets || []).map(repairConversationText),
+      warnings: (payload.warnings || []).map(repairMojibake),
+      citations: (payload.citations || []).map(repairConversationText),
     };
     saveConversations();
   } catch (error) {
     conversation.messages.push({
       role: "assistant error",
-      content: error.message || "تعذر الاتصال بالخادم.",
+      content: error.message || "ØªØ¹Ø°Ø± Ø§Ù„Ø§ØªØµØ§Ù„ Ø¨Ø§Ù„Ø®Ø§Ø¯Ù….",
       time: formatTime(),
     });
-    showToast(error.message || "تعذر الاتصال بالخادم.");
+    saveConversations();
+    showToast(error.message || "ØªØ¹Ø°Ø± Ø§Ù„Ø§ØªØµØ§Ù„ Ø¨Ø§Ù„Ø®Ø§Ø¯Ù….");
   } finally {
     document.querySelector("#loading-message")?.remove();
     setPending(false);
@@ -522,7 +796,7 @@ async function submitQuestion(question) {
 }
 
 function showToast(message) {
-  elements.toast.textContent = message;
+  elements.toast.textContent = repairMojibake(message);
   elements.toast.classList.add("visible");
   window.setTimeout(() => elements.toast.classList.remove("visible"), 3500);
 }
@@ -573,7 +847,7 @@ async function refreshMicrophoneOptions(activeDeviceId = "") {
   const savedDeviceId = localStorage.getItem(microphoneStorageKey) || "";
   elements.microphoneSelect.replaceChildren();
   devices.forEach((device, index) => {
-    const option = new Option(device.label || `ميكروفون ${index + 1}`, device.deviceId);
+    const option = new Option(device.label || `Ù…ÙŠÙƒØ±ÙˆÙÙˆÙ† ${index + 1}`, device.deviceId);
     elements.microphoneSelect.add(option);
   });
   const preferredId = savedDeviceId || activeDeviceId;
@@ -610,7 +884,7 @@ function resetRecorder() {
     } else {
       recordingButton.innerHTML = voiceIconMarkup;
     }
-    recordingButton.setAttribute("aria-label", "بدء الإدخال الصوتي");
+    recordingButton.setAttribute("aria-label", "Ø¨Ø¯Ø¡ Ø§Ù„Ø¥Ø¯Ø®Ø§Ù„ Ø§Ù„ØµÙˆØªÙŠ");
   }
   setLandingRecordingUi(false);
 }
@@ -642,8 +916,8 @@ async function transcribeRecording(blob) {
   recordingButton.classList.remove("recording");
   recordingButton.classList.add("transcribing");
   recordingButton.disabled = true;
-  recordingButton.textContent = "…";
-  recordingButton.setAttribute("aria-label", "جارٍ تحويل الصوت إلى نص");
+  recordingButton.textContent = "â€¦";
+  recordingButton.setAttribute("aria-label", "Ø¬Ø§Ø±Ù ØªØ­ÙˆÙŠÙ„ Ø§Ù„ØµÙˆØª Ø¥Ù„Ù‰ Ù†Øµ");
 
   const formData = new FormData();
   const extension = blob.type.includes("ogg") ? "ogg" : blob.type.includes("mp4") ? "mp4" : "webm";
@@ -652,11 +926,11 @@ async function transcribeRecording(blob) {
   try {
     const response = await fetch("/transcribe", { method: "POST", body: formData });
     const payload = await response.json();
-    if (!response.ok) throw new Error(payload.detail || "تعذر تحويل الصوت إلى نص.");
+    if (!response.ok) throw new Error(payload.detail || "ØªØ¹Ø°Ø± ØªØ­ÙˆÙŠÙ„ Ø§Ù„ØµÙˆØª Ø¥Ù„Ù‰ Ù†Øµ.");
     const separator = recordingInput.value.trim() ? " " : "";
     recordingInput.value = `${recordingInput.value.trimEnd()}${separator}${payload.text}`;
   } catch (error) {
-    showToast(error.message || "تعذر تحويل الصوت إلى نص.");
+    showToast(error.message || "ØªØ¹Ø°Ø± ØªØ­ÙˆÙŠÙ„ Ø§Ù„ØµÙˆØª Ø¥Ù„Ù‰ Ù†Øµ.");
   } finally {
     const completedInput = recordingInput;
     resetRecorder();
@@ -686,7 +960,7 @@ function finishRecording() {
     pcmChunks = [];
     if (recordingDuration < minimumRecordingMs) {
       resetRecorder();
-      showToast("التسجيل قصير جداً. تحدث لمدة ثانيتين على الأقل.");
+      showToast("Ø§Ù„ØªØ³Ø¬ÙŠÙ„ Ù‚ØµÙŠØ± Ø¬Ø¯Ø§Ù‹. ØªØ­Ø¯Ø« Ù„Ù…Ø¯Ø© Ø«Ø§Ù†ÙŠØªÙŠÙ† Ø¹Ù„Ù‰ Ø§Ù„Ø£Ù‚Ù„.");
       return;
     }
     transcribeRecording(blob);
@@ -705,7 +979,7 @@ async function toggleRecording(button = elements.voiceButton, input = elements.i
   recordingInput = input;
   discardRecording = false;
   if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
-    showToast("التسجيل الصوتي غير مدعوم في هذا المتصفح.");
+    showToast("Ø§Ù„ØªØ³Ø¬ÙŠÙ„ Ø§Ù„ØµÙˆØªÙŠ ØºÙŠØ± Ù…Ø¯Ø¹ÙˆÙ… ÙÙŠ Ù‡Ø°Ø§ Ø§Ù„Ù…ØªØµÙØ­.");
     return;
   }
 
@@ -757,7 +1031,7 @@ async function toggleRecording(button = elements.voiceButton, input = elements.i
         const blob = new Blob(recordingChunks, { type: mediaRecorder.mimeType || "audio/webm" });
         if (recordingDuration < minimumRecordingMs) {
           resetRecorder();
-          showToast("التسجيل قصير جداً. تحدث لمدة ثانيتين على الأقل.");
+          showToast("Ø§Ù„ØªØ³Ø¬ÙŠÙ„ Ù‚ØµÙŠØ± Ø¬Ø¯Ø§Ù‹. ØªØ­Ø¯Ø« Ù„Ù…Ø¯Ø© Ø«Ø§Ù†ÙŠØªÙŠÙ† Ø¹Ù„Ù‰ Ø§Ù„Ø£Ù‚Ù„.");
           return;
         }
         transcribeRecording(blob);
@@ -768,9 +1042,9 @@ async function toggleRecording(button = elements.voiceButton, input = elements.i
     recordingActive = true;
     recordingButton.classList.add("recording");
     recordingButton.innerHTML = stopRecordingIconMarkup;
-    recordingButton.setAttribute("aria-label", "إيقاف التسجيل");
+    recordingButton.setAttribute("aria-label", "Ø¥ÙŠÙ‚Ø§Ù Ø§Ù„ØªØ³Ø¬ÙŠÙ„");
     setLandingRecordingUi(recordingButton === elements.landingVoiceButton);
-    showToast("بدأ التسجيل. اضغط على المربع الأحمر عند الانتهاء.");
+    showToast("Ø¨Ø¯Ø£ Ø§Ù„ØªØ³Ø¬ÙŠÙ„. Ø§Ø¶ØºØ· Ø¹Ù„Ù‰ Ø§Ù„Ù…Ø±Ø¨Ø¹ Ø§Ù„Ø£Ø­Ù…Ø± Ø¹Ù†Ø¯ Ø§Ù„Ø§Ù†ØªÙ‡Ø§Ø¡.");
     recordingTimer = window.setTimeout(() => {
       if (recordingActive) finishRecording();
     }, maximumRecordingMs);
@@ -778,13 +1052,13 @@ async function toggleRecording(button = elements.voiceButton, input = elements.i
     console.error("Microphone startup failed:", error);
     resetRecorder();
     if (error?.name === "NotAllowedError") {
-      showToast("تم رفض إذن الميكروفون من المتصفح.");
+      showToast("ØªÙ… Ø±ÙØ¶ Ø¥Ø°Ù† Ø§Ù„Ù…ÙŠÙƒØ±ÙˆÙÙˆÙ† Ù…Ù† Ø§Ù„Ù…ØªØµÙØ­.");
     } else if (error?.name === "NotReadableError") {
-      showToast("الميكروفون مستخدم من تطبيق آخر أو غير متاح للنظام.");
+      showToast("Ø§Ù„Ù…ÙŠÙƒØ±ÙˆÙÙˆÙ† Ù…Ø³ØªØ®Ø¯Ù… Ù…Ù† ØªØ·Ø¨ÙŠÙ‚ Ø¢Ø®Ø± Ø£Ùˆ ØºÙŠØ± Ù…ØªØ§Ø­ Ù„Ù„Ù†Ø¸Ø§Ù….");
     } else if (error?.name === "OverconstrainedError") {
-      showToast("الميكروفون لا يدعم إعدادات التسجيل المطلوبة.");
+      showToast("Ø§Ù„Ù…ÙŠÙƒØ±ÙˆÙÙˆÙ† Ù„Ø§ ÙŠØ¯Ø¹Ù… Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª Ø§Ù„ØªØ³Ø¬ÙŠÙ„ Ø§Ù„Ù…Ø·Ù„ÙˆØ¨Ø©.");
     } else {
-      showToast(`تعذر تشغيل الميكروفون: ${error?.message || "خطأ غير معروف"}`);
+      showToast(`ØªØ¹Ø°Ø± ØªØ´ØºÙŠÙ„ Ø§Ù„Ù…ÙŠÙƒØ±ÙˆÙÙˆÙ†: ${error?.message || "Ø®Ø·Ø£ ØºÙŠØ± Ù…Ø¹Ø±ÙˆÙ"}`);
     }
   }
 }
@@ -808,7 +1082,7 @@ elements.voiceButton?.addEventListener("click", () => {
 });
 elements.microphoneSelect?.addEventListener("change", () => {
   localStorage.setItem(microphoneStorageKey, elements.microphoneSelect.value);
-  showToast("تم اختيار الميكروفون. ابدأ تسجيلاً جديداً.");
+  showToast("ØªÙ… Ø§Ø®ØªÙŠØ§Ø± Ø§Ù„Ù…ÙŠÙƒØ±ÙˆÙÙˆÙ†. Ø§Ø¨Ø¯Ø£ ØªØ³Ø¬ÙŠÙ„Ø§Ù‹ Ø¬Ø¯ÙŠØ¯Ø§Ù‹.");
 });
 
 elements.landingForm.addEventListener("submit", (event) => {
@@ -869,10 +1143,19 @@ elements.logoutButton?.addEventListener("click", async () => {
     showView("settings");
   }
 });
-elements.newChatInline.addEventListener("click", createConversation);
-elements.clearHistory.addEventListener("click", removeAllConversations);
-elements.historySearch.addEventListener("input", renderHistory);
-elements.mobileMenu.addEventListener("click", () => elements.nav.classList.toggle("open"));
+elements.newChatInline?.addEventListener("click", startNewConversation);
+elements.clearHistory?.addEventListener("click", removeAllConversations);
+elements.historySearch?.addEventListener("input", renderHistory);
+elements.mobileMenu?.addEventListener("click", toggleChatSidebar);
+elements.chatSidebarClose?.addEventListener("click", closeOrCollapseChatSidebar);
+elements.chatSidebarBackdrop?.addEventListener("click", closeChatSidebarOnMobile);
+window.addEventListener("resize", () => {
+  if (!isOverlaySidebar()) {
+    document.body.classList.remove("chat-sidebar-open");
+    elements.chatSidebarBackdrop?.classList.remove("visible");
+    if (elements.chatSidebarBackdrop) elements.chatSidebarBackdrop.hidden = true;
+  }
+});
 
 // Export functionality
 elements.exportButton?.addEventListener("click", (event) => {
@@ -913,24 +1196,24 @@ elements.saveDraft?.addEventListener("click", () => saveDecisionDraft());
 elements.decisionForm.addEventListener("submit", (event) => {
   event.preventDefault();
   if (elements.decisionTitle && elements.decisionContent && (!elements.decisionTitle.value.trim() || !elements.decisionContent.value.trim())) {
-    showToast("يرجى إدخال عنوان القرار ونصه الكامل.");
+    showToast("ÙŠØ±Ø¬Ù‰ Ø¥Ø¯Ø®Ø§Ù„ Ø¹Ù†ÙˆØ§Ù† Ø§Ù„Ù‚Ø±Ø§Ø± ÙˆÙ†ØµÙ‡ Ø§Ù„ÙƒØ§Ù…Ù„.");
     return;
   }
   saveDecisionDraft(false);
-  showToast("واجهة رفع القرار جاهزة. لم يتم إرسال بيانات إلى الخادم.");
+  showToast("ÙˆØ§Ø¬Ù‡Ø© Ø±ÙØ¹ Ø§Ù„Ù‚Ø±Ø§Ø± Ø¬Ø§Ù‡Ø²Ø©. Ù„Ù… ÙŠØªÙ… Ø¥Ø±Ø³Ø§Ù„ Ø¨ÙŠØ§Ù†Ø§Øª Ø¥Ù„Ù‰ Ø§Ù„Ø®Ø§Ø¯Ù….");
 });
 
 // Export conversation function
 async function exportConversation(format = "pdf") {
   const conversation = activeConversation();
   if (!conversation || !conversation.messages.length) {
-    showToast("لا توجد رسائل للتصدير.");
+    showToast("Ù„Ø§ ØªÙˆØ¬Ø¯ Ø±Ø³Ø§Ø¦Ù„ Ù„Ù„ØªØµØ¯ÙŠØ±.");
     return;
   }
 
   elements.exportButton.disabled = true;
-  elements.exportButton.textContent = "…";
-  elements.exportButton.setAttribute("aria-label", "جارٍ التصدير");
+  elements.exportButton.textContent = "â€¦";
+  elements.exportButton.setAttribute("aria-label", "Ø¬Ø§Ø±Ù Ø§Ù„ØªØµØ¯ÙŠØ±");
 
   try {
     const response = await fetch(`/api/export-chat?format=${format}`, {
@@ -944,7 +1227,7 @@ async function exportConversation(format = "pdf") {
 
     if (!response.ok) {
       const payload = await response.json().catch(() => ({}));
-      throw new Error(payload.detail || "فشل تصدير المحادثة.");
+      throw new Error(payload.detail || "ÙØ´Ù„ ØªØµØ¯ÙŠØ± Ø§Ù„Ù…Ø­Ø§Ø¯Ø«Ø©.");
     }
 
     const blob = await response.blob();
@@ -959,21 +1242,29 @@ async function exportConversation(format = "pdf") {
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
 
-    showToast("تم تصدير المحادثة بنجاح.");
+    showToast("ØªÙ… ØªØµØ¯ÙŠØ± Ø§Ù„Ù…Ø­Ø§Ø¯Ø«Ø© Ø¨Ù†Ø¬Ø§Ø­.");
   } catch (error) {
     console.error("Export failed:", error);
-    showToast(error.message || "فشل تصدير المحادثة.");
+    showToast(error.message || "ÙØ´Ù„ ØªØµØ¯ÙŠØ± Ø§Ù„Ù…Ø­Ø§Ø¯Ø«Ø©.");
   } finally {
     elements.exportButton.disabled = false;
-    elements.exportButton.textContent = "⇩ تصدير";
-    elements.exportButton.setAttribute("aria-label", "تصدير المحادثة");
+    elements.exportButton.textContent = "â‡© ØªØµØ¯ÙŠØ±";
+    elements.exportButton.setAttribute("aria-label", "ØªØµØ¯ÙŠØ± Ø§Ù„Ù…Ø­Ø§Ø¯Ø«Ø©");
   }
 }
 
 loadDecisionDraft();
 render();
+repairTextTree();
 bootstrapAuthentication();
-if (window.location.hash === "#chat" || new URLSearchParams(window.location.search).has("prompt")) {
+hydrateServerChatHistory();
+window.addEventListener("pagehide", saveConversations);
+window.addEventListener("beforeunload", saveConversations);
+if (
+  window.location.hash === "#chat"
+  || new URLSearchParams(window.location.search).has("prompt")
+  || activeConversation()?.messages.length
+) {
   showView("assistant");
 } else {
   showView("landing");

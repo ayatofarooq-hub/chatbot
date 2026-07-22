@@ -52,5 +52,5 @@ export async function removeUploadedFile(fileId) {
     credentials: "same-origin",
   });
   const payload = await response.json();
-  if (!response.ok) throw new Error(payload.detail || "تعذر حذف الملف.");
+  if (!response.ok) throw new Error(payload.detail || "تعذر نقل الملف إلى المصادر.");
 }
