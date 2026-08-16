@@ -10,7 +10,7 @@ DEFAULTS = {
     "model": {
         "chat_model": "qwen2.5:3b", "embedding_model": "bge-m3",
         "ollama_base_url": "http://127.0.0.1:11434", "request_timeout": 600,
-        "keep_alive": "10m", "max_answer_tokens": 192, "temperature": 0.0,
+        "keep_alive": "10m", "max_answer_tokens": 700, "temperature": 0.0,
         "top_p": 0.9, "context_length": 4096,
     },
     "retrieval": {

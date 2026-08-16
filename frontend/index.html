@@ -41,6 +41,16 @@
           <span>قرار جديد</span>
           <span class="nav-arrow" aria-hidden="true">›</span>
         </button>
+        <button class="nav-item" id="review-nav-button" type="button">
+          <span class="nav-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" focusable="false">
+              <path d="M6.75 4.75h10.5A2.25 2.25 0 0 1 19.5 7v9.75a2.25 2.25 0 0 1-2.25 2.25H8.25L4.5 20v-13A2.25 2.25 0 0 1 6.75 4.75Z"/>
+              <path d="M8.25 9.25h7.5M8.25 12.25h4.5"/>
+            </svg>
+          </span>
+          <span>مراجعة الوثائق</span>
+          <span class="nav-arrow" aria-hidden="true">›</span>
+        </button>
         <button class="nav-item" id="settings-nav-button" type="button">
           <span class="nav-icon" aria-hidden="true">
             <svg viewBox="0 0 24 24" focusable="false">
@@ -93,8 +103,8 @@
 
         <div class="landing-hero">
           <div class="landing-badge">مساعد قانوني عراقي محلي</div>
-          <h1>أهلاً بك في المساعد القانوني</h1>
-          <p>
+          <h1 id="landing-welcome-title">أهلاً بك في المساعد القانوني</h1>
+          <p id="landing-welcome-subtitle">
             ابدأ بسؤال قانوني، وسننقلك مباشرة إلى صفحة المحادثة الحالية مع إرسال السؤال تلقائياً
             دون تغيير منطق المحادثة أو مصادر الإجابة.
           </p>
@@ -166,8 +176,8 @@
           <div class="chat-scroll" id="chat-scroll">
             <section class="welcome" id="welcome">
               <div class="welcome-shield" aria-hidden="true">✓</div>
-              <h1>مرحباً بك في المساعد القانوني</h1>
-              <p>
+              <h1 id="welcome-title">مرحباً بك في المساعد القانوني</h1>
+              <p id="welcome-subtitle">
                 أنا مساعدك الذكي لتحليل القوانين واللوائح والوثائق العراقية.
                 كيف يمكنني مساعدتك اليوم؟
               </p>
@@ -266,6 +276,22 @@
           </form>
         </div>
       </section>
+      <section class="review-view app-view" id="review-view" hidden>
+        <div class="review-shell">
+          <div class="review-header">
+            <div>
+              <h2>مراجعة الوثائق المعالجة</h2>
+              <p>راجع الوثيقة الأصلية والبيانات المستخرجة والنتيجة النهائية قبل الفهرسة.</p>
+            </div>
+          </div>
+          <div class="review-grid">
+            <aside class="review-list" id="review-list"></aside>
+            <section class="review-detail" id="review-detail">
+              <div class="review-placeholder">اختر مراجعة لعرض التفاصيل.</div>
+            </section>
+          </div>
+        </div>
+      </section>
       <section class="settings-view app-view" id="settings-view" hidden>
         <div id="settings-root"></div>
       </section>
@@ -274,6 +300,6 @@
 
   <div class="toast" id="toast" role="alert"></div>
   <div id="modal-root"></div>
-  <script type="module" src="/assets/app.js?v=20260722-server-chat-history"></script>
+  <script type="module" src="/assets/app.js?v=20260726-ministry-welcome"></script>
 </body>
 </html>

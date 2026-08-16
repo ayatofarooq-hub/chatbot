@@ -105,6 +105,7 @@ class ApiTests(unittest.TestCase):
         mock_answer_question.return_value = {
             "question": "سؤال",
             "answer": "إجابة",
+            "sources": [],
             "warnings": [],
             "citations": [],
             "snippets": [],
@@ -120,14 +121,14 @@ class ApiTests(unittest.TestCase):
         mock_answer_question.assert_called_once_with("سؤال", False)
 
     @patch("app.auth.admin_for_token", return_value={"id": 1, "username": "admin"})
-    @patch("app.api.generate_answer")
+    @patch("app.api.legal_rag_answer_from_results")
     @patch("app.api.search")
     @patch("app.api.load_registry")
-    def test_answer_question_returns_registry_citations(
+    def test_answer_question_returns_legal_rag_sources_and_registry_citations(
         self,
         mock_load_registry,
         mock_search,
-        mock_generate_answer,
+        mock_legal_answer,
         _mock_admin,
     ):
         mock_search.return_value = {
@@ -135,7 +136,13 @@ class ApiTests(unittest.TestCase):
             "metadatas": [[
                 {
                     "chunk_id": "abc123",
+                    "document_id": "legal_json_abc",
                     "source_file": "penal_code.docx",
+                    "document_type": "law",
+                    "year": "1969",
+                    "issue_date": "1969-01-01",
+                    "section": "article 405",
+                    "item_number": "405",
                     "page_number": 4,
                 }
             ]],
@@ -160,8 +167,18 @@ class ApiTests(unittest.TestCase):
                 }
             }
         }
-        mock_generate_answer.return_value.content = "answer"
-        mock_generate_answer.return_value.warnings = []
+        mock_legal_answer.return_value = {
+            "answer": "answer",
+            "sources": [
+                {
+                    "document": "penal_code.docx",
+                    "section": "article 405",
+                    "item": "405",
+                    "chunk_id": "abc123",
+                }
+            ],
+            "confidence": 0.9,
+        }
 
         response = self.client.post(
             "/ask",
@@ -169,6 +186,20 @@ class ApiTests(unittest.TestCase):
         )
 
         self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["answer"], "answer")
+        self.assertEqual(
+            response.json()["sources"],
+            [
+                {
+                    "document_id": "legal_json_abc",
+                    "filename": "penal_code.docx",
+                    "document_type": "law",
+                    "year": "1969",
+                    "issue_date": "1969-01-01",
+                    "relevance_score": 0.9,
+                }
+            ],
+        )
         self.assertEqual(
             response.json()["citations"],
             [
@@ -184,6 +215,75 @@ class ApiTests(unittest.TestCase):
                     "source_file": "penal_code.docx",
                     "ingest_date": "2026-06-11",
                     "chunk_id": "abc123",
+                }
+            ],
+        )
+
+    @patch("app.auth.admin_for_token", return_value={"id": 1, "username": "admin"})
+    @patch("app.api.legal_rag_answer_from_results")
+    @patch("app.api.search")
+    @patch("app.api.load_registry")
+    def test_answer_question_deduplicates_sources_by_original_json_document(
+        self,
+        mock_load_registry,
+        mock_search,
+        mock_legal_answer,
+        _mock_admin,
+    ):
+        mock_search.return_value = {
+            "documents": [["first chunk", "second chunk"]],
+            "metadatas": [[
+                {
+                    "chunk_id": "chunk-1",
+                    "document_id": "legal_json_doc",
+                    "source_file": "decision.docx",
+                    "document_type": "قرار مجلس الوزراء",
+                    "year": "2024",
+                    "issue_date": "30/10/2024",
+                },
+                {
+                    "chunk_id": "chunk-2",
+                    "document_id": "legal_json_doc",
+                    "source_file": "decision.docx",
+                    "document_type": "قرار مجلس الوزراء",
+                    "year": "2024",
+                    "issue_date": "30/10/2024",
+                },
+            ]],
+            "distances": [[0.1, 0.2]],
+            "relevance_scores": [[0.94, 0.81]],
+        }
+        mock_load_registry.return_value = {
+            "by_chunk_id": {
+                "chunk-1": {"chunk_id": "chunk-1"},
+                "chunk-2": {"chunk_id": "chunk-2"},
+            }
+        }
+        mock_legal_answer.return_value = {
+            "answer": "answer",
+            "sources": [
+                {"document": "decision.docx", "chunk_id": "chunk-1"},
+                {"document": "decision.docx", "chunk_id": "chunk-2"},
+            ],
+            "confidence": 0.9,
+        }
+
+        response = self.client.post(
+            "/ask",
+            json={"question": "question", "include_snippets": False},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.json()["sources"],
+            [
+                {
+                    "document_id": "legal_json_doc",
+                    "filename": "decision.docx",
+                    "document_type": "قرار مجلس الوزراء",
+                    "year": "2024",
+                    "issue_date": "30/10/2024",
+                    "relevance_score": 0.94,
                 }
             ],
         )

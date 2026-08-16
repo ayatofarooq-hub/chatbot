@@ -3,8 +3,18 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Callable, Protocol
 from uuid import UUID, uuid4
+
+from app.classifiers.document_cleaner import clean_document_text
+from app.classifiers.document_type import classify_document_type
+from app.classifiers.legal_structure import extract_legal_structure
+from app.classifiers.metadata_extractor import extract_metadata
+from app.extractors.semantic_extraction import extract_semantic_fields
+from app.json_builder.json_validator import validate_json_syntax, validate_legal_json
+from app.json_builder.legal_json_schema import build_unified_legal_json
+from app.json_builder.legal_output import save_legal_json
 
 Document = dict
 
@@ -145,15 +155,68 @@ class DocumentPipeline:
             return document
 
         categories = self.repository.approved_categories()
+        file_path = document.get("file_path") or ""
+        document_text = document.get("text") or ""
+        if not document_text and file_path:
+            document_text = self._read_document_text(file_path)
+
+        cleaned_text = clean_document_text(document_text)
+        heuristic_category, heuristic_confidence, heuristic_reason = classify_document_type(cleaned_text, categories or None)
+        if heuristic_category and heuristic_confidence >= 0.5:
+            document["document_type"] = heuristic_category
+            document["document_type_confidence"] = heuristic_confidence
+            document["document_type_reason"] = heuristic_reason
+
+        extracted_metadata = extract_metadata(cleaned_text)
+        if extracted_metadata:
+            document["metadata"] = {**document.get("metadata", {}), **extracted_metadata}
+
+        semantic_fields = extract_semantic_fields(cleaned_text, extracted_metadata)
+        if semantic_fields:
+            document["semantic_fields"] = semantic_fields
+
+        legal_structure = extract_legal_structure(
+            heuristic_category or document.get("document_type", ""),
+            cleaned_text,
+            extracted_metadata,
+        )
+        if legal_structure.get("sections"):
+            document["legal_structure"] = legal_structure
+
+        document["original_text"] = document_text
+        document["cleaned_text"] = cleaned_text
+        standardized_payload = build_unified_legal_json(document)
+        standardized_payload["document_title"] = document.get("title") or document.get("document_type") or ""
+        standardized_payload["title"] = standardized_payload["document_title"]
+        document["standardized_payload"] = standardized_payload
+
+        is_valid, errors = validate_legal_json(standardized_payload)
+        if not is_valid:
+            semantic_fields = extract_semantic_fields(cleaned_text, extracted_metadata)
+            if semantic_fields:
+                document["semantic_fields"] = semantic_fields
+            standardized_payload = build_unified_legal_json(document)
+            standardized_payload["document_title"] = document.get("title") or document.get("document_type") or ""
+            standardized_payload["title"] = standardized_payload["document_title"]
+            document["standardized_payload"] = standardized_payload
+            is_valid, errors = validate_legal_json(standardized_payload)
+
+        if not is_valid:
+            document["validation_errors"] = errors
+        else:
+            document["validation_errors"] = []
+            output_path = save_legal_json(standardized_payload, "data/legal_documents")
+            document["output_path"] = str(output_path)
+
         decision = classifier(document, categories)
-        reason = decision.reason or "automatic classification"
+        reason = decision.reason or heuristic_reason or "automatic classification"
         if not decision.category or decision.category not in categories:
             return self.repository.transition_document(
                 document_id,
                 to_status="unclassified",
                 actor="system",
                 reason="automatic classification found no approved category",
-                category=None,
+                category=heuristic_category,
                 confidence=decision.confidence,
                 classified_by="auto",
             )
@@ -168,6 +231,15 @@ class DocumentPipeline:
             confidence=decision.confidence,
             classified_by="auto",
         )
+
+    def _read_document_text(self, file_path: str) -> str:
+        try:
+            path = Path(file_path)
+            if not path.exists():
+                return ""
+            return path.read_text(encoding="utf-8", errors="ignore")
+        except OSError:
+            return ""
 
     def manual_transition(
         self,

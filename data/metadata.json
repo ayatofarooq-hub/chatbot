@@ -6,7 +6,7 @@
       "ollama_base_url": "http://127.0.0.1:11434",
       "request_timeout": 600,
       "keep_alive": "10m",
-      "max_answer_tokens": 192,
+      "max_answer_tokens": 700,
       "temperature": 0.0,
       "top_p": 0.9,
       "context_length": 4096
@@ -76,7 +76,8 @@
       "role": "super_admin",
       "is_active": true,
       "display_name": "ayat",
-      "email": ""
+      "email": "",
+      "ministry": "وزارة النفط"
     }
   ],
   "admin_sessions": [
@@ -193,6 +194,97 @@
       "admin_user_id": 1,
       "token_hash": "3bcf14c4cdf2e6b166eeadeb06e876667fde3d37ffc5466c44db0d03268d9935",
       "expires_at": "2026-07-22T11:35:33.112848+00:00"
+    },
+    {
+      "id": "ca8972f2-7711-4353-b0d6-285665ad0b23",
+      "admin_user_id": 1,
+      "token_hash": "58dfadcfb71243ba223dcd5c4d0c14285d1071b15bc1d942836fb96819686a3f",
+      "expires_at": "2026-07-28T06:35:07.355640+00:00",
+      "welcome_phrase_index": 1
+    },
+    {
+      "id": "97b9b215-d5af-4d69-b8da-b3a5f01c4b65",
+      "admin_user_id": 1,
+      "token_hash": "fb9a3713253cfc532ac7605660a4963fdbad15e779c336065baffae1579798b9",
+      "expires_at": "2026-07-28T09:06:58.239245+00:00",
+      "welcome_phrase_index": 0
+    },
+    {
+      "id": "7f88ae47-92e1-4475-9d08-8334a86ce439",
+      "admin_user_id": 1,
+      "token_hash": "5954f551d82d6bdbb0bbc8fd1bf51288b3b12c8277ffa24ff377dca18891cd57",
+      "expires_at": "2026-07-28T11:09:46.450713+00:00",
+      "welcome_phrase_index": 0
+    },
+    {
+      "id": "8f6b66b1-6a20-4f3f-aa06-e752a0a5a7ba",
+      "admin_user_id": 1,
+      "token_hash": "e3da9a1a6506f22be66f1249a51a3a7954c463d601fd0da507ae3764eb42425a",
+      "expires_at": "2026-08-04T10:05:10.216508+00:00",
+      "welcome_phrase_index": 0
+    },
+    {
+      "id": "a2c53c5b-fbec-41d9-90f7-b9acd50f95a6",
+      "admin_user_id": 1,
+      "token_hash": "d8457a502aade5d773d54032c38520bf53b53d5bd1ec2e7c896751dc122a7f07",
+      "expires_at": "2026-08-09T06:42:41.349455+00:00",
+      "welcome_phrase_index": 0
+    },
+    {
+      "id": "96e2ae20-5a4d-4896-9034-e68485d5305e",
+      "admin_user_id": 1,
+      "token_hash": "59c19ab512669a60b524944ed7493e24169f4752ba7aed337d6001c4237c986c",
+      "expires_at": "2026-08-10T09:36:36.641753+00:00",
+      "welcome_phrase_index": 3
+    },
+    {
+      "id": "45a0981f-3776-4b8e-9a93-55f88bb75977",
+      "admin_user_id": 1,
+      "token_hash": "8e0789910d2a06a865abbff472aa6fb11480818627249d3220e1e5da83689df0",
+      "expires_at": "2026-08-10T10:40:21.335656+00:00",
+      "welcome_phrase_index": 0
+    },
+    {
+      "id": "0302d7c2-3dfa-42d4-840f-9d43a0c8da80",
+      "admin_user_id": 1,
+      "token_hash": "fe9ad73368169cfe52a02d49c299d5e82a334083e2813799a82042bcfe108da6",
+      "expires_at": "2026-08-12T17:25:35.062484+00:00",
+      "welcome_phrase_index": 3
+    },
+    {
+      "id": "d77c051d-b8bf-41a5-83d5-6e1f151bbaff",
+      "admin_user_id": 1,
+      "token_hash": "74ed5ca546cd852bbfc0580f40ee34aefa55d95291d619f5d9e2f9df81592d5a",
+      "expires_at": "2026-08-13T06:19:34.448924+00:00",
+      "welcome_phrase_index": 0
+    },
+    {
+      "id": "af5e7ccd-bcbf-4323-9dbc-af3cb03ccfe5",
+      "admin_user_id": 1,
+      "token_hash": "1411853c14baedd8c87bbac8989ad673cc29afc71a02517e35baada32f4915d2",
+      "expires_at": "2026-08-13T11:10:41.501273+00:00",
+      "welcome_phrase_index": 3
+    },
+    {
+      "id": "bbb4a8f9-fa9d-410f-b41f-6a0dc2df93d0",
+      "admin_user_id": 1,
+      "token_hash": "368086748785dac2444e52dc7b7edfa076173a6d131dd04dabbe6d590624a05c",
+      "expires_at": "2026-08-15T16:41:28.333716+00:00",
+      "welcome_phrase_index": 0
+    },
+    {
+      "id": "a2cd0d9f-7f03-472a-bc86-32ced922c4fa",
+      "admin_user_id": 1,
+      "token_hash": "ad87148a76195e66d8130ebd6b063eb144873ce1805a00c69d8bc36f7c1d0b75",
+      "expires_at": "2026-08-15T19:57:47.376655+00:00",
+      "welcome_phrase_index": 0
+    },
+    {
+      "id": "33c5bcd9-f9b3-4393-a74e-8699a3b7581a",
+      "admin_user_id": 1,
+      "token_hash": "104d1e58bf5f14e8c6da6518af7f8ee61824cbe9462633c7104c7800d56dcc35",
+      "expires_at": "2026-08-16T07:28:54.646593+00:00",
+      "welcome_phrase_index": 0
     }
   ],
   "audit_log": [
@@ -959,6 +1051,206 @@
       "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36",
       "details": {},
       "created_at": "2026-07-22T10:35:33.160084+00:00"
+    },
+    {
+      "id": 57,
+      "action": "login_failed",
+      "actor_user_id": null,
+      "actor_username": null,
+      "target_type": "admin_user",
+      "target_id": "admin",
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36",
+      "details": {},
+      "created_at": "2026-07-26T10:31:01.764422+00:00"
+    },
+    {
+      "id": 58,
+      "action": "login_success",
+      "actor_user_id": 1,
+      "actor_username": "ayat",
+      "target_type": null,
+      "target_id": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36",
+      "details": {},
+      "created_at": "2026-07-28T05:35:07.404596+00:00"
+    },
+    {
+      "id": 59,
+      "action": "login_success",
+      "actor_user_id": 1,
+      "actor_username": "ayat",
+      "target_type": null,
+      "target_id": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36",
+      "details": {},
+      "created_at": "2026-07-28T08:06:58.285303+00:00"
+    },
+    {
+      "id": 60,
+      "action": "login_success",
+      "actor_user_id": 1,
+      "actor_username": "ayat",
+      "target_type": null,
+      "target_id": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36",
+      "details": {},
+      "created_at": "2026-07-28T10:09:46.492296+00:00"
+    },
+    {
+      "id": 61,
+      "action": "settings_updated",
+      "actor_user_id": 1,
+      "actor_username": "admin",
+      "target_type": "settings",
+      "target_id": null,
+      "ip_address": "testclient",
+      "user_agent": "testclient",
+      "details": {
+        "sections": [
+          "appearance"
+        ]
+      },
+      "created_at": "2026-08-04T08:05:14.737967+00:00"
+    },
+    {
+      "id": 62,
+      "action": "login_success",
+      "actor_user_id": 1,
+      "actor_username": "ayat",
+      "target_type": null,
+      "target_id": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36",
+      "details": {},
+      "created_at": "2026-08-04T09:05:10.262267+00:00"
+    },
+    {
+      "id": 63,
+      "action": "login_success",
+      "actor_user_id": 1,
+      "actor_username": "ayat",
+      "target_type": null,
+      "target_id": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+      "details": {},
+      "created_at": "2026-08-09T05:42:41.387699+00:00"
+    },
+    {
+      "id": 64,
+      "action": "login_success",
+      "actor_user_id": 1,
+      "actor_username": "ayat",
+      "target_type": null,
+      "target_id": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+      "details": {},
+      "created_at": "2026-08-10T08:36:36.683888+00:00"
+    },
+    {
+      "id": 65,
+      "action": "login_success",
+      "actor_user_id": 1,
+      "actor_username": "ayat",
+      "target_type": null,
+      "target_id": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+      "details": {},
+      "created_at": "2026-08-10T09:40:21.389186+00:00"
+    },
+    {
+      "id": 66,
+      "action": "login_success",
+      "actor_user_id": 1,
+      "actor_username": "ayat",
+      "target_type": null,
+      "target_id": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+      "details": {},
+      "created_at": "2026-08-12T16:25:35.101943+00:00"
+    },
+    {
+      "id": 67,
+      "action": "login_success",
+      "actor_user_id": 1,
+      "actor_username": "ayat",
+      "target_type": null,
+      "target_id": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+      "details": {},
+      "created_at": "2026-08-13T05:19:34.494558+00:00"
+    },
+    {
+      "id": 68,
+      "action": "login_success",
+      "actor_user_id": 1,
+      "actor_username": "ayat",
+      "target_type": null,
+      "target_id": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+      "details": {},
+      "created_at": "2026-08-13T10:10:41.534391+00:00"
+    },
+    {
+      "id": 69,
+      "action": "login_success",
+      "actor_user_id": 1,
+      "actor_username": "ayat",
+      "target_type": null,
+      "target_id": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+      "details": {},
+      "created_at": "2026-08-15T15:41:28.378810+00:00"
+    },
+    {
+      "id": 70,
+      "action": "settings_updated",
+      "actor_user_id": 1,
+      "actor_username": "admin",
+      "target_type": "settings",
+      "target_id": null,
+      "ip_address": "testclient",
+      "user_agent": "testclient",
+      "details": {
+        "sections": [
+          "appearance"
+        ]
+      },
+      "created_at": "2026-08-15T18:02:34.347217+00:00"
+    },
+    {
+      "id": 71,
+      "action": "login_success",
+      "actor_user_id": 1,
+      "actor_username": "ayat",
+      "target_type": null,
+      "target_id": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+      "details": {},
+      "created_at": "2026-08-15T18:57:47.416949+00:00"
+    },
+    {
+      "id": 72,
+      "action": "login_success",
+      "actor_user_id": 1,
+      "actor_username": "ayat",
+      "target_type": null,
+      "target_id": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+      "details": {},
+      "created_at": "2026-08-16T06:28:54.694798+00:00"
     }
   ]
 }

@@ -90,6 +90,7 @@ def create_user(payload: dict, actor: dict | None = None, engine=None) -> dict:
         "password_hash": bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode(),
         "display_name": str(payload.get("display_name") or "").strip() or None,
         "email": str(payload.get("email") or "").strip() or None,
+        "ministry": str(payload.get("ministry") or "").strip() or None,
         "role": role,
         "is_active": bool(payload.get("is_active", True)),
         "created_by": actor.get("id") if actor else None,
@@ -104,7 +105,7 @@ def create_user(payload: dict, actor: dict | None = None, engine=None) -> dict:
 
 
 def update_user(user_id: int, payload: dict, actor: dict | None = None, engine=None) -> dict:
-    allowed = {"display_name", "email", "role", "is_active"}
+    allowed = {"display_name", "email", "ministry", "role", "is_active"}
     values = {key: payload[key] for key in allowed if key in payload}
     if not values:
         raise ValueError("No supported user fields supplied.")
@@ -115,6 +116,8 @@ def update_user(user_id: int, payload: dict, actor: dict | None = None, engine=N
         values["display_name"] = str(values["display_name"] or "").strip() or None
     if "email" in values:
         values["email"] = str(values["email"] or "").strip() or None
+    if "ministry" in values:
+        values["ministry"] = str(values["ministry"] or "").strip() or None
     if "is_active" in values:
         values["is_active"] = bool(values["is_active"])
     users = _read_list("admin_users")

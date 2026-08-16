@@ -1,0 +1,699 @@
+Read File: sample.docx
+Extract: sample.docx
+LLM: sample.docx
+Read File: sample.docx
+Extract: sample.docx
+LLM: sample.docx
+Start
+Save JSON: sample.json
+Finished
+Start
+Finished
+Read File: sample.docx
+Extract: sample.docx
+LLM: sample.docx
+Read File: sample.docx
+Extract: sample.docx
+LLM: sample.docx
+Start
+Batch: 1 files=1
+Save JSON: sample.json
+Finished
+Start
+Finished
+Read File: sample.docx
+Extract: sample.docx
+LLM: sample.docx
+Read File: sample.docx
+Extract: sample.docx
+LLM: sample.docx
+ChromaDB: 1 chunks
+citation_registry.json
+Start
+Batch: 1 files=1
+Save JSON: sample.json
+Finished
+Start
+Finished
+ChromaDB: no JSON files
+Read File: sample.docx
+Extract: sample.docx
+LLM: sample.docx
+Read File: sample.docx
+Extract: sample.docx
+LLM: sample.docx
+ChromaDB: 1 chunks
+citation_registry.json
+Start
+Batch: 1 files=1
+Save JSON: sample.json
+Finished
+Read File: sample.docx
+Extract: sample.docx
+LLM: sample.docx
+Read File: sample.docx
+Extract: sample.docx
+LLM: sample.docx
+Chunking: 1 files
+ChromaDB: 1 chunks
+citation_registry.json
+Start
+Batch: 1 files=1
+Save JSON: sample.json
+Finished
+Start
+Finished
+ChromaDB: no JSON files
+Start
+Finished
+ChromaDB: no JSON files
+Read File: sample.docx
+Extract: sample.docx
+LLM: sample.docx
+Read File: sample.docx
+Extract: sample.docx
+LLM: sample.docx
+Chunking: 1 files
+Embedding: 1 chunks
+ChromaDB: 1 chunks
+citation_registry.json
+Start
+Batch: 1 files=1
+Save JSON: sample.json
+Finished
+Read File: sample.docx
+Extract: sample.docx
+LLM: sample.docx
+Read File: sample.docx
+Extract: sample.docx
+LLM: sample.docx
+Chunking: 1 files
+Embedding: 1 chunks
+ChromaDB: 1 chunks
+citation_registry.json
+Start
+Batch: 1 files=1
+Save JSON: sample.json
+Finished
+Start
+Finished
+ChromaDB: no JSON files
+Qwen 3B Chatbot: ready
+Start
+Finished
+ChromaDB: no JSON files
+Qwen 3B Chatbot: ready
+Start
+Finished
+ChromaDB: no JSON files
+Qwen 3B Chatbot: ready
+Read File: sample.docx
+Extract: sample.docx
+LLM: sample.docx
+Read File: sample.docx
+Extract: sample.docx
+LLM: sample.docx
+Chunking: 1 files
+Embedding: 1 chunks
+ChromaDB: 1 chunks
+citation_registry.json
+Start
+Batch: 1 files=1
+Save JSON: sample.json
+Finished
+Start
+Batch: 1 files=1
+Read File: المجلد التفصيلي للقوانين.docx
+Extract: المجلد التفصيلي للقوانين.docx
+LLM: المجلد التفصيلي للقوانين.docx
+Save JSON: المجلد التفصيلي للقوانين.json
+Finished
+Chunking: 1 files
+Embedding: 46 chunks
+ChromaDB: 46 chunks
+citation_registry.json
+Qwen 3B Chatbot: ready
+Start
+Batch: 1 files=1
+Read File: المجلد التفصيلي للقوانين.docx
+Extract: المجلد التفصيلي للقوانين.docx
+LLM: المجلد التفصيلي للقوانين.docx
+Save JSON: المجلد التفصيلي للقوانين.json
+Finished
+Chunking: 1 files
+Embedding: 46 chunks
+ChromaDB: 46 chunks
+citation_registry.json
+Qwen 3B Chatbot: ready
+Start
+Batch: 1 files=1
+Read File: المجلد التفصيلي للقوانين.docx
+Extract: المجلد التفصيلي للقوانين.docx
+LLM: المجلد التفصيلي للقوانين.docx
+Start
+Batch: 1 files=1
+Read File: المجلد التفصيلي للقوانين.docx
+Extract: المجلد التفصيلي للقوانين.docx
+LLM: المجلد التفصيلي للقوانين.docx
+Save JSON: المجلد التفصيلي للقوانين.json
+Finished
+Chunking: 1 files
+Embedding: 46 chunks
+ChromaDB: 46 chunks
+citation_registry.json
+Qwen 3B Chatbot: ready
+Start
+Warning: unsupported Word format .doc: الدفاع قرار استثناء عقد تصليح طائرات.doc
+Warning: unsupported Word format .doc: النفط توصية الطاقة حقل الناصرية.doc
+Warning: unsupported Word format .doc: قرار استثناء عقد تصليح الطائرات المروحية.doc
+Warning: unsupported Word format .doc: قرار توصية الطاقة حقل الناصرية.doc
+Warning: unsupported Word format .doc: وزارة الصحة لجنة الصيادله.doc
+Batch: 1 files=1
+Read File: المجلد التفصيلي للقوانين.docx
+Read File: sample.docx
+Extract: المجلد التفصيلي للقوانين.docx
+LLM: المجلد التفصيلي للقوانين.docx
+Extract: sample.docx
+LLM: sample.docx
+Read File: sample.docx
+Extract: sample.docx
+LLM: sample.docx
+Chunking: 1 files
+Embedding: 1 chunks
+ChromaDB: 1 chunks
+citation_registry.json
+Start
+Warning: unsupported Word format .doc: الدفاع قرار استثناء عقد تصليح طائرات.doc
+Warning: unsupported Word format .doc: النفط توصية الطاقة حقل الناصرية.doc
+Warning: unsupported Word format .doc: قرار استثناء عقد تصليح الطائرات المروحية.doc
+Warning: unsupported Word format .doc: قرار توصية الطاقة حقل الناصرية.doc
+Warning: unsupported Word format .doc: وزارة الصحة لجنة الصيادله.doc
+Batch: 1 files=1
+Save JSON: sample.json
+Finished
+Save JSON: المجلد التفصيلي للقوانين.json
+Finished
+Chunking: 1 files
+Embedding: 46 chunks
+ChromaDB: 46 chunks
+citation_registry.json
+Qwen 3B Chatbot: ready
+Read File: sample.docx
+Extract: sample.docx
+LLM: sample.docx
+Read File: sample.docx
+Extract: sample.docx
+LLM: sample.docx
+Chunking: 1 files
+Embedding: 1 chunks
+ChromaDB: 1 chunks
+citation_registry.json
+Start
+Warning: unsupported Word format .doc: الدفاع قرار استثناء عقد تصليح طائرات.doc
+Warning: unsupported Word format .doc: النفط توصية الطاقة حقل الناصرية.doc
+Warning: unsupported Word format .doc: قرار استثناء عقد تصليح الطائرات المروحية.doc
+Warning: unsupported Word format .doc: قرار توصية الطاقة حقل الناصرية.doc
+Warning: unsupported Word format .doc: وزارة الصحة لجنة الصيادله.doc
+Batch: 1 files=1
+Save JSON: sample.json
+Finished
+Start
+Batch: 1 files=6
+Read File: الدفاع قرار استثناء عقد تصليح طائرات.docx
+Extract: الدفاع قرار استثناء عقد تصليح طائرات.docx
+LLM: الدفاع قرار استثناء عقد تصليح طائرات.docx
+Save JSON: الدفاع قرار استثناء عقد تصليح طائرات.json
+Read File: المجلد التفصيلي للقوانين.docx
+Extract: المجلد التفصيلي للقوانين.docx
+LLM: المجلد التفصيلي للقوانين.docx
+Save JSON: المجلد التفصيلي للقوانين.json
+Read File: النفط توصية الطاقة حقل الناصرية.docx
+Extract: النفط توصية الطاقة حقل الناصرية.docx
+LLM: النفط توصية الطاقة حقل الناصرية.docx
+Save JSON: النفط توصية الطاقة حقل الناصرية.json
+Read File: قرار استثناء عقد تصليح الطائرات المروحية.docx
+Extract: قرار استثناء عقد تصليح الطائرات المروحية.docx
+LLM: قرار استثناء عقد تصليح الطائرات المروحية.docx
+Save JSON: قرار استثناء عقد تصليح الطائرات المروحية.json
+Read File: قرار توصية الطاقة حقل الناصرية.docx
+Extract: قرار توصية الطاقة حقل الناصرية.docx
+LLM: قرار توصية الطاقة حقل الناصرية.docx
+Save JSON: قرار توصية الطاقة حقل الناصرية.json
+Read File: وزارة الصحة لجنة الصيادله.docx
+Extract: وزارة الصحة لجنة الصيادله.docx
+LLM: وزارة الصحة لجنة الصيادله.docx
+Save JSON: وزارة الصحة لجنة الصيادله.json
+Finished
+Chunking: 6 files
+Embedding: 55 chunks
+ChromaDB: 55 chunks
+citation_registry.json
+Qwen 3B Chatbot: ready
+Read File: sample.docx
+Extract: sample.docx
+LLM: sample.docx
+Read File: sample.docx
+Extract: sample.docx
+LLM: sample.docx
+Chunking: 1 files
+Embedding: 1 chunks
+ChromaDB: 1 chunks
+citation_registry.json
+Start
+Batch: 1 files=1
+Save JSON: sample.json
+Finished
+Start
+Batch: 1 files=5
+Read File: الدفاع قرار استثناء عقد تصليح طائرات.docx
+Extract: الدفاع قرار استثناء عقد تصليح طائرات.docx
+LLM: الدفاع قرار استثناء عقد تصليح طائرات.docx
+Save JSON: الدفاع قرار استثناء عقد تصليح طائرات.json
+Read File: النفط توصية الطاقة حقل الناصرية.docx
+Extract: النفط توصية الطاقة حقل الناصرية.docx
+LLM: النفط توصية الطاقة حقل الناصرية.docx
+Save JSON: النفط توصية الطاقة حقل الناصرية.json
+Read File: قرار استثناء عقد تصليح الطائرات المروحية.docx
+Extract: قرار استثناء عقد تصليح الطائرات المروحية.docx
+LLM: قرار استثناء عقد تصليح الطائرات المروحية.docx
+Save JSON: قرار استثناء عقد تصليح الطائرات المروحية.json
+Read File: قرار توصية الطاقة حقل الناصرية.docx
+Extract: قرار توصية الطاقة حقل الناصرية.docx
+LLM: قرار توصية الطاقة حقل الناصرية.docx
+Save JSON: قرار توصية الطاقة حقل الناصرية.json
+Read File: وزارة الصحة لجنة الصيادله.docx
+Extract: وزارة الصحة لجنة الصيادله.docx
+LLM: وزارة الصحة لجنة الصيادله.docx
+Save JSON: وزارة الصحة لجنة الصيادله.json
+Finished
+Chunking: 6 files
+Embedding: 55 chunks
+ChromaDB: 55 chunks
+citation_registry.json
+Qwen 3B Chatbot: ready
+Read File: sample.docx
+Extract: sample.docx
+LLM: sample.docx
+Read File: sample.docx
+Extract: sample.docx
+LLM: sample.docx
+Chunking: 1 files
+Embedding: 1 chunks
+ChromaDB: 1 chunks
+citation_registry.json
+Start
+Batch: 1 files=1
+Save JSON: sample.json
+Finished
+Read File: sample.docx
+Extract: sample.docx
+LLM: sample.docx
+Read File: sample.docx
+Extract: sample.docx
+LLM: sample.docx
+Chunking: 1 files
+Embedding: 1 chunks
+ChromaDB: 1 chunks
+citation_registry.json
+Start
+Batch: 1 files=1
+Save JSON: sample.json
+Finished
+Read File: sample.docx
+Extract: sample.docx
+LLM: sample.docx
+Read File: sample.docx
+Extract: sample.docx
+LLM: sample.docx
+Chunking: 1 files
+Embedding: 1 chunks
+ChromaDB: 1 chunks
+citation_registry.json
+Start
+Batch: 1 files=1
+Save JSON: sample.json
+Finished
+Read File: sample.docx
+Extract: sample.docx
+LLM: sample.docx
+Read File: sample.docx
+Extract: sample.docx
+LLM: sample.docx
+Chunking: 1 files
+Embedding: 1 chunks
+ChromaDB: 1 chunks
+citation_registry.json
+Start
+Batch: 1 files=1
+Save JSON: sample.json
+Finished
+Read File: sample.docx
+Extract: sample.docx
+LLM: sample.docx
+Read File: sample.docx
+Extract: sample.docx
+LLM: sample.docx
+Chunking: 1 files
+Embedding: 1 chunks
+ChromaDB: 1 chunks
+citation_registry.json
+Start
+Batch: 1 files=1
+Save JSON: sample.json
+Finished
+Read File: sample.docx
+Extract: sample.docx
+LLM: sample.docx
+Read File: sample.docx
+Extract: sample.docx
+LLM: sample.docx
+Chunking: 1 files
+Embedding: 1 chunks
+ChromaDB: 1 chunks
+citation_registry.json
+Start
+Batch: 1 files=1
+Save JSON: sample.json
+Finished
+Read File: sample.docx
+Extract: sample.docx
+LLM: sample.docx
+Read File: sample.docx
+Extract: sample.docx
+LLM: sample.docx
+Chunking: 1 files
+Embedding: 1 chunks
+ChromaDB: 1 chunks
+citation_registry.json
+Start
+Batch: 1 files=1
+Save JSON: sample.json
+Finished
+Read File: sample.docx
+Extract: sample.docx
+LLM: sample.docx
+Read File: sample.docx
+Extract: sample.docx
+LLM: sample.docx
+Chunking: 1 files
+Embedding: 1 chunks
+ChromaDB: 1 chunks
+citation_registry.json
+Start
+Batch: 1 files=1
+Save JSON: sample.json
+Finished
+Read File: sample.docx
+Extract: sample.docx
+LLM: sample.docx
+Read File: sample.docx
+Extract: sample.docx
+LLM: sample.docx
+Chunking: 1 files
+Embedding: 1 chunks
+ChromaDB: 1 chunks
+citation_registry.json
+Start
+Batch: 1 files=1
+Save JSON: sample.json
+Finished
+Read File: sample.docx
+Extract: sample.docx
+LLM: sample.docx
+Read File: sample.docx
+Extract: sample.docx
+LLM: sample.docx
+Chunking: 1 files
+Embedding: 1 chunks
+ChromaDB: 1 chunks
+citation_registry.json
+Start
+Batch: 1 files=1
+Save JSON: sample.json
+Finished
+Read File: sample.docx
+Extract: sample.docx
+LLM: sample.docx
+Read File: sample.docx
+Extract: sample.docx
+LLM: sample.docx
+Chunking: 1 files
+Embedding: 1 chunks
+ChromaDB: 1 chunks
+citation_registry.json
+Start
+Batch: 1 files=1
+Save JSON: sample.json
+Finished
+Read File: sample.docx
+Extract: sample.docx
+LLM: sample.docx
+Read File: sample.docx
+Extract: sample.docx
+LLM: sample.docx
+Chunking: 1 files
+Embedding: 1 chunks
+ChromaDB: 1 chunks
+citation_registry.json
+Start
+Batch: 1 files=1
+Save JSON: sample.json
+Finished
+Read File: sample.docx
+Extract: sample.docx
+LLM: sample.docx
+Read File: sample.docx
+Extract: sample.docx
+LLM: sample.docx
+Chunking: 1 files
+Embedding: 1 chunks
+ChromaDB: 1 chunks
+citation_registry.json
+Start
+Batch: 1 files=1
+Save JSON: sample.json
+Finished
+Read File: sample.docx
+Extract: sample.docx
+LLM: sample.docx
+Read File: sample.docx
+Extract: sample.docx
+LLM: sample.docx
+Chunking: 1 files
+Embedding: 1 chunks
+ChromaDB: 1 chunks
+citation_registry.json
+Start
+Batch: 1 files=1
+Save JSON: sample.json
+Finished
+Read File: sample.docx
+Extract: sample.docx
+LLM: sample.docx
+Read File: sample.docx
+Extract: sample.docx
+LLM: sample.docx
+Chunking: 1 files
+Embedding: 1 chunks
+ChromaDB: 1 chunks
+citation_registry.json
+Start
+Batch: 1 files=1
+Save JSON: sample.json
+Finished
+Read File: sample.docx
+Extract: sample.docx
+LLM: sample.docx
+Read File: sample.docx
+Extract: sample.docx
+LLM: sample.docx
+Chunking: 1 files
+Embedding: 1 chunks
+ChromaDB: 1 chunks
+citation_registry.json
+Start
+Batch: 1 files=1
+Save JSON: sample.json
+Finished
+Read File: sample.docx
+Extract: sample.docx
+LLM: sample.docx
+Read File: sample.docx
+Extract: sample.docx
+LLM: sample.docx
+Chunking: 1 files
+Embedding: 1 chunks
+ChromaDB: 1 chunks
+citation_registry.json
+Start
+Batch: 1 files=1
+Save JSON: sample.json
+Finished
+Read File: sample.docx
+Extract: sample.docx
+LLM: sample.docx
+Read File: sample.docx
+Extract: sample.docx
+LLM: sample.docx
+Chunking: 1 files
+Embedding: 1 chunks
+ChromaDB: 1 chunks
+citation_registry.json
+Start
+Batch: 1 files=1
+Save JSON: sample.json
+Finished
+Read File: sample.docx
+Extract: sample.docx
+LLM: sample.docx
+Read File: sample.docx
+Extract: sample.docx
+LLM: sample.docx
+Chunking: 1 files
+Embedding: 1 chunks
+ChromaDB: 1 chunks
+citation_registry.json
+Start
+Batch: 1 files=1
+Save JSON: sample.json
+Finished
+Read File: sample.docx
+Extract: sample.docx
+LLM: sample.docx
+Read File: sample.docx
+Extract: sample.docx
+LLM: sample.docx
+Chunking: 1 files
+Embedding: 1 chunks
+ChromaDB: 1 chunks
+citation_registry.json
+Start
+Batch: 1 files=1
+Save JSON: sample.json
+Finished
+Read File: sample.docx
+Extract: sample.docx
+LLM: sample.docx
+Read File: sample.docx
+Extract: sample.docx
+LLM: sample.docx
+Chunking: 1 files
+Embedding: 1 chunks
+ChromaDB: 1 chunks
+citation_registry.json
+Start
+Batch: 1 files=1
+Save JSON: sample.json
+Finished
+Read File: sample.docx
+Extract: sample.docx
+LLM: sample.docx
+Read File: sample.docx
+Extract: sample.docx
+LLM: sample.docx
+Chunking: 1 files
+Embedding: 1 chunks
+ChromaDB: 1 chunks
+citation_registry.json
+Start
+Batch: 1 files=1
+Save JSON: sample.json
+Finished
+Read File: sample.docx
+Extract: sample.docx
+LLM: sample.docx
+Read File: sample.docx
+Extract: sample.docx
+LLM: sample.docx
+Chunking: 1 files
+Embedding: 1 chunks
+ChromaDB: 1 chunks
+citation_registry.json
+Start
+Batch: 1 files=1
+Save JSON: sample.json
+Finished
+Read File: sample.docx
+Extract: sample.docx
+LLM: sample.docx
+Read File: sample.docx
+Extract: sample.docx
+LLM: sample.docx
+Chunking: 1 files
+Embedding: 1 chunks
+ChromaDB: 1 chunks
+citation_registry.json
+Start
+Batch: 1 files=1
+Save JSON: sample.json
+Finished
+Read File: sample.docx
+Extract: sample.docx
+LLM: sample.docx
+Read File: sample.docx
+Extract: sample.docx
+LLM: sample.docx
+Chunking: 1 files
+Embedding: 1 chunks
+ChromaDB: 1 chunks
+citation_registry.json
+Start
+Batch: 1 files=1
+Save JSON: sample.json
+Finished
+Read File: sample.docx
+Extract: sample.docx
+LLM: sample.docx
+Read File: sample.docx
+Extract: sample.docx
+LLM: sample.docx
+Chunking: 1 files
+Embedding: 1 chunks
+ChromaDB: 1 chunks
+citation_registry.json
+Start
+Batch: 1 files=1
+Save JSON: sample.json
+Finished
+Read File: sample.docx
+Extract: sample.docx
+LLM: sample.docx
+Read File: sample.docx
+Extract: sample.docx
+LLM: sample.docx
+Chunking: 1 files
+Embedding: 1 chunks
+ChromaDB: 1 chunks
+citation_registry.json
+Start
+Batch: 1 files=1
+Save JSON: sample.json
+Finished
+Read File: sample.docx
+Extract: sample.docx
+LLM: sample.docx
+Read File: sample.docx
+Extract: sample.docx
+LLM: sample.docx
+Chunking: 1 files
+Embedding: 1 chunks
+ChromaDB: 1 chunks
+citation_registry.json
+Start
+Batch: 1 files=1
+Save JSON: sample.json
+Finished
+Read File: sample.docx
+Extract: sample.docx
+LLM: sample.docx
+Read File: sample.docx
+Extract: sample.docx
+LLM: sample.docx
+Chunking: 1 files
+Embedding: 1 chunks
+ChromaDB: 1 chunks
+citation_registry.json
+Start
+Batch: 1 files=1
+Save JSON: sample.json
+Finished

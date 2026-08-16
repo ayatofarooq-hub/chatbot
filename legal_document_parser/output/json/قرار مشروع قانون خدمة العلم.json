@@ -1,0 +1,151 @@
+{
+  "schema_version": "iraqi_legal_document.v2",
+  "created_at": "2026-08-15T18:18:19.245280+00:00",
+  "source": {
+    "filename": "قرار مشروع قانون خدمة العلم.docx",
+    "extension": ".docx",
+    "parser": "legal_document_parser",
+    "encoding": "utf-8"
+  },
+  "document": {
+    "title": "قــرار مجلــس الــوزراء",
+    "type": "قرار مجلس الوزراء",
+    "decision_number": null,
+    "year": "2024",
+    "issue_date": "30/10/2024",
+    "session_number": "الرابعة والاربعين",
+    "session_date": "29/10/2024"
+  },
+  "metadata": {
+    "source_filename": "قرار مشروع قانون خدمة العلم.docx",
+    "source_stem": "قرار مشروع قانون خدمة العلم",
+    "title": "قــرار مجلــس الــوزراء",
+    "document_type": "قرار مجلس الوزراء",
+    "decision_number": null,
+    "year": "2024",
+    "issue_date": "30/10/2024",
+    "session_number": "الرابعة والاربعين",
+    "session_date": "29/10/2024",
+    "subject": null,
+    "sender": null,
+    "recipient": null,
+    "signature": {
+      "name": "د. حميــد نعيــم الغــزي",
+      "title": "الأميـن العـام لمجلـس الـوزراء",
+      "date": "30/10/2024"
+    },
+    "source_character_count": 407,
+    "source_paragraph_count": 8
+  },
+  "references": [],
+  "decision": {
+    "sections": [
+      {
+        "section_id": "header",
+        "title": "header",
+        "paragraph_indexes": [
+          1,
+          2,
+          3
+        ],
+        "text": "قــرار\nمجلــس الــوزراء\nرقــم (                ) لسنــــة 2024"
+      },
+      {
+        "section_id": "signature",
+        "title": "signature",
+        "paragraph_indexes": [
+          6,
+          7,
+          8
+        ],
+        "text": "د. حميــد نعيــم الغــزي\nالأميـن العـام لمجلـس الـوزراء\n30/10/2024"
+      }
+    ],
+    "numbered_items": []
+  },
+  "long_text": "قــرار\nمجلــس الــوزراء\nرقــم (                ) لسنــــة 2024\nقــــرّر مجلــس الــوزراء في جلستـــــه الاعتياديـــــة الرابعة والأربعين المنعقــــدة في 29/10/2024 \nما يأتـــي :\nالموافقة على مشروع قانون خدمة العلم الذي دققه مجلس الدولة ، واحالته الى مجلس النواب استناداً الى أحكام المادتين (61 / البند اولاً و80 / البند ثانيًا) من الدستور .\nد. حميــد نعيــم الغــزي\nالأميـن العـام لمجلـس الـوزراء\n30/10/2024",
+  "body": "قــرار\nمجلــس الــوزراء\nرقــم (                ) لسنــــة 2024\nقــــرّر مجلــس الــوزراء في جلستـــــه الاعتياديـــــة الرابعة والأربعين المنعقــــدة في 29/10/2024 \nما يأتـــي :\nالموافقة على مشروع قانون خدمة العلم الذي دققه مجلس الدولة ، واحالته الى مجلس النواب استناداً الى أحكام المادتين (61 / البند اولاً و80 / البند ثانيًا) من الدستور .\nد. حميــد نعيــم الغــزي\nالأميـن العـام لمجلـس الـوزراء\n30/10/2024",
+  "paragraphs": [
+    {
+      "index": 1,
+      "text": "قــرار"
+    },
+    {
+      "index": 2,
+      "text": "مجلــس الــوزراء"
+    },
+    {
+      "index": 3,
+      "text": "رقــم (                ) لسنــــة 2024"
+    },
+    {
+      "index": 4,
+      "text": "قــــرّر مجلــس الــوزراء في جلستـــــه الاعتياديـــــة الرابعة والأربعين المنعقــــدة في 29/10/2024 \nما يأتـــي :"
+    },
+    {
+      "index": 5,
+      "text": "الموافقة على مشروع قانون خدمة العلم الذي دققه مجلس الدولة ، واحالته الى مجلس النواب استناداً الى أحكام المادتين (61 / البند اولاً و80 / البند ثانيًا) من الدستور ."
+    },
+    {
+      "index": 6,
+      "text": "د. حميــد نعيــم الغــزي"
+    },
+    {
+      "index": 7,
+      "text": "الأميـن العـام لمجلـس الـوزراء"
+    },
+    {
+      "index": 8,
+      "text": "30/10/2024"
+    }
+  ],
+  "legal_entities": {
+    "organizations": [
+      "مجلس الدولة"
+    ],
+    "companies": [],
+    "persons": [
+      "د. حميــد نعيــم الغــزي"
+    ],
+    "all": [
+      {
+        "type": "organization",
+        "name": "مجلس الدولة"
+      },
+      {
+        "type": "person",
+        "name": "د. حميــد نعيــم الغــزي"
+      }
+    ]
+  },
+  "extracted_fields": {
+    "document_type": "قرار مجلس الوزراء",
+    "decision_number": null,
+    "year": "2024",
+    "issue_date": "30/10/2024",
+    "session_number": "الرابعة والاربعين",
+    "session_date": "29/10/2024",
+    "subject": null,
+    "sender": null,
+    "recipient": null,
+    "recommendation_numbers": [],
+    "reference_numbers": [],
+    "document_numbers": [],
+    "numeric_values": [],
+    "tables": []
+  },
+  "signature": {
+    "name": "د. حميــد نعيــم الغــزي",
+    "title": "الأميـن العـام لمجلـس الـوزراء",
+    "date": "30/10/2024"
+  },
+  "extraction_notes": {
+    "summarized": false,
+    "truncated": false,
+    "missing_information_policy": "null",
+    "uses_chatbot": false,
+    "uses_ollama": false,
+    "uses_chromadb": false,
+    "uses_postgresql": false
+  }
+}

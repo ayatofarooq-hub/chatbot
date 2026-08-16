@@ -116,6 +116,7 @@ export function createSettingsModule({ root, modalRoot, showToast, onAuthenticat
   let dirty = false;
   let users = [];
   let roles = {};
+  let ministries = [];
   let auditPage = 1;
   const auditPageSize = 5;
   const json = (method, body) => ({
@@ -280,6 +281,15 @@ export function createSettingsModule({ root, modalRoot, showToast, onAuthenticat
     return names.map((role) => `<option value="${escapeHtml(role)}" ${role === selected ? "selected" : ""}>${escapeHtml(roleLabel(role))}</option>`).join("");
   }
 
+  function ministryOptions(selected) {
+    return [
+      `<option value="">بدون وزارة</option>`,
+      ...ministries.map((ministry) => (
+        `<option value="${escapeHtml(ministry)}" ${ministry === selected ? "selected" : ""}>${escapeHtml(ministry)}</option>`
+      )),
+    ].join("");
+  }
+
   async function refreshUsers() {
     const body = root.querySelector("[data-users-body]");
     if (!body) return;
@@ -287,11 +297,13 @@ export function createSettingsModule({ root, modalRoot, showToast, onAuthenticat
       const payload = await api("/api/settings/users");
       users = payload.items || [];
       roles = payload.roles || {};
+      ministries = payload.ministries || [];
       body.innerHTML = users.map((user) => `
         <tr>
           <td>${escapeHtml(user.username)}</td>
           <td>${escapeHtml(user.display_name)}</td>
           <td>${escapeHtml(user.email)}</td>
+          <td>${escapeHtml(user.ministry || "")}</td>
           <td>${escapeHtml(roleLabel(user.role))}</td>
           <td>${user.is_active ? "نشط" : "معطل"}</td>
           <td class="settings-row-actions">
@@ -299,7 +311,7 @@ export function createSettingsModule({ root, modalRoot, showToast, onAuthenticat
             <button type="button" data-reset-user="${user.id}">تغيير كلمة المرور</button>
             <button type="button" class="danger-button" data-delete-user="${user.id}" ${user.is_active ? "" : "disabled"}>تعطيل</button>
           </td>
-        </tr>`).join("") || `<tr><td colspan="6">لا يوجد مستخدمون.</td></tr>`;
+        </tr>`).join("") || `<tr><td colspan="7">لا يوجد مستخدمون.</td></tr>`;
       body.querySelectorAll("[data-edit-user]").forEach((button) => {
         button.onclick = () => userForm(users.find((item) => item.id === Number(button.dataset.editUser)));
       });
@@ -310,7 +322,7 @@ export function createSettingsModule({ root, modalRoot, showToast, onAuthenticat
         button.onclick = () => deactivateUser(Number(button.dataset.deleteUser));
       });
     } catch (error) {
-      body.innerHTML = `<tr><td colspan="6">${escapeHtml(error.message)}</td></tr>`;
+      body.innerHTML = `<tr><td colspan="7">${escapeHtml(error.message)}</td></tr>`;
     }
   }
 
@@ -353,6 +365,7 @@ export function createSettingsModule({ root, modalRoot, showToast, onAuthenticat
           <label>اسم المستخدم<input name="username" required ${isEdit ? "disabled" : ""}></label>
           <label>الاسم الظاهر<input name="display_name"></label>
           <label>البريد الإلكتروني<input name="email" type="email"></label>
+          <label>الوزارة<select name="ministry">${ministryOptions(item.ministry || "")}</select></label>
           <label>الدور<select name="role">${roleOptions(item.role || "viewer")}</select></label>
           <label><input name="is_active" type="checkbox"> نشط</label>
           ${isEdit ? "" : "<label>كلمة المرور الأولية<input name=\"password\" type=\"password\" required></label>"}
@@ -362,7 +375,7 @@ export function createSettingsModule({ root, modalRoot, showToast, onAuthenticat
         </form>
       </div>`;
     const form = modalRoot.querySelector("form");
-    ["username", "display_name", "email"].forEach((key) => {
+    ["username", "display_name", "email", "ministry"].forEach((key) => {
       if (form.elements[key]) form.elements[key].value = item[key] || "";
     });
     form.elements.is_active.checked = item.is_active ?? true;
@@ -439,8 +452,8 @@ export function createSettingsModule({ root, modalRoot, showToast, onAuthenticat
       </div>
       <div class="settings-table-wrap">
         <table class="settings-table">
-          <thead><tr><th>اسم المستخدم</th><th>الاسم</th><th>البريد</th><th>الدور</th><th>الحالة</th><th>الإجراءات</th></tr></thead>
-          <tbody data-users-body><tr><td colspan="6">جاري تحميل المستخدمين...</td></tr></tbody>
+          <thead><tr><th>اسم المستخدم</th><th>الاسم</th><th>البريد</th><th>الوزارة</th><th>الدور</th><th>الحالة</th><th>الإجراءات</th></tr></thead>
+          <tbody data-users-body><tr><td colspan="7">جاري تحميل المستخدمين...</td></tr></tbody>
         </table>
       </div>`;
     grid.append(section);

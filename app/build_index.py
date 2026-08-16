@@ -41,9 +41,17 @@ CHROMA_BATCH_SIZE = 100
 REQUIRED_FIELDS = {
     "id",
     "source_file",
+    "document_id",
     "page_number",
     "chunk_index",
     "text",
+}
+FULL_TEXT_METADATA_FIELDS = {
+    "long_text",
+    "body",
+    "full_text",
+    "original_long_text",
+    "original_text",
 }
 
 
@@ -109,7 +117,7 @@ def create_embeddings(chunks: list[dict]) -> list[list[float]]:
         batch = chunks[start : start + EMBEDDING_BATCH_SIZE]
         response = active_client.embed(
             model=model["embedding_model"],
-            input=[chunk["text"] for chunk in batch],
+            input=[chunk.get("embedding_text") or chunk["text"] for chunk in batch],
             keep_alive=model["keep_alive"],
         )
         batch_embeddings = response["embeddings"]
@@ -150,7 +158,7 @@ def chunk_metadata(chunk: dict) -> dict:
     metadata = {
         key: value
         for key, value in chunk.items()
-        if key not in {"id", "text"}
+        if key not in {"id", "text", "embedding_text", *FULL_TEXT_METADATA_FIELDS}
         and isinstance(value, (str, int, float, bool))
     }
     metadata["chunk_id"] = chunk["id"]
@@ -174,6 +182,34 @@ def add_chunks(collection, chunks: list[dict], embeddings: list[list[float]]) ->
             metadatas=[chunk_metadata(chunk) for chunk in batch],
             embeddings=batch_embeddings,
         )
+
+
+def ensure_unique_chunk_ids(chunks: list[dict]) -> list[dict]:
+    """Return chunks with Chroma-safe unique ids while preserving metadata links."""
+
+    seen: dict[str, int] = {}
+    unique_chunks = []
+    for index, chunk in enumerate(chunks):
+        updated = dict(chunk)
+        original_id = str(updated.get("id") or updated.get("chunk_id") or f"chunk-{index}")
+        count = seen.get(original_id, 0)
+        seen[original_id] = count + 1
+        if count:
+            unique_id = f"{original_id}-dup-{count}"
+            updated["original_chunk_id"] = original_id
+            updated["id"] = unique_id
+            updated["chunk_id"] = unique_id
+            metadata = updated.get("metadata")
+            if isinstance(metadata, dict):
+                metadata = dict(metadata)
+                metadata["original_chunk_id"] = original_id
+                metadata["chunk_id"] = unique_id
+                updated["metadata"] = metadata
+        else:
+            updated["id"] = original_id
+            updated["chunk_id"] = str(updated.get("chunk_id") or original_id)
+        unique_chunks.append(updated)
+    return unique_chunks
 
 
 def load_source_chunks() -> list[dict]:
@@ -207,7 +243,7 @@ def load_source_chunks() -> list[dict]:
 
     if not chunks:
         raise ValueError("The source documents did not produce any chunks.")
-    return chunks
+    return ensure_unique_chunk_ids(chunks)
 
 
 def save_chunks(chunks: list[dict]) -> None:

@@ -1,0 +1,1 @@
+"""Parser app model definitions."""

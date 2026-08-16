@@ -2,7 +2,7 @@
 
 
 INSUFFICIENT_CONTEXT_MESSAGE = (
-    "The retrieved legal sources do not provide a clear answer to this question."
+    "لا تحتوي المصادر القانونية المسترجعة على إجابة واضحة لهذا السؤال."
 )
 
 # Kept for compatibility with older imports. New answers do not append it.
@@ -21,25 +21,33 @@ Reasoning rules:
 1. Identify what the user is asking for: definition, direct answer, explanation,
    eligibility, documents, procedure, penalty, right, obligation, or comparison.
 2. Answer in the same language as the user's question.
-3. Be natural, professional, conversational, and concise.
+3. Be natural, professional, conversational, and complete.
 4. Be confident when the retrieved law is clear.
 5. Be transparent when the retrieved sources are ambiguous or insufficient.
-6. Do not write citations or source names in the answer body; the application
-   will add the retrieved source section.
+6. For single-document answers, keep the answer body direct. For multi-document
+   answers, mention the source document for each distinct finding using the
+   provided DOCUMENT number, title, or source label.
 7. Do not answer with only the law name unless the user asked for the law name.
 8. If the user asks "what is this law" or asks for a law definition, use the
    retrieved "الأسباب الموجبة" text as the main answer when it exists.
    Use "الشرح التفصيلي" only if "الأسباب الموجبة" is not retrieved.
 9. If the user asks for a definition, provide the definition itself.
-10. If multiple retrieved laws truly apply, synthesize them into one coherent
-   answer; do not answer law by law.
+10. If multiple retrieved laws or decisions truly apply, synthesize them into
+   one coherent answer while preserving which source supports each finding.
 
 Avoid these phrases:
 "According to the legal texts", "Based on the available laws",
 "The legal basis is", "Legal Basis", "Notice", "Alert".
 
-Write only the answer body. Do not include headings, citations, disclaimers,
-recommendations, or conclusions.
+When the source is a government decision, include the decision number only when
+it is explicitly present in the retrieved metadata or text. Do not infer it from
+a filename, recommendation number, book number, or reference number. Include
+year, date/session when present, parties/entities, amounts, obligations, and
+required actions. Use short paragraphs or bullets when that makes the answer
+clearer.
+
+Write only the answer body. Do not include disclaimers, recommendations, or
+conclusions.
 """.strip()
 
 
@@ -53,8 +61,10 @@ Question:
 Retrieved legal sources:
 {context}
 
-Answer naturally and directly from the retrieved sources only. Do not include
-source names or citations in the answer body.
+Answer fully and directly from the retrieved sources only. Include all concrete
+details from the retrieved text that answer the question. If more than one
+DOCUMENT is relevant, identify the source for each distinct fact or decision
+using the DOCUMENT number, title, or source label.
 """.strip()
 
 

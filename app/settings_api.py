@@ -11,8 +11,10 @@ from starlette.concurrency import run_in_threadpool
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 
-from .auth import COOKIE_NAME, admin_for_token, audit, authenticate, revoke_token
+from .auth import COOKIE_NAME, admin_for_token, audit, authenticate, next_welcome_phrase_for_token, revoke_token
 from .build_index import main as build_index
+from .legal_parser_integration import rebuild_legal_parser_index
+from .ministry_phrases import ministry_names
 from .settings_schema import SettingsValidationError, validate_settings
 from .runtime_settings import runtime_settings
 from .settings_store import (
@@ -26,7 +28,7 @@ from .user_management import (
 )
 
 _rebuild_lock = threading.Lock()
-_rebuild_state = {"status": "idle", "detail": None}
+_rebuild_state = {"status": "idle", "detail": None, "legal_parser": None}
 
 
 def error(detail: str, status: int, code: str = "error", fields=None) -> JSONResponse:
@@ -88,13 +90,16 @@ async def logout(request: Request) -> JSONResponse:
 
 
 async def session(request: Request) -> JSONResponse:
-    admin = await run_in_threadpool(admin_for_token, request.cookies.get(COOKIE_NAME))
+    token = request.cookies.get(COOKIE_NAME)
+    admin = await run_in_threadpool(admin_for_token, token)
     login_required = bool(runtime_settings()["authentication"]["login_enabled"])
+    welcome_phrase = await run_in_threadpool(next_welcome_phrase_for_token, token) if admin else None
     return JSONResponse(
         {
             "authenticated": bool(admin),
             "login_required": login_required,
             "administrator": admin,
+            "welcome_phrase": welcome_phrase,
         }
     )
 
@@ -217,9 +222,14 @@ def _run_rebuild() -> None:
     if not _rebuild_lock.acquire(blocking=False):
         return
     try:
-        _rebuild_state.update(status="running", detail=None)
+        _rebuild_state.update(status="running", detail=None, legal_parser=None)
         build_index()
-        _rebuild_state.update(status="completed", detail=None)
+        legal_parser_result = rebuild_legal_parser_index(parse_docx=True)
+        _rebuild_state.update(
+            status="completed",
+            detail=None,
+            legal_parser=legal_parser_result,
+        )
     except BaseException as exc:  # build_index.main uses SystemExit on failure
         _rebuild_state.update(status="failed", detail=str(exc))
     finally:
@@ -296,7 +306,7 @@ async def users_get(request: Request) -> JSONResponse:
     admin = require_admin(request, "manage_users")
     if isinstance(admin, Response):
         return admin
-    return JSONResponse({"items": await run_in_threadpool(list_users), "roles": user_roles()})
+    return JSONResponse({"items": await run_in_threadpool(list_users), "roles": user_roles(), "ministries": ministry_names()})
 
 
 async def users_post(request: Request) -> JSONResponse:

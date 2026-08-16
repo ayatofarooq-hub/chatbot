@@ -58,7 +58,7 @@ class EmbeddingService:
             batch = chunks[start:start + EMBEDDING_BATCH_SIZE]
             response = active_client.embed(
                 model=settings["embedding_model"],
-                input=[chunk["text"] for chunk in batch],
+                input=[chunk.get("embedding_text") or chunk["text"] for chunk in batch],
                 keep_alive=settings["keep_alive"],
             )
             batch_embeddings = response["embeddings"]
@@ -93,7 +93,7 @@ class EmbeddingService:
             collection.add(ids=[chunk["id"] for chunk in batch], documents=[chunk["text"] for chunk in batch], metadatas=[self._chunk_metadata(chunk) for chunk in batch], embeddings=batch_embeddings)
 
     def _chunk_metadata(self, chunk: dict[str, Any]) -> dict[str, Any]:
-        metadata = {key: value for key, value in chunk.items() if key not in {"id", "text"} and isinstance(value, (str, int, float, bool))}
+        metadata = {key: value for key, value in chunk.items() if key not in {"id", "text", "embedding_text"} and isinstance(value, (str, int, float, bool))}
         metadata["chunk_id"] = chunk["id"]
         return metadata
 

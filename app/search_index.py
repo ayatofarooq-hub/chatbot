@@ -1,10 +1,11 @@
 """Diagnostic search for testing retrieval quality in the legal index."""
 
 import argparse
+import json
 import math
 import re
 import sys
-import unicodedata
+from pathlib import Path
 
 import chromadb
 import httpx
@@ -12,30 +13,38 @@ import ollama
 from chromadb.errors import NotFoundError
 
 try:
+    from .arabic_search import normalize_arabic_for_search, tokenize_arabic_search
     from .build_index import COLLECTION_NAME
+    from .chunk_text import CHUNKS_FILE
     from .config import (
         CHROMA_FOLDER,
         EMBEDDING_MODEL,
         EMBEDDING_QUERY_KEEP_ALIVE,
     )
     from .ollama_client import client as ollama_client
+    from .retrieval_logging import log_retrieval_results
+    from .text_encoding import repair_json_text
 except ImportError:
     # Support direct execution with: python app/search_index.py
+    from arabic_search import normalize_arabic_for_search, tokenize_arabic_search
     from build_index import COLLECTION_NAME
+    from chunk_text import CHUNKS_FILE
     from config import (
         CHROMA_FOLDER,
         EMBEDDING_MODEL,
         EMBEDDING_QUERY_KEEP_ALIVE,
     )
     from ollama_client import client as ollama_client
+    from retrieval_logging import log_retrieval_results
+    from text_encoding import repair_json_text
 
 
 RESULT_COUNT = 5
 CANDIDATE_COUNT = 20
+LEXICAL_CANDIDATE_COUNT = 40
+METADATA_CANDIDATE_COUNT = 40
+AGGREGATE_RESULT_COUNT = 10
 TEXT_PREVIEW_LENGTH = 500
-ARABIC_DIACRITICS_PATTERN = re.compile(r"[\u0610-\u061a\u064b-\u065f\u0670\u06d6-\u06ed]")
-TOKEN_PATTERN = re.compile(r"[\u0600-\u06ff]+|[0-9\u0660-\u0669]+")
-ARABIC_INDIC_DIGITS = str.maketrans("٠١٢٣٤٥٦٧٨٩", "0123456789")
 STOP_WORDS = {
     "اجابه",
     "اريد",
@@ -56,12 +65,25 @@ STOP_WORDS = {
     "قانون",
     "لسنه",
     "ما",
+    "ماهي",
     "من",
     "هل",
     "هو",
     "هي",
     "و",
 }
+DATE_PATTERN = re.compile(r"\b\d{1,2}\s*/\s*\d{1,2}\s*/\s*\d{4}\b")
+BOOK_NUMBER_PATTERN = re.compile(r"\b\d{1,5}\s*/\s*\d{1,5}(?:\s*/\s*\d{2,4})?\b")
+NUMBER_PATTERN = re.compile(r"\b\d{1,6}(?:\.\d{3})*(?:\.\d+)?\b")
+YEAR_PATTERN = re.compile(r"\b(?:19|20)\d{2}\b")
+STRONG_ARABIC_PHRASE_PATTERNS = (
+    re.compile(r"(?:وزارة|وزاره)\s+[\u0600-\u06ff ]{2,40}"),
+    re.compile(r"شركة\s+[\u0600-\u06ff0-9 ]{2,50}"),
+    re.compile(r"(?:السيد|الدكتور|د\.|الاستاذ)\s+[\u0600-\u06ff ]{2,40}"),
+    re.compile(r"(?:منتوج|مادة|ماده)\s+[\u0600-\u06ff ]{2,40}"),
+    re.compile(r"زيت\s+[\u0600-\u06ff ]{2,25}"),
+    re.compile(r"مجلس\s+الوزراء(?:\s+العراقي)?"),
+)
 
 
 def get_question() -> str:
@@ -90,48 +112,63 @@ def get_question() -> str:
 def normalize_for_search(text: str) -> str:
     """Normalize Arabic variants for ranking without changing indexed text."""
 
-    text = unicodedata.normalize("NFKC", text).translate(ARABIC_INDIC_DIGITS)
-    text = ARABIC_DIACRITICS_PATTERN.sub("", text)
-    text = text.replace("ـ", "")
-    text = re.sub(r"[أإآٱ]", "ا", text)
-    text = text.replace("ى", "ي").replace("ؤ", "و").replace("ئ", "ي")
-    return re.sub(r"\s+", " ", text).strip().lower()
+    return normalize_arabic_for_search(text)
 
 
 def tokenize_for_search(text: str) -> set[str]:
     """Return meaningful normalized Arabic and numeric search tokens."""
 
-    normalized = normalize_for_search(text)
-    tokens = {
-        token
-        for token in TOKEN_PATTERN.findall(normalized)
-        if token not in STOP_WORDS and (token.isdigit() or len(token) > 1)
-    }
-    # PyMuPDF can reverse digit sequences in right-to-left PDF text. Keep both
-    # forms for ranking so a query for 13/2005 matches extracted 31/5002.
-    reversed_numbers = {
-        token[::-1]
-        for token in tokens
-        if token.isdigit() and len(token) > 1
-    }
-    return tokens | reversed_numbers
+    return set(tokenize_arabic_search(text))
 
 
 def tokenize_bm25(text: str) -> list[str]:
     """Return normalized tokens for BM25 scoring."""
 
-    normalized = normalize_for_search(text)
-    tokens = [
-        token
-        for token in TOKEN_PATTERN.findall(normalized)
-        if token not in STOP_WORDS and (token.isdigit() or len(token) > 1)
-    ]
-    expanded = []
-    for token in tokens:
-        expanded.append(token)
-        if token.isdigit() and len(token) > 1:
-            expanded.append(token[::-1])
-    return expanded
+    return tokenize_arabic_search(text)
+
+
+def extract_strong_signals(question: str) -> list[str]:
+    """Extract high-value legal identifiers from the user question."""
+
+    normalized = normalize_for_search(question)
+    signals: list[str] = []
+    signals.extend(DATE_PATTERN.findall(normalized))
+    signals.extend(BOOK_NUMBER_PATTERN.findall(normalized))
+    signals.extend(YEAR_PATTERN.findall(normalized))
+    signals.extend(NUMBER_PATTERN.findall(normalized))
+    for pattern in STRONG_ARABIC_PHRASE_PATTERNS:
+        signals.extend(match.group(0).strip() for match in pattern.finditer(normalized))
+
+    tokens = tokenize_arabic_search(normalized)
+    for index, token in enumerate(tokens):
+        if token in {"قرار", "كتاب", "رقم", "وزاره", "وزارة", "شركة", "منتوج"}:
+            window = " ".join(tokens[index : index + 4])
+            if window:
+                signals.append(window)
+
+    return list(dict.fromkeys(signal.strip() for signal in signals if signal.strip()))
+
+
+def strong_signal_score(question: str, candidate_text: str) -> float:
+    """Score exact identifiers more heavily than ordinary keyword overlap."""
+
+    signals = extract_strong_signals(question)
+    if not signals:
+        return 0.0
+
+    candidate = normalize_for_search(candidate_text)
+    matched = 0.0
+    total = 0.0
+    for signal in signals:
+        signal_text = normalize_for_search(signal)
+        weight = 3.0 if any(char.isdigit() for char in signal_text) else 2.0
+        total += weight
+        signal_tokens = tokenize_for_search(signal_text)
+        if signal_text and signal_text in candidate:
+            matched += weight
+        elif signal_tokens and signal_tokens <= tokenize_for_search(candidate):
+            matched += weight * 0.8
+    return matched / total if total else 0.0
 
 
 def bm25_scores(question: str, documents: list[str]) -> list[float]:
@@ -183,6 +220,199 @@ def bm25_scores(question: str, documents: list[str]) -> list[float]:
     return [score / max_score for score in scores]
 
 
+def metadata_search_text(metadata: dict) -> str:
+    """Return searchable legal metadata without making filenames decisive."""
+
+    values = []
+    for key, value in metadata.items():
+        if "filename" in str(key).lower() or key in {"source_file", "source"}:
+            continue
+        if isinstance(value, (str, int, float, bool)) and str(value).strip():
+            values.append(str(value))
+    return " ".join(values)
+
+
+def candidate_search_text(document: str, metadata: dict) -> str:
+    """Combine retrieved content with structured metadata for reranking."""
+
+    metadata_text = metadata_search_text(metadata)
+    return f"{document}\n{metadata_text}".strip()
+
+
+def needs_multiple_documents(question: str) -> bool:
+    """Return whether the query asks for a set of relevant documents."""
+
+    normalized = normalize_for_search(question)
+    patterns = (
+        r"\b(?:ما|ماهي|ما هي|اذكر|اعرض|عدد)\s+ال?قرارات\b",
+        r"\b(?:كل|جميع|كافة)\s+ال?قرارات\b",
+        r"\bال?قرارات\s+التي\b",
+        r"\bخلال\s+(?:سنة\s+)?(?:19|20)\d{2}\b",
+        r"\b(?:قارن|مقارنة|بين)\b",
+    )
+    return any(re.search(pattern, normalized) for pattern in patterns)
+
+
+def document_dedupe_key(metadata: dict, document: str = "") -> str:
+    """Return a stable key for document-level de-duplication."""
+
+    for key in ("document_id", "source_file", "document_title", "title"):
+        value = str(metadata.get(key) or "").strip()
+        if value:
+            return normalize_for_search(value)
+    return normalize_for_search(document[:160])
+
+
+def load_chunk_records(file_path: Path = CHUNKS_FILE) -> list[dict]:
+    """Load locally saved chunks for metadata and lexical retrieval layers."""
+
+    if not file_path.exists():
+        return []
+    records: list[dict] = []
+    with file_path.open("r", encoding="utf-8") as input_file:
+        for line in input_file:
+            if not line.strip():
+                continue
+            try:
+                record = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if not isinstance(record, dict):
+                continue
+            record = repair_json_text(record)
+            if not str(record.get("text") or "").strip():
+                legacy_text = legacy_record_text(record)
+                if legacy_text:
+                    record["text"] = legacy_text
+            if record.get("text"):
+                records.append(record)
+    return records
+
+
+def legacy_record_text(record: dict) -> str:
+    """Recover answerable text from older chunk files whose text field is empty."""
+
+    document = record.get("document_document")
+    if isinstance(document, dict):
+        for key in ("text", "content", "body", "long_text"):
+            value = str(document.get(key) or "").strip()
+            if value:
+                return value
+        raw_payload = document.get("raw_payload")
+        if isinstance(raw_payload, dict):
+            for key in ("content", "text", "body", "long_text"):
+                value = str(raw_payload.get(key) or "").strip()
+                if value:
+                    return value
+    return ""
+
+
+def _record_metadata(record: dict) -> dict:
+    return {
+        key: value
+        for key, value in record.items()
+        if key not in {"text", "embedding_text", "metadata"}
+        and isinstance(value, (str, int, float, bool))
+    }
+
+
+def _candidate_results(scored_records: list[tuple[float, dict]], layer: str) -> dict:
+    documents = []
+    metadatas = []
+    distances = []
+    for score, record in scored_records:
+        metadata = _record_metadata(record)
+        metadata["chunk_id"] = str(record.get("chunk_id") or record.get("id") or "")
+        metadata["retrieval_layer"] = layer
+        documents.append(str(record.get("text") or ""))
+        metadatas.append(metadata)
+        distances.append(max(0.0, 1.0 - min(score, 1.0)))
+    return {"documents": [documents], "metadatas": [metadatas], "distances": [distances]}
+
+
+def metadata_filter_candidates(question: str, records: list[dict], limit: int = METADATA_CANDIDATE_COUNT) -> dict:
+    """Layer 1: select chunks whose structured metadata matches strong signals."""
+
+    signals = extract_strong_signals(question)
+    if not signals:
+        return {"documents": [[]], "metadatas": [[]], "distances": [[]]}
+
+    scored: list[tuple[float, dict]] = []
+    for record in records:
+        metadata = _record_metadata(record)
+        haystack = metadata_search_text(metadata)
+        score = strong_signal_score(" ".join(signals), haystack)
+        if score > 0:
+            scored.append((score, record))
+    scored.sort(key=lambda item: item[0], reverse=True)
+    return _candidate_results(scored[:limit], "metadata")
+
+
+def lexical_search_candidates(question: str, records: list[dict], limit: int = LEXICAL_CANDIDATE_COUNT) -> dict:
+    """Layer 2: keyword/BM25 retrieval over saved chunk text and metadata."""
+
+    if not records:
+        return {"documents": [[]], "metadatas": [[]], "distances": [[]]}
+
+    texts = [
+        candidate_search_text(str(record.get("text") or ""), _record_metadata(record))
+        for record in records
+    ]
+    bm25_values = bm25_scores(question, texts)
+    scored = []
+    for index, record in enumerate(records):
+        lexical_score = lexical_relevance(question, texts[index])
+        signal_score = strong_signal_score(question, texts[index])
+        score = (0.55 * bm25_values[index]) + (0.25 * lexical_score) + (0.20 * signal_score)
+        if score > 0:
+            scored.append((score, record))
+    scored.sort(key=lambda item: item[0], reverse=True)
+    return _candidate_results(scored[:limit], "lexical")
+
+
+def merge_candidate_results(*result_sets: dict, question: str = "") -> dict:
+    """Merge retrieval layers while preserving the best score per chunk."""
+
+    by_key: dict[str, dict] = {}
+    for results in result_sets:
+        documents = results.get("documents", [[]])[0]
+        metadatas = results.get("metadatas", [[]])[0]
+        distances = results.get("distances", [[]])[0]
+        for index, (document, metadata) in enumerate(zip(documents, metadatas)):
+            metadata = metadata if isinstance(metadata, dict) else {}
+            chunk_id = str(metadata.get("chunk_id") or metadata.get("id") or "")
+            key = chunk_id or f"{metadata.get('source_file', '')}|{metadata.get('chunk_index', index)}|{document[:80]}"
+            distance = distances[index] if index < len(distances) else 1.0
+            layer = str(metadata.get("retrieval_layer") or "semantic")
+            existing = by_key.get(key)
+            if existing is None:
+                merged_metadata = dict(metadata)
+                merged_metadata["retrieval_layers"] = layer
+                by_key[key] = {
+                    "document": document,
+                    "metadata": merged_metadata,
+                    "distance": distance,
+                }
+                continue
+            existing_document = str(existing.get("document") or "").strip()
+            candidate_document = str(document or "").strip()
+            if candidate_document and (
+                not existing_document or float(distance) < float(existing["distance"])
+            ):
+                existing["document"] = document
+                existing["distance"] = distance
+            layers = set(str(existing["metadata"].get("retrieval_layers", "")).split("|"))
+            layers.add(layer)
+            existing["metadata"]["retrieval_layers"] = "|".join(sorted(value for value in layers if value))
+
+    return {
+        "_question": question,
+        "documents": [[item["document"] for item in by_key.values()]],
+        "metadatas": [[item["metadata"] for item in by_key.values()]],
+        "distances": [[item["distance"] for item in by_key.values()]],
+    }
+
+
 def lexical_relevance(question: str, document: str) -> float:
     """Score exact legal terms and numbers that vector search can underweight."""
 
@@ -216,34 +446,83 @@ def rerank_results(results: dict, result_count: int = RESULT_COUNT) -> dict:
     metadatas = results.get("metadatas", [[]])[0]
     distances = results.get("distances", [[]])[0]
     question = results.get("_question", "")
-    bm25_score_values = bm25_scores(question, documents)
+    normalized_question = normalize_for_search(question)
+    candidate_texts = [
+        candidate_search_text(str(document or ""), metadata if isinstance(metadata, dict) else {})
+        for document, metadata in zip(documents, metadatas)
+    ]
+    bm25_score_values = bm25_scores(question, candidate_texts)
 
     ranked = []
     for index, (document, metadata) in enumerate(zip(documents, metadatas)):
+        metadata = metadata if isinstance(metadata, dict) else {}
+        candidate_text = candidate_search_text(str(document or ""), metadata)
         distance = distances[index] if index < len(distances) else float("inf")
         semantic_score = 1.0 / (1.0 + max(float(distance), 0.0))
-        lexical_score = lexical_relevance(question, document)
+        lexical_score = lexical_relevance(question, candidate_text)
         bm25_score = (
             bm25_score_values[index]
             if index < len(bm25_score_values)
             else 0.0
         )
+        signal_score = strong_signal_score(question, candidate_text)
+        layers = set(str(metadata.get("retrieval_layers") or metadata.get("retrieval_layer") or "").split("|"))
+        layer_bonus = 0.0
+        if "metadata" in layers:
+            layer_bonus += 0.08
+        if "lexical" in layers:
+            layer_bonus += 0.05
+        if "semantic" in layers:
+            layer_bonus += 0.03
+        section = normalize_for_search(
+            metadata.get("section")
+            or metadata.get("section_title")
+            or metadata.get("article_reference")
+            or ""
+        )
+        structure_penalty = 0.0
+        if section in {"header", "signature"} and re.search(
+            r"\b(?:الموافقه|استثناء|عقد|مبلغ|مده|رقم|تعليمات|الماده)\b",
+            normalized_question,
+        ):
+            structure_penalty = 0.12
         ranked.append(
             {
                 "document": document,
                 "metadata": metadata,
                 "distance": distance,
                 "score": (
-                    (0.55 * semantic_score)
+                    (0.30 * semantic_score)
                     + (0.30 * bm25_score)
-                    + (0.15 * lexical_score)
+                    + (0.20 * lexical_score)
+                    + (0.20 * signal_score)
+                    + layer_bonus
+                    - structure_penalty
                 ),
                 "bm25_score": bm25_score,
-                "tokens": tokenize_for_search(document),
+                "signal_score": signal_score,
+                "tokens": tokenize_for_search(candidate_text),
             }
         )
 
     ranked.sort(key=lambda item: item["score"], reverse=True)
+    if needs_multiple_documents(question):
+        by_document: dict[str, dict] = {}
+        for candidate in ranked:
+            key = document_dedupe_key(candidate["metadata"], str(candidate["document"] or ""))
+            existing = by_document.get(key)
+            if existing is None or float(candidate["score"]) > float(existing["score"]):
+                by_document[key] = candidate
+        selected = sorted(by_document.values(), key=lambda item: item["score"], reverse=True)[:result_count]
+        return {
+            "documents": [[item["document"] for item in selected]],
+            "metadatas": [[item["metadata"] for item in selected]],
+            "distances": [[item["distance"] for item in selected]],
+            "relevance_scores": [[item["score"] for item in selected]],
+            "bm25_scores": [[item["bm25_score"] for item in selected]],
+            "signal_scores": [[item["signal_score"] for item in selected]],
+        }
+
     selected = []
     for candidate in ranked:
         is_near_duplicate = False
@@ -278,7 +557,23 @@ def rerank_results(results: dict, result_count: int = RESULT_COUNT) -> dict:
         "distances": [[item["distance"] for item in selected]],
         "relevance_scores": [[item["score"] for item in selected]],
         "bm25_scores": [[item["bm25_score"] for item in selected]],
+        "signal_scores": [[item["signal_score"] for item in selected]],
     }
+
+
+def semantic_search_candidates(collection, question: str, question_embedding: list[float], limit: int) -> dict:
+    """Layer 3: retrieve semantic candidates from the existing Chroma index."""
+
+    results = collection.query(
+        query_embeddings=[question_embedding],
+        n_results=min(limit, collection.count()),
+        include=["documents", "metadatas", "distances"],
+    )
+    for metadata in results.get("metadatas", [[]])[0]:
+        if isinstance(metadata, dict):
+            metadata["retrieval_layer"] = "semantic"
+    results["_question"] = question
+    return results
 
 
 def search(question: str) -> dict:
@@ -293,9 +588,13 @@ def search(question: str) -> dict:
         host=current["model"]["ollama_base_url"],
         timeout=current["model"]["request_timeout"],
     )
+    normalized_question = normalize_for_search(question)
+    embedding_query = "\n".join(
+        dict.fromkeys(value for value in (question, normalized_question) if value)
+    )
     embedding_response = active_client.embed(
         model=current["model"]["embedding_model"],
-        input=question,
+        input=embedding_query,
         keep_alive=EMBEDDING_QUERY_KEEP_ALIVE,
     )
     question_embedding = embedding_response["embeddings"][0]
@@ -309,13 +608,29 @@ def search(question: str) -> dict:
     if collection.count() == 0:
         raise ValueError("The legal document collection is empty.")
 
-    candidate_results = collection.query(
-        query_embeddings=[question_embedding],
-        n_results=min(CANDIDATE_COUNT, collection.count()),
-        include=["documents", "metadatas", "distances"],
+    chunk_records = load_chunk_records()
+    metadata_results = metadata_filter_candidates(question, chunk_records)
+    lexical_results = lexical_search_candidates(question, chunk_records)
+    semantic_results = semantic_search_candidates(
+        collection,
+        question,
+        question_embedding,
+        CANDIDATE_COUNT,
     )
-    candidate_results["_question"] = question
-    return rerank_results(candidate_results, result_count=current["retrieval"]["result_count"])
+    candidate_results = merge_candidate_results(
+        metadata_results,
+        lexical_results,
+        semantic_results,
+        question=question,
+    )
+    result_count = (
+        max(int(current["retrieval"]["result_count"]), AGGREGATE_RESULT_COUNT)
+        if needs_multiple_documents(question)
+        else int(current["retrieval"]["result_count"])
+    )
+    reranked_results = rerank_results(candidate_results, result_count=result_count)
+    log_retrieval_results(question, reranked_results)
+    return reranked_results
 
 
 def print_results(results: dict) -> None:

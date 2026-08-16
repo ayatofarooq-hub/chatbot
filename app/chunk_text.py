@@ -9,9 +9,13 @@ from types import SimpleNamespace
 
 try:
     from .config import PROJECT_ROOT
+    from .arabic_search import normalized_search_blob
+    from .legal_source_text import source_text_from_payload
     from .legal_document import DocumentBlock, LoadedDocument
 except ImportError:
     from config import PROJECT_ROOT
+    from arabic_search import normalized_search_blob
+    from legal_source_text import source_text_from_payload
     from legal_document import DocumentBlock, LoadedDocument
 
 
@@ -101,18 +105,87 @@ def _has_value(value) -> bool:
     return value not in (None, "") and value != [] and value != {}
 
 
+def _flatten_metadata_values(value) -> list[str]:
+    values: list[str] = []
+    if isinstance(value, dict):
+        for item in value.values():
+            values.extend(_flatten_metadata_values(item))
+    elif isinstance(value, list):
+        for item in value:
+            values.extend(_flatten_metadata_values(item))
+    else:
+        text = str(value or "").strip()
+        if text:
+            values.append(text)
+    return values
+
+
+def _metadata_search_context(document: dict) -> str:
+    values: list[str] = []
+    for key in (
+        "title",
+        "document_type",
+        "law_number",
+        "year",
+        "category",
+        "keywords",
+        "legal_references",
+        "references",
+        "legal_entities",
+        "metadata",
+        "extracted_fields",
+    ):
+        values.extend(_flatten_metadata_values(document.get(key)))
+    source = document.get("source") if isinstance(document.get("source"), dict) else {}
+    info = document.get("document") if isinstance(document.get("document"), dict) else {}
+    values.extend(_flatten_metadata_values(info))
+    values.extend(_flatten_metadata_values(source.get("parser")))
+    raw_context = " | ".join(dict.fromkeys(value for value in values if value))[:1200]
+    normalized_context = normalized_search_blob(raw_context)
+    return "\n".join(
+        dict.fromkeys(value for value in (raw_context, normalized_context) if value)
+    )
+
+
+def _embedding_text(text: str, search_context: str) -> str:
+    if not search_context:
+        return text
+    return f"{search_context}\n\n{text}".strip()
+
+
 def _normalize_document(document) -> SimpleNamespace:
     if isinstance(document, dict):
         blocks = []
-        for article in document.get("articles", []) or []:
-            article_text = str(article.get("text", "") or "").strip()
-            if article_text:
-                blocks.append(
-                    DocumentBlock(
-                        text=article_text,
-                        article_reference=str(article.get("article_number", "")),
+        source = document.get("source") if isinstance(document.get("source"), dict) else {}
+        document_info = document.get("document") if isinstance(document.get("document"), dict) else {}
+        document_id = str(
+            document.get("id")
+            or document.get("document_id")
+            or document_info.get("id")
+            or source.get("filename")
+            or document.get("source")
+            or "document"
+        )
+        original_json_path = str(
+            document.get("original_json_path")
+            or document.get("source_json_path")
+            or document.get("json_path")
+            or document.get("path")
+            or ""
+        )
+        primary_text = source_text_from_payload(document)
+        if primary_text:
+            blocks.append(DocumentBlock(text=primary_text))
+        else:
+            for article in document.get("articles", []) or []:
+                article_text = str(article.get("text", "") or "").strip()
+                if article_text:
+                    blocks.append(
+                        DocumentBlock(
+                            text=article_text,
+                            article_reference=str(article.get("article_number", "")),
+                        )
                     )
-                )
         if not blocks:
             fallback_text = (
                 document.get("content")
@@ -122,16 +195,27 @@ def _normalize_document(document) -> SimpleNamespace:
                 or ""
             )
             blocks.append(DocumentBlock(text=str(fallback_text)))
+        source_file = str(
+            document.get("source_file")
+            or source.get("filename")
+            or document.get("source")
+            or document.get("id")
+            or "document"
+        )
         return SimpleNamespace(
-            source_file=str(document.get("source") or document.get("id") or "document"),
+            source_file=source_file,
             source_type="json",
-            title=str(document.get("title", "") or ""),
+            title=str(document.get("title") or document_info.get("title") or ""),
+            document_id=document_id,
+            original_json_path=original_json_path,
+            has_full_source_text=bool(primary_text),
             blocks=blocks,
-            document_type=str(document.get("document_type", "") or ""),
+            document_type=str(document.get("document_type") or document_info.get("type") or ""),
+            search_context=_metadata_search_context(document),
             metadata={
                 k: v
                 for k, v in document.items()
-                if k not in {"title", "articles", "summary", "content", "embedding_text"}
+                if k not in {"title", "articles", "summary", "content", "embedding_text", "long_text", "body"}
                 and _has_value(v)
             },
         )
@@ -142,6 +226,7 @@ def build_chunks_from_document(document: LoadedDocument | dict) -> list[dict]:
     """Build embedding chunks while retaining legal structure and metadata."""
 
     doc = _normalize_document(document)
+    search_context = getattr(doc, "search_context", "")
     chunks = []
     heading_path: list[str] = []
     current_article = ""
@@ -183,6 +268,17 @@ def build_chunks_from_document(document: LoadedDocument | dict) -> list[dict]:
             chunk = {
                 "id": _chunk_id(doc.source_file, chunk_index),
                 "source_file": doc.source_file,
+                "source_filename": doc.source_file,
+                "document_id": getattr(doc, "document_id", "") or doc.metadata.get("document_id", ""),
+                "original_json_path": getattr(doc, "original_json_path", "") or doc.metadata.get("original_json_path", ""),
+                "json_path": getattr(doc, "original_json_path", "") or doc.metadata.get("original_json_path", ""),
+                "has_full_source_text": bool(
+                    getattr(doc, "has_full_source_text", False) or doc.metadata.get("has_full_source_text", False)
+                ),
+                "has_full_document": bool(
+                    getattr(doc, "has_full_source_text", False) or doc.metadata.get("has_full_source_text", False)
+                ),
+                "full_source_resolver": "original_json_long_text",
                 "source_type": doc.source_type,
                 "document_type": doc.document_type,
                 "document_title": doc.title,
@@ -194,9 +290,15 @@ def build_chunks_from_document(document: LoadedDocument | dict) -> list[dict]:
                 "legal_reference": legal_reference,
                 "block_type": block.block_type,
                 "text": text,
+                "embedding_text": _embedding_text(text, search_context),
             }
             chunk.update({f"document_{key}": value for key, value in doc.metadata.items() if value})
             chunks.append(chunk)
+
+    total_chunks = len(chunks)
+    for index, chunk in enumerate(chunks):
+        chunk["chunk_index"] = index
+        chunk["total_chunks"] = total_chunks
 
     return chunks
 

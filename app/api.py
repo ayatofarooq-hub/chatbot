@@ -6,6 +6,7 @@ from io import BytesIO
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 import sys
+import re
 from urllib.parse import quote
 
 import httpx
@@ -47,6 +48,8 @@ try:
         settings_put, settings_reset, audit_log_get, user_delete,
         user_password_post, user_put, users_get, users_post,
     )
+    from .human_review import create_review_entry, decide_review, list_reviews
+    from legal_rag.grounded_answer import answer_from_results as legal_rag_answer_from_results
 except ImportError:
     # Support direct execution with: python app/api.py
     app_dir = str(Path(__file__).resolve().parent)
@@ -81,6 +84,8 @@ except ImportError:
         settings_put, settings_reset, audit_log_get, user_delete,
         user_password_post, user_put, users_get, users_post,
     )
+    from human_review import create_review_entry, decide_review, list_reviews
+    from legal_rag.grounded_answer import answer_from_results as legal_rag_answer_from_results
 
 
 FRONTEND_FOLDER = Path(__file__).resolve().parent.parent / "frontend"
@@ -131,6 +136,7 @@ def extract_snippets(results: dict) -> list[dict]:
                 "article_reference": repair_json_text(metadata.get("article_reference")),
                 "section_title": repair_json_text(metadata.get("section_title")),
                 "source_type": repair_json_text(metadata.get("source_type")),
+                "chunk_id": str(metadata.get("chunk_id") or metadata.get("id") or ""),
                 "distance": (
                     distances[index - 1]
                     if index <= len(distances)
@@ -172,6 +178,134 @@ def extract_structured_citations(
     return citations, warnings
 
 
+def source_from_metadata(metadata: dict, relevance_score: float | None = None) -> dict:
+    """Return document-level source attribution for one retrieved JSON document."""
+
+    filename = repair_json_text(metadata.get("source_file") or metadata.get("filename") or "")
+    return {
+        "document_id": repair_json_text(metadata.get("document_id") or ""),
+        "filename": filename,
+        "document_type": repair_json_text(metadata.get("document_type") or ""),
+        "year": repair_json_text(metadata.get("year") or metadata.get("law_year") or ""),
+        "issue_date": repair_json_text(metadata.get("issue_date") or ""),
+        "relevance_score": relevance_score,
+    }
+
+
+def source_document_key(source: dict) -> str:
+    """Return a stable source key so API sources are de-duplicated by document."""
+
+    return str(source.get("document_id") or source.get("filename") or "").strip()
+
+
+def sources_from_grounded_answer(grounded: dict, results: dict) -> list[dict]:
+    """Map grounded answer sources to required API source objects."""
+
+    by_chunk_id = {
+        str(metadata.get("chunk_id") or metadata.get("id") or ""): metadata
+        for metadata in result_metadatas(results)
+    }
+    relevance_by_chunk_id = {
+        str(metadata.get("chunk_id") or metadata.get("id") or ""): (
+            results.get("relevance_scores", [[]])[0][index]
+            if index < len(results.get("relevance_scores", [[]])[0])
+            else None
+        )
+        for index, metadata in enumerate(result_metadatas(results))
+    }
+    sources = []
+    seen = set()
+    for source in grounded.get("sources", []):
+        chunk_id = str(source.get("chunk_id") or "")
+        if not chunk_id:
+            continue
+        metadata = by_chunk_id.get(chunk_id, {})
+        if metadata:
+            item = source_from_metadata(metadata, relevance_by_chunk_id.get(chunk_id))
+        else:
+            item = {
+                "document_id": repair_json_text(source.get("document_id") or ""),
+                "filename": repair_json_text(source.get("document") or ""),
+                "document_type": "",
+                "year": "",
+                "issue_date": "",
+                "relevance_score": relevance_by_chunk_id.get(chunk_id),
+            }
+        key = source_document_key(item)
+        if key and key in seen:
+            continue
+        if key:
+            seen.add(key)
+        sources.append(item)
+    return sources
+
+
+def full_text_sources_from_grounded_answer(grounded: dict, results: dict) -> list[dict]:
+    """Map grounded full-text source records to API source objects."""
+
+    by_chunk_id = {
+        str(metadata.get("chunk_id") or metadata.get("id") or ""): metadata
+        for metadata in result_metadatas(results)
+    }
+    sources = []
+    seen = set()
+    for source in grounded.get("full_text_sources", []):
+        chunk_id = str(source.get("chunk_id") or "")
+        if not chunk_id or chunk_id in seen:
+            continue
+        seen.add(chunk_id)
+        metadata = by_chunk_id.get(chunk_id, {})
+        if metadata:
+            item = source_from_metadata(metadata)
+        else:
+            item = {
+                "document_name": repair_json_text(source.get("document") or ""),
+                "document_type": "",
+                "section": repair_json_text(source.get("section") or ""),
+                "item_number": repair_json_text(source.get("item") or ""),
+                "chunk_id": chunk_id,
+            }
+        item["full_text"] = repair_json_text(source.get("full_text") or "")
+        item["full_text_length"] = len(item["full_text"])
+        item["original_long_text"] = repair_json_text(source.get("original_long_text") or item["full_text"])
+        item["original_long_text_length"] = len(item["original_long_text"])
+        item["relevant_text"] = repair_json_text(source.get("relevant_text") or "")
+        item["paragraph_indexes"] = list(source.get("paragraph_indexes") or [])
+        item["document_id"] = repair_json_text(source.get("document_id") or "")
+        item["filename"] = repair_json_text(source.get("filename") or source.get("document") or "")
+        sources.append(item)
+    return sources
+
+
+def should_use_exact_law_lookup(question: str) -> bool:
+    """Use the legacy exact-law shortcut only for explicit law lookups."""
+
+    normalized = question.strip()
+    law_terms = (
+        "\u0642\u0627\u0646\u0648\u0646",
+        "\u062a\u0639\u0644\u064a\u0645\u0627\u062a",
+        "\u0646\u0638\u0627\u0645",
+    )
+    factual_terms = (
+        "\u0645\u0627 \u0647\u0648",
+        "\u0645\u0627\u0647\u064a",
+        "\u0645\u0627 \u0647\u064a",
+        "\u0643\u0645",
+        "\u0645\u0628\u0644\u063a",
+        "\u0645\u062f\u0629",
+        "\u0637\u0648\u0644",
+        "\u0631\u0642\u0645 \u0627\u0644\u0637\u0644\u0628\u064a\u0629",
+        "\u0627\u0644\u062c\u0647\u0629",
+    )
+    if not any(term in normalized for term in law_terms):
+        return False
+    if any(term in normalized for term in factual_terms):
+        return False
+    number = "\u0631\u0642\u0645"
+    year = "\u0644\u0633\u0646\u0629"
+    return bool(re.search(fr"{number}\s*\(?[0-9\u0660-\u0669]+\)?|{year}\s*\(?[0-9\u0660-\u0669]{{4}}\)?", normalized))
+
+
 def answer_question(question: str, include_snippets: bool = True) -> dict:
     """Run the shared chatbot flow and return an API response payload."""
 
@@ -180,16 +314,43 @@ def answer_question(question: str, include_snippets: bool = True) -> dict:
         return {
             "question": question,
             "answer": quick_response,
+            "sources": [],
+            "full_text": "",
+            "full_text_sources": [],
             "warnings": [],
             "citations": [],
             "snippets": [],
         }
 
-    exact_answer = answer_exact_law(question)
+    exact_answer = answer_exact_law(question) if should_use_exact_law_lookup(question) else None
     if exact_answer:
         return {
             "question": question,
             "answer": exact_answer["answer"],
+            "sources": [
+                {
+                    "document_name": repair_json_text(
+                        citation.get("source_file")
+                        or citation.get("law_name")
+                        or citation.get("legal_reference")
+                        or ""
+                    ),
+                    "document_type": repair_json_text(citation.get("document_type") or ""),
+                    "section": repair_json_text(
+                        citation.get("article")
+                        or citation.get("article_number")
+                        or citation.get("legal_reference")
+                        or ""
+                    ),
+                    "item_number": repair_json_text(
+                        citation.get("article_number") or citation.get("article") or ""
+                    ),
+                    "chunk_id": str(citation.get("chunk_id") or ""),
+                }
+                for citation in exact_answer["citations"]
+            ],
+            "full_text": "",
+            "full_text_sources": [],
             "warnings": [],
             "citations": exact_answer["citations"],
             "snippets": exact_answer["snippets"] if include_snippets else [],
@@ -205,11 +366,20 @@ def answer_question(question: str, include_snippets: bool = True) -> dict:
         validated_results,
         registry=registry,
     )
-    answer_result = generate_answer(question, validated_results)
+    grounded_answer = legal_rag_answer_from_results(question, validated_results)
+    sources = sources_from_grounded_answer(grounded_answer, validated_results)
+    full_text_sources = full_text_sources_from_grounded_answer(
+        grounded_answer,
+        validated_results,
+    )
     return {
         "question": question,
-        "answer": answer_result.content,
-        "warnings": list(dict.fromkeys(answer_result.warnings)),
+        "answer": grounded_answer["answer"],
+        "sources": sources,
+        "full_text": grounded_answer.get("full_text", ""),
+        "full_text_sources": full_text_sources,
+        "confidence": grounded_answer.get("confidence", 0.0),
+        "warnings": [],
         "citations": structured_citations,
         "snippets": extract_snippets(validated_results) if include_snippets else [],
     }
@@ -529,6 +699,64 @@ async def chat_history_put(request: Request) -> JSONResponse:
     return JSONResponse({"saved": True})
 
 
+async def reviews_get(request: Request) -> JSONResponse:
+    if not authenticated_admin(request):
+        return JSONResponse({"detail": "Authentication required."}, status_code=401)
+    return JSONResponse({"items": list_reviews()})
+
+
+async def reviews_post(request: Request) -> JSONResponse:
+    if not authenticated_admin(request):
+        return JSONResponse({"detail": "Authentication required."}, status_code=401)
+    try:
+        payload = await request.json()
+    except ValueError:
+        return JSONResponse({"detail": "Request body must be valid JSON."}, status_code=400)
+    if not isinstance(payload, dict):
+        return JSONResponse({"detail": "Request body must be a JSON object."}, status_code=400)
+    try:
+        review = create_review_entry(
+            review_id=str(payload.get("review_id") or "review_" + datetime.now().strftime("%Y%m%d%H%M%S")),
+            upload_id=str(payload.get("upload_id") or ""),
+            filename=str(payload.get("filename") or "document"),
+            original_text=str(payload.get("original_text") or ""),
+            extracted_metadata=dict(payload.get("extracted_metadata") or {}),
+            generated_payload=dict(payload.get("generated_payload") or {}),
+            validation_status=str(payload.get("validation_status") or "pending"),
+            processing_log=list(payload.get("processing_log") or []),
+        )
+        return JSONResponse(review, status_code=201)
+    except Exception as error:
+        return JSONResponse({"detail": str(error)}, status_code=422)
+
+
+async def reviews_decide(request: Request) -> JSONResponse:
+    if not authenticated_admin(request):
+        return JSONResponse({"detail": "Authentication required."}, status_code=401)
+    try:
+        payload = await request.json()
+    except ValueError:
+        return JSONResponse({"detail": "Request body must be valid JSON."}, status_code=400)
+    if not isinstance(payload, dict):
+        return JSONResponse({"detail": "Request body must be a JSON object."}, status_code=400)
+    review_id = str(payload.get("review_id") or "")
+    decision = str(payload.get("decision") or "reject")
+    if not review_id:
+        return JSONResponse({"detail": "Field 'review_id' is required."}, status_code=422)
+    try:
+        return JSONResponse(
+            decide_review(
+                review_id,
+                decision=decision,
+                reviewer=str(payload.get("reviewer") or "admin"),
+                reason=str(payload.get("reason") or ""),
+                metadata=dict(payload.get("metadata") or {}),
+            )
+        )
+    except LookupError as error:
+        return JSONResponse({"detail": str(error)}, status_code=404)
+
+
 async def export_chat(request: Request) -> Response:
     """Export a conversation as Markdown or plain text."""
 
@@ -697,6 +925,9 @@ app = Starlette(
         Route("/api/chat-history", chat_history_get, methods=["GET"]),
         Route("/api/chat-history", chat_history_put, methods=["POST", "PUT"]),
         Route("/api/export-chat", export_chat, methods=["POST"]),
+        Route("/api/reviews", reviews_get, methods=["GET"]),
+        Route("/api/reviews", reviews_post, methods=["POST"]),
+        Route("/api/reviews/decide", reviews_decide, methods=["POST"]),
         Route("/api/uploads", uploads_get, methods=["GET"]),
         Route("/api/uploads/settings", upload_settings_get, methods=["GET"]),
         Route("/api/uploads", uploads_post, methods=["POST"]),

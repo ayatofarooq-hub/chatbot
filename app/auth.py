@@ -11,6 +11,7 @@ from pathlib import Path
 import bcrypt
 
 from .json_storage import read_json, write_json
+from .ministry_phrases import ministry_for_admin
 from .settings_schema import DEFAULTS
 
 COOKIE_NAME = "legal_admin_session"
@@ -130,6 +131,7 @@ def create_admin(username: str, password: str, engine=None) -> None:
             "is_active": True,
             "display_name": username.strip(),
             "email": "",
+            "ministry": "",
         })
     _write_list("admin_users", users)
     audit("admin_password_reset", actor={"username": "create_admin.py"}, target_type="admin_user", target_id=username.strip())
@@ -176,9 +178,36 @@ def admin_for_token(token: str | None, engine=None) -> dict | None:
             "username": user["username"],
             "display_name": user.get("display_name", user["username"]),
             "email": user.get("email", ""),
+            "ministry": user.get("ministry", ""),
             "role": user.get("role", "admin"),
             "permissions": role_permissions(user.get("role", "admin")),
         }
+    return None
+
+
+def next_welcome_phrase_for_token(token: str | None, engine=None) -> dict | None:
+    if not token:
+        return None
+    sessions = _read_list("admin_sessions")
+    users = _read_list("admin_users")
+    users_by_id = {user["id"]: user for user in users}
+    token_hash = hashlib.sha256(token.encode()).hexdigest()
+    for session in sessions:
+        if session.get("token_hash") != token_hash:
+            continue
+        expires_at = session.get("expires_at")
+        if expires_at and datetime.fromisoformat(expires_at) <= datetime.now(timezone.utc):
+            continue
+        user = users_by_id.get(session.get("admin_user_id"))
+        if not user or not user.get("is_active", True):
+            continue
+        ministry = ministry_for_admin(user)
+        if ministry is None:
+            return None
+        index = (int(session.get("welcome_phrase_index", -1)) + 1) % len(ministry.phrases)
+        session["welcome_phrase_index"] = index
+        _write_list("admin_sessions", sessions)
+        return {"ministry": ministry.name, "phrase": ministry.phrases[index]}
     return None
 
 

@@ -25,6 +25,10 @@ const elements = {
   decisionNav: document.querySelector("#new-decision-button"),
   decisionTitle: document.querySelector("#decision-title"),
   decisionView: document.querySelector("#decision-view"),
+  reviewNav: document.querySelector("#review-nav-button"),
+  reviewView: document.querySelector("#review-view"),
+  reviewList: document.querySelector("#review-list"),
+  reviewDetail: document.querySelector("#review-detail"),
   settingsNav: document.querySelector("#settings-nav-button"),
   settingsView: document.querySelector("#settings-view"),
   dropzoneRoot: document.querySelector("#upload-dropzone-root"),
@@ -41,6 +45,8 @@ const elements = {
   landingRecordingControls: document.querySelector("#landing-recording-controls"),
   landingSend: document.querySelector("#landing-send"),
   landingSuggestions: document.querySelector("#landing-suggestions"),
+  landingWelcomeSubtitle: document.querySelector("#landing-welcome-subtitle"),
+  landingWelcomeTitle: document.querySelector("#landing-welcome-title"),
   landingVoiceButton: document.querySelector("#landing-voice-button"),
   landingView: document.querySelector("#landing-view"),
   listRoot: document.querySelector("#upload-file-list"),
@@ -69,6 +75,8 @@ const elements = {
   toast: document.querySelector("#toast"),
   voiceButton: document.querySelector("#voice-button"),
   welcome: document.querySelector("#welcome"),
+  welcomeSubtitle: document.querySelector("#welcome-subtitle"),
+  welcomeTitle: document.querySelector("#welcome-title"),
   wordCount: document.querySelector("#word-count"),
 };
 const landingVoiceIconMarkup = elements.landingVoiceButton?.innerHTML || "";
@@ -187,6 +195,21 @@ const roleNames = {
   viewer: "Ù…Ø±Ø§Ø¬Ø¹",
 };
 
+let reviewItems = [];
+let activeReviewId = null;
+
+function applyWelcomePhrase(welcomePhrase) {
+  const phrase = repairMojibake(welcomePhrase?.phrase || "");
+  const ministry = repairMojibake(welcomePhrase?.ministry || "");
+  if (!phrase) return;
+  if (elements.welcomeTitle) elements.welcomeTitle.textContent = phrase;
+  if (elements.landingWelcomeTitle) elements.landingWelcomeTitle.textContent = phrase;
+  if (ministry) {
+    if (elements.welcomeSubtitle) elements.welcomeSubtitle.textContent = ministry;
+    if (elements.landingWelcomeSubtitle) elements.landingWelcomeSubtitle.textContent = ministry;
+  }
+}
+
 async function refreshSession() {
   try {
     const response = await fetch("/api/auth/session", { credentials: "same-origin" });
@@ -206,6 +229,7 @@ async function refreshSession() {
     if (elements.sidebarProfileName) elements.sidebarProfileName.textContent = repairMojibake(displayName);
     if (elements.sidebarProfileRole) elements.sidebarProfileRole.textContent = repairMojibake(displayRole);
     if (elements.sidebarProfileAvatar) elements.sidebarProfileAvatar.textContent = repairMojibake(displayAvatar);
+    applyWelcomePhrase(payload.welcome_phrase);
     document.body.classList.toggle("authenticated", Boolean(administrator));
     document.body.classList.remove("auth-gate-pending");
     document.body.classList.toggle(
@@ -232,6 +256,103 @@ async function bootstrapAuthentication() {
   if (loginRequired && !administrator) settingsModule.requireLogin();
 }
 
+async function loadReviews() {
+  try {
+    const response = await fetch("/api/reviews", { credentials: "same-origin" });
+    if (!response.ok) throw new Error("failed");
+    const payload = await response.json();
+    reviewItems = Array.isArray(payload.items) ? payload.items : [];
+    renderReviews();
+  } catch {
+    reviewItems = [];
+    renderReviews();
+  }
+}
+
+function renderReviews() {
+  if (!elements.reviewList) return;
+  if (!reviewItems.length) {
+    elements.reviewList.innerHTML = '<div class="review-placeholder">لا توجد مراجعات حالياً.</div>';
+    return;
+  }
+  elements.reviewList.innerHTML = reviewItems.map((review) => `
+    <button class="review-item ${review.review_id === activeReviewId ? "active" : ""}" type="button" data-review-id="${review.review_id}">
+      <strong>${repairMojibake(review.filename || "وثيقة")}</strong>
+      <div>${repairMojibake(review.status || "pending")}</div>
+    </button>
+  `).join("");
+  elements.reviewList.querySelectorAll(".review-item").forEach((button) => {
+    button.addEventListener("click", () => {
+      activeReviewId = button.dataset.reviewId;
+      renderReviews();
+      renderReviewDetail();
+    });
+  });
+  if (!activeReviewId && reviewItems.length) {
+    activeReviewId = reviewItems[0].review_id;
+  }
+  renderReviewDetail();
+}
+
+function renderReviewDetail() {
+  const review = reviewItems.find((item) => item.review_id === activeReviewId);
+  if (!elements.reviewDetail || !review) {
+    if (elements.reviewDetail) elements.reviewDetail.innerHTML = '<div class="review-placeholder">اختر مراجعة لعرض التفاصيل.</div>';
+    return;
+  }
+  const metadataText = JSON.stringify(review.metadata || review.extracted_metadata || {}, null, 2);
+  const payloadText = JSON.stringify(review.generated_payload || {}, null, 2);
+  const logText = JSON.stringify(review.processing_log || [], null, 2);
+  elements.reviewDetail.innerHTML = `
+    <h3>${repairMojibake(review.filename || "وثيقة")}</h3>
+    <p><strong>الحالة:</strong> ${repairMojibake(review.status || "pending")}</p>
+    <p><strong>التحقق:</strong> ${repairMojibake(review.validation_status || "pending")}</p>
+    <h4>النص الأصلي</h4>
+    <pre>${repairMojibake(review.original_text || "")}</pre>
+    <h4>البيانات المستخرجة</h4>
+    <textarea id="review-metadata-editor">${repairMojibake(metadataText)}</textarea>
+    <h4>JSON الناتج</h4>
+    <pre>${repairMojibake(payloadText)}</pre>
+    <h4>سجل المعالجة</h4>
+    <pre>${repairMojibake(logText)}</pre>
+    <div class="review-actions">
+      <button type="button" class="secondary" data-action="save">حفظ التعديلات</button>
+      <button type="button" data-action="approve">موافقة</button>
+      <button type="button" class="reject" data-action="reject">رفض</button>
+    </div>
+  `;
+  elements.reviewDetail.querySelector('[data-action="save"]').addEventListener("click", async () => {
+    const editor = elements.reviewDetail.querySelector("#review-metadata-editor");
+    let parsed = {};
+    try { parsed = JSON.parse(editor.value); } catch { parsed = {}; }
+    await fetch("/api/reviews/decide", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "same-origin",
+      body: JSON.stringify({ review_id: review.review_id, decision: "approve", reviewer: "admin", reason: "edited metadata", metadata: parsed }),
+    });
+    await loadReviews();
+  });
+  elements.reviewDetail.querySelector('[data-action="approve"]').addEventListener("click", async () => {
+    await fetch("/api/reviews/decide", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "same-origin",
+      body: JSON.stringify({ review_id: review.review_id, decision: "approve", reviewer: "admin", reason: "approved by admin" }),
+    });
+    await loadReviews();
+  });
+  elements.reviewDetail.querySelector('[data-action="reject"]').addEventListener("click", async () => {
+    await fetch("/api/reviews/decide", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "same-origin",
+      body: JSON.stringify({ review_id: review.review_id, decision: "reject", reviewer: "admin", reason: "rejected by admin" }),
+    });
+    await loadReviews();
+  });
+}
+
 function loadConversations() {
   const readStoredConversations = (key) => {
     const raw = localStorage.getItem(key);
@@ -245,7 +366,7 @@ function loadConversations() {
         timestamp: conversation.timestamp || conversation.createdAt || new Date().toISOString(),
         createdAt: conversation.createdAt || conversation.timestamp || new Date().toISOString(),
         messages: Array.isArray(conversation.messages) ? conversation.messages : [],
-        evidence: conversation.evidence || { snippets: [], warnings: [], citations: [] },
+        evidence: conversation.evidence || { snippets: [], warnings: [], citations: [], sources: [] },
       }));
   };
 
@@ -337,7 +458,7 @@ function createConversation(initialTitle = "") {
     timestamp,
     createdAt: timestamp,
     messages: [],
-    evidence: { snippets: [], warnings: [], citations: [] },
+    evidence: { snippets: [], warnings: [], citations: [], sources: [] },
   };
   conversations.unshift(conversation);
   activeConversationId = conversation.id;
@@ -360,13 +481,16 @@ function showView(viewName) {
   const showLanding = viewName === "landing";
   const showAssistant = viewName === "assistant";
   const showDecision = viewName === "decision";
+  const showReview = viewName === "review";
   const showSettings = viewName === "settings";
   elements.landingView.hidden = !showLanding;
   elements.assistantView.hidden = !showAssistant;
   elements.decisionView.hidden = !showDecision;
+  elements.reviewView.hidden = !showReview;
   elements.settingsView.hidden = !showSettings;
   elements.assistantNav.classList.toggle("active", showAssistant || showLanding);
   elements.decisionNav.classList.toggle("active", showDecision);
+  elements.reviewNav.classList.toggle("active", showReview);
   elements.settingsNav.classList.toggle("active", showSettings);
   elements.nav.classList.remove("open");
   document.body.classList.toggle("decision-mode", showDecision);
@@ -383,6 +507,8 @@ function showView(viewName) {
     consumeInitialPrompt();
   } else if (showDecision) {
     elements.dropzoneRoot.querySelector(".upload-dropzone")?.focus();
+  } else if (showReview) {
+    loadReviews();
   } else if (showSettings) {
     settingsModule.open();
   }
@@ -498,6 +624,32 @@ function makeElement(tagName, className, text) {
   return node;
 }
 
+function legalSourceLine(source) {
+  const parts = [
+    source.document_type ? `نوع الوثيقة: ${source.document_type}` : "",
+    source.section ? `القسم: ${source.section}` : "",
+    source.item_number ? `رقم البند: ${source.item_number}` : "",
+  ].filter(Boolean);
+  return repairMojibake(parts.join(" · ") || "مصدر النص القانوني");
+}
+
+function renderLegalSources(sources = [], className = "message-sources") {
+  const wrapper = makeElement("section", className);
+  wrapper.append(makeElement("strong", "", "المصادر القانونية"));
+  const list = makeElement("ul", "");
+  sources.forEach((source) => {
+    const item = makeElement("li", "");
+    item.append(
+      makeElement("span", "source-document", source.document_name || "مصدر غير معروف"),
+      makeElement("small", "", legalSourceLine(source)),
+      makeElement("code", "", source.chunk_id ? `مصدر النص: ${source.chunk_id}` : ""),
+    );
+    list.append(item);
+  });
+  wrapper.append(list);
+  return wrapper;
+}
+
 function render() {
   renderHistory();
   renderConversation();
@@ -589,7 +741,10 @@ function renderConversation() {
     const article = makeElement("article", `message ${message.role}`);
     article.append(makeElement("div", "message-content", repairMojibake(message.content)));
 
-
+    const messageSources = Array.isArray(message.sources) ? message.sources : [];
+    if (messageSources.length) {
+      article.append(renderLegalSources(messageSources, "message-sources"));
+    }
 
     article.append(makeElement("span", "message-meta", message.time || formatTime()));
     elements.messages.append(article);
@@ -618,12 +773,25 @@ function renderEvidence() {
     snippets: [],
     warnings: [],
     citations: [],
+    sources: [],
   };
+  const legalSources = Array.isArray(evidence.sources) ? evidence.sources : [];
 
-  elements.referenceCount.textContent = repairMojibake(`${evidence.snippets.length} Ù…Ø±Ø§Ø¬Ø¹`);
+  const referenceTotal = legalSources.length || evidence.snippets.length;
+  elements.referenceCount.textContent = repairMojibake(`${referenceTotal} Ù…Ø±Ø§Ø¬Ø¹`);
   elements.sourceList.replaceChildren();
 
-  if (!evidence.snippets.length) {
+  if (legalSources.length) {
+    legalSources.forEach((source) => {
+      const card = makeElement("article", "source-card legal-source-card");
+      card.append(
+        makeElement("div", "source-name", repairMojibake(source.document_name || "مصدر غير معروف")),
+        makeElement("p", "", legalSourceLine(source)),
+        makeElement("small", "", repairMojibake(`مصدر النص: ${source.chunk_id || ""}`)),
+      );
+      elements.sourceList.append(card);
+    });
+  } else if (!evidence.snippets.length) {
     elements.sourceList.append(makeElement("div", "empty-panel", "Ø³ØªØ¸Ù‡Ø± Ø§Ù„Ù…Ø±Ø§Ø¬Ø¹ Ø§Ù„Ù…Ø³ØªØ±Ø¬Ø¹Ø© Ù‡Ù†Ø§ Ø¨Ø¹Ø¯ Ø·Ø±Ø­ Ø§Ù„Ø³Ø¤Ø§Ù„."));
   } else {
     evidence.snippets.slice(0, 3).forEach((snippet) => {
@@ -640,6 +808,7 @@ function renderEvidence() {
 
   elements.insightList.replaceChildren();
   const insights = [];
+  if (legalSources.length) insights.push(`تم عرض ${legalSources.length} مصادر قانونية مباشرة.`);
   if (evidence.citations.length) insights.push(`ØªÙ… Ø§Ù„Ø¹Ø«ÙˆØ± Ø¹Ù„Ù‰ ${evidence.citations.length} Ø§Ø³ØªØ´Ù‡Ø§Ø¯Ø§Øª.`);
   if (evidence.warnings.length) insights.push(`ØªÙˆØ¬Ø¯ ${evidence.warnings.length} Ù…Ù„Ø§Ø­Ø¸Ø§Øª ØªØ­ØªØ§Ø¬ Ø¥Ù„Ù‰ Ù…Ø±Ø§Ø¬Ø¹Ø©.`);
   if (!insights.length) insights.push("Ø³ØªØ¸Ù‡Ø± Ù†ØªØ§Ø¦Ø¬ Ø§Ù„ØªØ­Ù‚Ù‚ ÙˆØ§Ù„Ø§Ø³ØªØ´Ù‡Ø§Ø¯Ø§Øª Ù‡Ù†Ø§ Ø¨Ø¹Ø¯ Ø¥Ù†Ø´Ø§Ø¡ Ø§Ù„Ø¥Ø¬Ø§Ø¨Ø©.");
@@ -719,7 +888,7 @@ async function hydrateServerChatHistory() {
       timestamp: conversation.timestamp || conversation.createdAt || new Date().toISOString(),
       createdAt: conversation.createdAt || conversation.timestamp || new Date().toISOString(),
       messages: Array.isArray(conversation.messages) ? conversation.messages : [],
-      evidence: conversation.evidence || { snippets: [], warnings: [], citations: [] },
+      evidence: conversation.evidence || { snippets: [], warnings: [], citations: [], sources: [] },
     }));
     activeConversationId = (
       payload.activeConversationId
@@ -769,12 +938,14 @@ async function submitQuestion(question) {
     conversation.messages.push({
       role: "assistant",
       content: repairMojibake(payload.answer),
+      sources: (payload.sources || []).map(repairConversationText),
       warnings: (payload.warnings || []).map(repairMojibake),
       citations: (payload.citations || []).map(repairConversationText),
       time: formatTime(),
     });
     conversation.evidence = {
       snippets: (payload.snippets || []).map(repairConversationText),
+      sources: (payload.sources || []).map(repairConversationText),
       warnings: (payload.warnings || []).map(repairMojibake),
       citations: (payload.citations || []).map(repairConversationText),
     };
@@ -1131,6 +1302,10 @@ elements.assistantNav.addEventListener("click", () => {
   showView("landing");
 });
 elements.decisionNav.addEventListener("click", () => showView("decision"));
+elements.reviewNav?.addEventListener("click", async () => {
+  await loadReviews();
+  showView("review");
+});
 elements.settingsNav.addEventListener("click", () => showView("settings"));
 elements.logoutButton?.addEventListener("click", async () => {
   try {

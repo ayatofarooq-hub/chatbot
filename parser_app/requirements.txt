@@ -1,0 +1,4 @@
+# Parser app dependencies.
+
+pypdf>=4.0.0
+pytest>=8.0.0

@@ -1,0 +1,124 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Independent Iraqi Legal Document JSON v2",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "source",
+    "document",
+    "metadata",
+    "references",
+    "decision",
+    "long_text",
+    "body",
+    "paragraphs",
+    "legal_entities",
+    "extracted_fields",
+    "signature"
+  ],
+  "properties": {
+    "schema_version": { "const": "iraqi_legal_document.v2" },
+    "created_at": { "type": "string" },
+    "source": {
+      "type": "object",
+      "required": ["filename", "extension", "parser", "encoding"],
+      "properties": {
+        "filename": { "type": "string", "minLength": 1 },
+        "extension": { "const": ".docx" },
+        "parser": { "const": "legal_document_parser" },
+        "encoding": { "const": "utf-8" }
+      },
+      "additionalProperties": true
+    },
+    "document": {
+      "type": "object",
+      "required": [
+        "title",
+        "type",
+        "decision_number",
+        "year",
+        "issue_date",
+        "session_number",
+        "session_date"
+      ],
+      "properties": {
+        "title": { "type": ["string", "null"] },
+        "type": { "type": ["string", "null"] },
+        "decision_number": { "type": ["string", "null"] },
+        "year": { "type": ["string", "null"] },
+        "issue_date": { "type": ["string", "null"] },
+        "session_number": { "type": ["string", "null"] },
+        "session_date": { "type": ["string", "null"] }
+      },
+      "additionalProperties": true
+    },
+    "metadata": { "type": "object" },
+    "references": { "type": "array" },
+    "decision": {
+      "type": "object",
+      "required": ["sections", "numbered_items"],
+      "properties": {
+        "sections": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["section_id", "title", "text"],
+            "properties": {
+              "section_id": { "type": "string", "minLength": 1 },
+              "title": { "type": "string", "minLength": 1 },
+              "paragraph_indexes": { "type": "array" },
+              "text": { "type": "string", "minLength": 1 }
+            },
+            "additionalProperties": true
+          }
+        },
+        "numbered_items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["kind", "number", "paragraph_index", "text"],
+            "properties": {
+              "kind": { "type": "string", "minLength": 1 },
+              "number": { "type": "string", "minLength": 1 },
+              "paragraph_index": { "type": "integer", "minimum": 1 },
+              "text": { "type": "string", "minLength": 1 }
+            },
+            "additionalProperties": true
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "long_text": { "type": "string", "minLength": 1 },
+    "body": { "type": "string", "minLength": 1 },
+    "paragraphs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["index", "text"],
+        "properties": {
+          "index": { "type": "integer", "minimum": 1 },
+          "text": { "type": "string", "minLength": 1 }
+        },
+        "additionalProperties": true
+      }
+    },
+    "legal_entities": {
+      "type": "object",
+      "required": ["organizations", "companies", "persons", "all"],
+      "properties": {
+        "organizations": { "type": "array" },
+        "companies": { "type": "array" },
+        "persons": { "type": "array" },
+        "all": { "type": "array" }
+      },
+      "additionalProperties": true
+    },
+    "extracted_fields": { "type": "object" },
+    "signature": { "type": "object" },
+    "extraction_notes": { "type": "object" }
+  },
+  "additionalProperties": false
+}

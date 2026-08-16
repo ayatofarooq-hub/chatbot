@@ -144,20 +144,29 @@ def create_uploaded_document(filename: str, content: bytes) -> dict:
                     "No readable text was extracted. Scanned PDFs require OCR, which is not enabled for uploads."
                 )
             document = _normalized_document(upload_id, safe_filename, pages)
-            loaded = document_to_loaded_document(document)
-            chunks = build_chunks_from_document(loaded)
-            if not chunks:
-                raise ValueError("The normalized document produced no searchable text.")
-            embeddings = create_embeddings(chunks)
+            combined_text = "\n\n".join(text for _, text in pages)
+            from .human_review import create_review_entry
 
+            create_review_entry(
+                review_id=f"review_{upload_id}",
+                upload_id=upload_id,
+                filename=safe_filename,
+                original_text=combined_text,
+                extracted_metadata={
+                    "title": document.get("title", ""),
+                    "document_type": document.get("document_type", ""),
+                    "law_number": document.get("law_number", ""),
+                    "year": document.get("year", ""),
+                    "source": document.get("source", ""),
+                },
+                generated_payload=document,
+                validation_status="pending",
+                processing_log=[{"step": "upload", "status": "created"}],
+            )
+            document["review_status"] = "pending"
+            document["status"] = "pending_review"
             repository.append_document(document)
-            client = chromadb.PersistentClient(path=str(CHROMA_FOLDER))
-            collection = client.get_collection(COLLECTION_NAME)
-            add_chunks(collection, chunks, embeddings)
-            all_chunks = _read_chunks() + chunks
-            _write_chunks(all_chunks)
-            save_registry(all_chunks)
-            return public_upload(document, stored_path, len(chunks))
+            return public_upload(document, stored_path, 0)
         except Exception:
             repository.remove_document(f"upload_{upload_id}")
             stored_path.unlink(missing_ok=True)
@@ -181,6 +190,41 @@ def list_uploaded_documents() -> list[dict]:
     return sorted(items, key=lambda item: item["uploaded_at"], reverse=True)
 
 
+def index_reviewed_document(review: dict[str, Any]) -> dict[str, Any]:
+    """Index a document once its review has been approved."""
+
+    upload_id = str(review.get("upload_id", ""))
+    if not upload_id:
+        raise LookupError("Review does not include an upload id.")
+
+    repository = JsonRepository()
+    document = repository.find_by_id(f"upload_{upload_id}")
+    if not document:
+        return {"review_status": "approved", "status": "reviewed"}
+
+    stored_path = UPLOAD_ROOT / f"{upload_id}{Path(str(document.get('original_filename', ''))).suffix.lower()}"
+    if not stored_path.exists():
+        return {"review_status": "approved", "status": "reviewed"}
+
+    loaded = document_to_loaded_document(document)
+    chunks = build_chunks_from_document(loaded)
+    if not chunks:
+        raise ValueError("The normalized document produced no searchable text.")
+    embeddings = create_embeddings(chunks)
+
+    document["review_status"] = "approved"
+    document["status"] = "indexed"
+    repository.append_document(document)
+
+    client = chromadb.PersistentClient(path=str(CHROMA_FOLDER))
+    collection = client.get_collection(COLLECTION_NAME)
+    add_chunks(collection, chunks, embeddings)
+    all_chunks = _read_chunks() + chunks
+    _write_chunks(all_chunks)
+    save_registry(all_chunks)
+    return document
+
+
 def public_upload(
     document: dict,
     stored_path: Path,
@@ -198,7 +242,7 @@ def public_upload(
         "name": document.get("original_filename") or document.get("source"),
         "size": stored_path.stat().st_size if stored_path.exists() else 0,
         "uploaded_at": document.get("uploaded_at", ""),
-        "status": "indexed",
+        "status": document.get("status", "indexed"),
         "title": document.get("title", ""),
         "chunk_count": chunk_count,
     }
