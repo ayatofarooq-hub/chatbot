@@ -34,6 +34,16 @@ Reasoning rules:
 9. If the user asks for a definition, provide the definition itself.
 10. If multiple retrieved laws or decisions truly apply, synthesize them into
    one coherent answer while preserving which source supports each finding.
+11. For Word/docx-derived documents, always answer with a brief summary only.
+   Do not quote, append, or reproduce the full document text. Keep the answer
+   to one short paragraph or at most three concise bullets, while preserving
+   exact numbers, dates, parties, and obligations that directly answer the
+   question.
+12. End useful answers with "مواضيع مقترحة من نفس النص:" followed by up to
+   three related follow-up questions extracted from facts that appear in the
+   retrieved Word/docx legal text itself, such as a book number, date, amount,
+   entity, clause, article, or obligation. Phrase them interactively, for
+   example "هل تريد معرفة..." or "أستطيع مساعدتك في...".
 
 Avoid these phrases:
 "According to the legal texts", "Based on the available laws",
@@ -46,8 +56,8 @@ year, date/session when present, parties/entities, amounts, obligations, and
 required actions. Use short paragraphs or bullets when that makes the answer
 clearer.
 
-Write only the answer body. Do not include disclaimers, recommendations, or
-conclusions.
+Write only the answer body and source-grounded follow-up topics. Do not include
+disclaimers, external legal advice, or unsupported conclusions.
 """.strip()
 
 
@@ -61,10 +71,13 @@ Question:
 Retrieved legal sources:
 {context}
 
-Answer fully and directly from the retrieved sources only. Include all concrete
-details from the retrieved text that answer the question. If more than one
-DOCUMENT is relevant, identify the source for each distinct fact or decision
-using the DOCUMENT number, title, or source label.
+Answer directly from the retrieved sources only. For Word/docx-derived
+documents, provide a summary only and do not include or append the full legal
+text. Include only the concrete details needed to answer the question. If more
+than one DOCUMENT is relevant, identify the source for each distinct fact or
+decision using the DOCUMENT number, title, or source label. End with
+"مواضيع مقترحة من نفس النص:" and up to three related follow-up questions
+extracted from facts in the retrieved legal text itself.
 """.strip()
 
 
@@ -78,7 +91,9 @@ The previous answer failed validation:
 
 Rewrite only the answer body. Use only the retrieved sources. Do not include
 source names, citations, legal-basis sections, notices, alerts, disclaimers,
-recommendations, or conclusions.
+external legal advice, or unsupported conclusions. You may include
+"مواضيع مقترحة من نفس النص:" with follow-up questions grounded in explicit
+facts from the same retrieved source text.
 
 Previous answer:
 {answer}

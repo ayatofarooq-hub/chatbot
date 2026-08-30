@@ -198,6 +198,64 @@ def source_document_key(source: dict) -> str:
     return str(source.get("document_id") or source.get("filename") or "").strip()
 
 
+def source_hint_values(source_hint: object) -> set[str]:
+    """Normalize previous-answer source hints sent by the frontend."""
+
+    values: set[str] = set()
+    if isinstance(source_hint, dict):
+        candidates = source_hint.get("sources") or source_hint.get("items") or []
+    elif isinstance(source_hint, list):
+        candidates = source_hint
+    else:
+        candidates = []
+    for item in candidates:
+        if not isinstance(item, dict):
+            continue
+        for key in ("document_id", "filename", "document_name", "source_file"):
+            value = repair_json_text(item.get(key) or "").strip()
+            if value:
+                values.add(value)
+    return values
+
+
+def filter_results_by_source_hint(results: dict, source_hint: object) -> dict:
+    """Keep retrieval hits from the same previous Word/doc source when possible."""
+
+    hints = source_hint_values(source_hint)
+    if not hints:
+        return results
+
+    documents = results.get("documents", [[]])[0]
+    metadatas = results.get("metadatas", [[]])[0]
+    if not documents or not metadatas:
+        return results
+
+    keep_indexes = []
+    for index, metadata in enumerate(metadatas):
+        if not isinstance(metadata, dict):
+            continue
+        metadata_values = {
+            repair_json_text(metadata.get("document_id") or "").strip(),
+            repair_json_text(metadata.get("source_file") or "").strip(),
+            repair_json_text(metadata.get("filename") or "").strip(),
+            repair_json_text(metadata.get("source_filename") or "").strip(),
+        }
+        metadata_values.discard("")
+        if hints & metadata_values:
+            keep_indexes.append(index)
+
+    if not keep_indexes:
+        return results
+
+    filtered = {**results}
+    for key in ("documents", "metadatas", "distances", "relevance_scores", "bm25_scores"):
+        values = results.get(key, [[]])
+        row = values[0] if values and isinstance(values[0], list) else []
+        if row:
+            filtered[key] = [[row[index] for index in keep_indexes if index < len(row)]]
+    return filtered
+
+
 def sources_from_grounded_answer(grounded: dict, results: dict) -> list[dict]:
     """Map grounded answer sources to required API source objects."""
 
@@ -306,7 +364,11 @@ def should_use_exact_law_lookup(question: str) -> bool:
     return bool(re.search(fr"{number}\s*\(?[0-9\u0660-\u0669]+\)?|{year}\s*\(?[0-9\u0660-\u0669]{{4}}\)?", normalized))
 
 
-def answer_question(question: str, include_snippets: bool = True) -> dict:
+def answer_question(
+    question: str,
+    include_snippets: bool = True,
+    source_hint: object | None = None,
+) -> dict:
     """Run the shared chatbot flow and return an API response payload."""
 
     quick_response = get_quick_response(question)
@@ -356,21 +418,24 @@ def answer_question(question: str, include_snippets: bool = True) -> dict:
             "snippets": exact_answer["snippets"] if include_snippets else [],
         }
 
-    results = search(question)
+    results = filter_results_by_source_hint(search(question), source_hint)
     registry = load_registry()
     validated_results, _ = filter_results_to_registered(
         results,
         registry=registry,
     )
+    answer_results = validated_results
+    if not validated_results.get("documents", [[]])[0] and results.get("documents", [[]])[0]:
+        answer_results = results
     structured_citations, _ = extract_structured_citations(
         validated_results,
         registry=registry,
     )
-    grounded_answer = legal_rag_answer_from_results(question, validated_results)
-    sources = sources_from_grounded_answer(grounded_answer, validated_results)
+    grounded_answer = legal_rag_answer_from_results(question, answer_results)
+    sources = sources_from_grounded_answer(grounded_answer, answer_results)
     full_text_sources = full_text_sources_from_grounded_answer(
         grounded_answer,
-        validated_results,
+        answer_results,
     )
     return {
         "question": question,
@@ -381,7 +446,7 @@ def answer_question(question: str, include_snippets: bool = True) -> dict:
         "confidence": grounded_answer.get("confidence", 0.0),
         "warnings": [],
         "citations": structured_citations,
-        "snippets": extract_snippets(validated_results) if include_snippets else [],
+        "snippets": extract_snippets(answer_results) if include_snippets else [],
     }
 
 
@@ -618,11 +683,19 @@ async def ask(request: Request) -> JSONResponse:
             status_code=422,
         )
 
+    source_hint = payload.get("source_hint")
+    if source_hint is not None and not isinstance(source_hint, (dict, list)):
+        return JSONResponse(
+            {"detail": "Field 'source_hint' must be an object or array when provided."},
+            status_code=422,
+        )
+
     try:
         response = await run_in_threadpool(
             answer_question,
             question.strip(),
             include_snippets,
+            source_hint,
         )
         return JSONResponse(response)
     except NotFoundError:

@@ -640,9 +640,7 @@ function renderLegalSources(sources = [], className = "message-sources") {
   sources.forEach((source) => {
     const item = makeElement("li", "");
     item.append(
-      makeElement("span", "source-document", source.document_name || "مصدر غير معروف"),
       makeElement("small", "", legalSourceLine(source)),
-      makeElement("code", "", source.chunk_id ? `مصدر النص: ${source.chunk_id}` : ""),
     );
     list.append(item);
   });
@@ -785,7 +783,6 @@ function renderEvidence() {
     legalSources.forEach((source) => {
       const card = makeElement("article", "source-card legal-source-card");
       card.append(
-        makeElement("div", "source-name", repairMojibake(source.document_name || "مصدر غير معروف")),
         makeElement("p", "", legalSourceLine(source)),
         makeElement("small", "", repairMojibake(`مصدر النص: ${source.chunk_id || ""}`)),
       );
@@ -922,10 +919,24 @@ async function submitQuestion(question) {
   elements.chatScroll.scrollTop = elements.chatScroll.scrollHeight;
 
   try {
+    const sourceHint = {
+      sources: [
+        ...(conversation.evidence?.sources || []),
+        ...(conversation.messages || []).flatMap((message) => (
+          message.role === "assistant" && Array.isArray(message.sources)
+            ? message.sources
+            : []
+        )),
+      ].slice(-5),
+    };
     const response = await fetch("/ask", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ question: cleanQuestion, include_snippets: true }),
+      body: JSON.stringify({
+        question: cleanQuestion,
+        include_snippets: true,
+        source_hint: sourceHint,
+      }),
     });
     const payload = await response.json();
     if (response.status === 401) {

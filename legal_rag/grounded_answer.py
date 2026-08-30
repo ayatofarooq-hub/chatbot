@@ -30,6 +30,7 @@ INSUFFICIENT_CONTEXT = "لم أجد نصًا قانونيًا كافيًا لل�
 FULL_TEXT_HEADING = "النص القانوني الكامل:"
 FULL_TEXT_FALLBACK_ANSWER = "تم العثور على النص القانوني الآتي في المصدر الأقرب للسؤال."
 MISSING_DECISION_NUMBER_ANSWER = "رقم القرار غير مثبت في النص المستخرج من الوثيقة."
+RELATED_TOPICS_HEADING = "مواضيع مقترحة من نفس النص:"
 JSON_TEXT_DIRS = (
     PROJECT_ROOT / "legal_document_parser" / "output" / "json",
     PROJECT_ROOT / "data" / "output",
@@ -53,6 +54,15 @@ SYSTEM_INSTRUCTION = """
 إذا سأل المستخدم عن مبلغ، فابحث في النصوص عن كلمة "بمبلغ" أو "مقداره" أو رقم متبوع بعملة، وانقل المبلغ كما ورد.
 لا تقل إنك لم تجد الإجابة إذا كان النص المسترجع يحتوي عبارة مباشرة تجيب السؤال.
 اكتب جوابًا مباشرًا فقط، ولا تبدأ بعبارات عامة مثل "وفقًا للنصوص المسترجعة".
+For Word/docx-derived documents, always answer with a brief summary only.
+Do not quote, append, or reproduce the full document text. Keep the answer to
+one short paragraph or at most three concise bullets, while preserving exact
+numbers, dates, parties, and obligations that directly answer the question.
+End useful answers with "مواضيع مقترحة من نفس النص:" followed by up to three
+related follow-up questions extracted from facts that appear in the retrieved
+Word/docx legal text itself.
+Phrase the suggestions interactively, for example "هل تريد معرفة..." or
+"أستطيع مساعدتك في...".
 """.strip()
 
 
@@ -80,6 +90,18 @@ class RetrievedSource:
 
 def _clean(value: Any) -> str:
     return repair_mojibake(str(value or "")).strip()
+
+
+def _strip_insufficient_context(answer: str) -> str:
+    insufficient_context_variants = (
+        INSUFFICIENT_CONTEXT,
+        "\u0644\u0645 \u062a\u062c\u062f \u0646\u0635\u064b\u0627 \u0642\u0627\u0646\u0648\u0646\u064a\u064b\u0627 \u0643\u0627\u0641\u064a\u064b\u0627 \u0644\u0644\u0625\u062c\u0627\u0628\u0629 \u0639\u0646 \u0647\u0630\u0627 \u0627\u0644\u0633\u0624\u0627\u0644 \u0641\u064a \u0627\u0644\u0645\u0633\u062a\u0646\u062f\u0627\u062a \u0627\u0644\u0645\u062a\u0627\u062d\u0629.",
+    )
+    cleaned = _clean(answer)
+    for phrase in insufficient_context_variants:
+        cleaned = cleaned.replace(_clean(phrase), "")
+    cleaned = re.sub(r"\n{3,}", "\n\n", cleaned)
+    return cleaned.strip(" \t\r\n.-")
 
 
 def asks_for_decision_number(question: str) -> bool:
@@ -361,6 +383,15 @@ def build_user_message(question: str, context: str) -> str:
         [
             "السؤال:",
             question,
+            (
+                "For Word/docx sources, provide a summary only. Do not include or "
+                "append the full legal text, even when full source text appears in "
+                "the retrieved context."
+            ),
+            (
+                'End the answer with "مواضيع مقترحة من نفس النص:" and up to '
+                "three follow-up questions extracted from facts in the source text."
+            ),
             "النصوص القانونية المسترجعة:",
             context,
             (
@@ -516,7 +547,7 @@ def _full_text_from_docx(path: Path) -> str:
 
 
 def load_full_text_index() -> dict[str, str]:
-    """Index complete source text from original JSON records only."""
+    """Index complete source text from original JSON records and Word files."""
 
     index: dict[str, str] = {}
 
@@ -550,6 +581,21 @@ def load_full_text_index() -> dict[str, str]:
                 metadata.get("document_id"),
                 document.get("id"),
             ):
+                index.setdefault(key, text)
+
+    for folder in DOCX_INPUT_DIRS:
+        if not folder.exists():
+            continue
+        for path in sorted(folder.glob("*.docx")):
+            if path.name.startswith("~$"):
+                continue
+            try:
+                text = _clean(_full_text_from_docx(path))
+            except Exception:
+                continue
+            if not text:
+                continue
+            for key in _source_keys(path.name, path.stem, str(path)):
                 index.setdefault(key, text)
 
     return index
@@ -587,6 +633,112 @@ def full_texts_for_sources(sources: list[RetrievedSource]) -> list[dict[str, Any
             }
         )
     return records
+
+
+def _answerable_tokens(text: str) -> set[str]:
+    """Return meaningful tokens for direct full-text fallback matching."""
+
+    tokens = set()
+    for token in re.findall(r"[\w\u0600-\u06ff]+", _clean(text)):
+        if len(token) <= 2:
+            continue
+        if token in {"ما", "من", "عن", "على", "في", "هل", "الى", "إلى", "اريد", "أريد"}:
+            continue
+        tokens.add(token)
+    return tokens
+
+
+def _full_text_match_score(question: str, text: str, source_key: str) -> float:
+    question_tokens = _answerable_tokens(question)
+    if not question_tokens:
+        return 0.0
+    haystack_tokens = _answerable_tokens(f"{source_key}\n{text}")
+    if not haystack_tokens:
+        return 0.0
+    overlap = len(question_tokens & haystack_tokens) / len(question_tokens)
+    number_bonus = 0.0
+    for number in re.findall(r"\d[\d/.,-]*", question):
+        if number and number in text:
+            number_bonus += 0.25
+    return min(1.0, overlap + number_bonus)
+
+
+def fallback_results_from_full_text(question: str, limit: int = 3) -> dict:
+    """Build retrieval-like results by searching complete Word/JSON source text."""
+
+    scored: list[tuple[float, str, str]] = []
+    seen_texts = set()
+    for key, text in load_full_text_index().items():
+        if not text or text in seen_texts:
+            continue
+        seen_texts.add(text)
+        score = _full_text_match_score(question, text, key)
+        if score <= 0:
+            continue
+        scored.append((score, key, text))
+
+    scored.sort(key=lambda item: item[0], reverse=True)
+    documents = []
+    metadatas = []
+    distances = []
+    relevance_scores = []
+    for score, key, text in scored[:limit]:
+        source_name = Path(key).name or key
+        chunk_id = f"full_text_fallback:{source_name}"
+        documents.append(text)
+        metadatas.append(
+            {
+                "chunk_id": chunk_id,
+                "document_id": Path(source_name).stem,
+                "source_file": source_name,
+                "filename": source_name,
+                "retrieval_layer": "full_text_fallback",
+                "full_source_resolver": "full_text",
+            }
+        )
+        distances.append(max(0.0, 1.0 - score))
+        relevance_scores.append(score)
+
+    return {
+        "documents": [documents],
+        "metadatas": [metadatas],
+        "distances": [distances],
+        "relevance_scores": [relevance_scores],
+    }
+
+
+def extractive_summary_from_sources(question: str, sources: list[RetrievedSource]) -> str:
+    """Return a brief source-grounded summary when the model declines answerable text."""
+
+    question_tokens = _answerable_tokens(question)
+    candidates: list[tuple[float, str]] = []
+    for source in sources:
+        for raw_line in re.split(r"[\n\r]+", source.text):
+            line = re.sub(r"\s+", " ", _clean(raw_line)).strip()
+            if len(line) < 12:
+                continue
+            line_tokens = _answerable_tokens(line)
+            score = len(question_tokens & line_tokens) / len(question_tokens) if question_tokens else 0.0
+            if any(number in line for number in re.findall(r"\d[\d/.,-]*", question)):
+                score += 0.25
+            candidates.append((score, line))
+
+    candidates.sort(key=lambda item: item[0], reverse=True)
+    selected = []
+    for score, line in candidates:
+        if score <= 0 and selected:
+            continue
+        if line in selected:
+            continue
+        selected.append(line)
+        if len(selected) == 3:
+            break
+
+    if not selected:
+        return ""
+    if len(selected) == 1:
+        return selected[0]
+    return "\n".join(f"- {line}" for line in selected)
 
 
 def answer_decision_number_if_known(question: str, results: dict) -> dict[str, Any] | None:
@@ -748,28 +900,9 @@ def answer_full_document_text_if_requested(
     question: str,
     sources: list[RetrievedSource],
 ) -> dict[str, Any] | None:
-    """Return original long_text directly for exact full-document text requests."""
+    """Do not return Word/docx long_text directly; the answer must be a summary."""
 
-    if not wants_exact_full_document_text(question):
-        return None
-    cited_sources = sources[:1]
-    full_text_sources = full_texts_for_sources(cited_sources)
-    source_text = ""
-    if full_text_sources:
-        source_text = str(
-            full_text_sources[0].get("original_long_text")
-            or full_text_sources[0].get("full_text")
-            or ""
-        )
-    if not source_text:
-        source_text = "النص الكامل للقرار غير مثبت في JSON الأصلي."
-    return {
-        "answer": source_text,
-        "sources": [source.public_dict() for source in cited_sources],
-        "full_text": "\n\n".join(record["full_text"] for record in full_text_sources),
-        "full_text_sources": full_text_sources,
-        "confidence": 1.0 if full_text_sources else 0.7,
-    }
+    return None
 
 
 def asks_for_source_book(question: str) -> bool:
@@ -857,29 +990,128 @@ def answer_source_book_if_known(
 
 
 def answer_with_full_legal_text(answer: str, sources: list[RetrievedSource]) -> str:
-    """Append complete Word-derived legal text for the cited source documents."""
+    """Keep the public answer concise; full text remains in full_text_sources."""
 
-    if not answer or not sources:
+    return answer
+
+
+def related_topics_for_sources(question: str, sources: list[RetrievedSource]) -> list[str]:
+    """Build source-aware follow-up topics without adding legal facts."""
+
+    text = _clean(" ".join([question, *(source.document for source in sources), *(source.text for source in sources)]))
+    suggestions: list[str] = []
+
+    def add(topic: str) -> None:
+        if topic not in suggestions:
+            suggestions.append(topic)
+
+    if "قرار" in text or "مجلس الوزراء" in text:
+        add("ما رقم القرار وتاريخ صدوره؟")
+        add("ما الجهات أو الأطراف المشمولة بالقرار؟")
+        add("ما الالتزامات أو الإجراءات المطلوبة لتنفيذه؟")
+    if "قانون" in text:
+        add("ما نطاق تطبيق هذا القانون؟")
+        add("ما أهم الحقوق أو الالتزامات الواردة فيه؟")
+        add("هل توجد عقوبات أو استثناءات مرتبطة بالموضوع؟")
+    if "كتاب" in text:
+        add("ما رقم وتاريخ الكتاب الذي استندت إليه الوثيقة؟")
+    if re.search(r"مبلغ|دينار|دولار|سعر|كلفة|تكلفة", text):
+        add("ما المبلغ أو السعر المذكور وبأي عملة؟")
+
+    if not suggestions:
+        suggestions = [
+            "ما أهم النقاط العملية في هذه الوثيقة؟",
+            "ما الجهة المسؤولة أو المعنية بالموضوع؟",
+            "ما المعلومات الناقصة التي تحتاج إلى تحقق من المصدر؟",
+        ]
+    return suggestions[:3]
+
+
+def _trim_topic_value(value: str, limit: int = 70) -> str:
+    value = re.sub(r"\s+", " ", _clean(value)).strip(" .،؛:")
+    return value[:limit].rstrip(" .،؛:")
+
+
+def _source_entity_candidates(text: str) -> list[str]:
+    pattern = re.compile(
+        r"\b(?:وزارة|شركة|مجلس|هيئة|دائرة|محافظة|لجنة)\s+[\u0600-\u06FF\s]{2,55}",
+    )
+    entities = []
+    for match in pattern.finditer(text):
+        entity = _trim_topic_value(re.split(r"[،؛:.\n\r]", match.group(0), 1)[0])
+        if entity and entity not in entities:
+            entities.append(entity)
+    return entities
+
+
+def related_topics_for_sources(question: str, sources: list[RetrievedSource]) -> list[str]:
+    """Build follow-up topics from facts that appear in the same retrieved text."""
+
+    text = _clean(" ".join([*(source.document for source in sources), *(source.text for source in sources)]))
+    suggestions: list[str] = []
+
+    def add(topic: str) -> None:
+        if topic not in suggestions:
+            suggestions.append(topic)
+
+    book = re.search(
+        r"كتاب\s+(.{0,80}?)\s+المرقم\s+بالعدد\s*\(\s*([^)]+?)\s*\)\s+المؤرخ\s+في\s+([0-9٠-٩/\\-]+)",
+        text,
+        flags=re.DOTALL,
+    )
+    if book:
+        issuer, number, date = [_trim_topic_value(value) for value in book.groups()]
+        issuer_text = f" {issuer}" if issuer else ""
+        add(f"هل تريد معرفة أثر كتاب{issuer_text} المرقم ({number}) المؤرخ في {date}؟")
+
+    amount = re.search(r"([0-9٠-٩][0-9٠-٩.,/ ]+)\s*(دينار|دولار)", text)
+    if amount:
+        value, currency = [_trim_topic_value(value) for value in amount.groups()]
+        add(f"أستطيع مساعدتك في توضيح تفاصيل المبلغ {value} {currency} الوارد في النص.")
+
+    date = re.search(r"\b([0-9٠-٩]{1,2}\s*/\s*[0-9٠-٩]{1,2}\s*/\s*[0-9٠-٩]{4})\b", text)
+    if date:
+        add(f"هل تريد معرفة دلالة تاريخ {date.group(1)} في هذه الوثيقة؟")
+
+    clause = re.search(r"\b(أولاً|أولًا|ثانياً|ثانيًا|ثالثاً|ثالثًا)\s*[:：]?\s*(.{10,90})", text)
+    if clause:
+        label = _trim_topic_value(clause.group(1))
+        add(f"هل تريد أن أشرح لك البند {label} الوارد في النص؟")
+
+    for entity in _source_entity_candidates(text)[:2]:
+        add(f"أستطيع مساعدتك في توضيح دور {entity} في النص.")
+
+    if not suggestions:
+        suggestions = [
+            "هل تريد معرفة النقطة القانونية الرئيسية التي يقررها هذا النص؟",
+            "أستطيع مساعدتك في تحديد العبارة الأهم المرتبطة بسؤالك من نفس النص.",
+            "هل تريد أن أراجع لك الجزء الذي يحتاج إلى قراءة تفصيلية من نفس الوثيقة؟",
+        ]
+    return suggestions[:3]
+
+
+def append_related_topics(answer: str, question: str, sources: list[RetrievedSource]) -> str:
+    """Append interactive follow-up topics to valid grounded answers."""
+
+    if (
+        not answer
+        or INSUFFICIENT_CONTEXT in answer
+        or RELATED_TOPICS_HEADING in answer
+        or "مواضيع مقترحة:" in answer
+    ):
         return answer
-    if INSUFFICIENT_CONTEXT in answer:
-        answer = FULL_TEXT_FALLBACK_ANSWER
-
-    source_texts = [
-        record["full_text"]
-        for record in full_texts_for_sources(sources)
-        if record.get("full_text") and record["full_text"] not in answer
-    ]
-    if not source_texts:
+    topics = related_topics_for_sources(question, sources)
+    if not topics:
         return answer
+    topic_lines = "\n".join(f"- {topic}" for topic in topics)
+    return f"{answer.strip()}\n\n{RELATED_TOPICS_HEADING}\n{topic_lines}"
 
-    if len(source_texts) == 1:
-        return f"{answer}\n\n{FULL_TEXT_HEADING}\n{source_texts[0]}"
 
-    blocks = [
-        f"\u0627\u0644\u0645\u0635\u062f\u0631 {index}:\n{text}"
-        for index, text in enumerate(source_texts, start=1)
-    ]
-    return f"{answer}\n\n{FULL_TEXT_HEADING}\n\n" + "\n\n".join(blocks)
+def with_related_topics(result: dict[str, Any], question: str, sources: list[RetrievedSource]) -> dict[str, Any]:
+    """Return an answer payload with related topics appended when appropriate."""
+
+    answer = str(result.get("answer") or "")
+    return {**result, "answer": append_related_topics(answer, question, sources)}
 
 
 def answer_from_results(
@@ -893,6 +1125,20 @@ def answer_from_results(
     filtered_results, _warnings = filter_results_to_registered(results, registry=registry)
     log_retrieval_results(question, filtered_results)
     sources = extracted_sources(filtered_results)
+    if not sources:
+        unregistered_sources = extracted_sources(results)
+        if unregistered_sources:
+            filtered_results = results
+            sources = unregistered_sources
+            log_answer_generation("using unregistered retrieved Word/doc source")
+    if not sources:
+        full_text_results = fallback_results_from_full_text(question)
+        full_text_sources = extracted_sources(full_text_results)
+        if full_text_sources:
+            filtered_results = full_text_results
+            sources = full_text_sources
+            log_retrieval_results(question, filtered_results)
+            log_answer_generation("using full-text Word/doc fallback")
     if not sources:
         log_answer_generation("no sources found")
         return {"answer": INSUFFICIENT_CONTEXT, "sources": [], "confidence": 0.0}
@@ -917,19 +1163,19 @@ def answer_from_results(
     decision_number_answer = answer_decision_number_if_known(question, filtered_results)
     if decision_number_answer:
         log_answer_generation("direct decision-number answer")
-        return decision_number_answer
+        return with_related_topics(decision_number_answer, question, sources[:1])
     document_date_answer = answer_document_date_if_known(question, filtered_results, sources)
     if document_date_answer:
         log_answer_generation("direct document-date answer")
-        return document_date_answer
+        return with_related_topics(document_date_answer, question, sources[:1])
     recommendation_number_answer = answer_recommendation_number_if_known(question, filtered_results, sources)
     if recommendation_number_answer:
         log_answer_generation("direct recommendation-number answer")
-        return recommendation_number_answer
+        return with_related_topics(recommendation_number_answer, question, sources[:1])
     source_book_answer = answer_source_book_if_known(question, sources)
     if source_book_answer:
         log_answer_generation("direct source-book answer")
-        return source_book_answer
+        return with_related_topics(source_book_answer, question, sources[:1])
     full_document_text_answer = answer_full_document_text_if_requested(question, sources)
     if full_document_text_answer:
         log_answer_generation("direct full-document text answer")
@@ -942,13 +1188,13 @@ def answer_from_results(
         log_answer_generation("direct product-price answer")
         cited_sources = sources[:1] if full_document_context else supporting_sources(product_price_answer, sources)
         full_text_sources = full_texts_for_sources(cited_sources)
-        return {
+        return with_related_topics({
             "answer": product_price_answer,
             "sources": [source.public_dict() for source in cited_sources],
             "full_text": "\n\n".join(record["full_text"] for record in full_text_sources),
             "full_text_sources": full_text_sources,
             "confidence": estimate_confidence(product_price_answer, cited_sources, filtered_results),
-        }
+        }, question, cited_sources)
     context = build_document_answer_context(filtered_results, context_sources)
     log_long_text_status(
         top_metadata,
@@ -961,17 +1207,21 @@ def answer_from_results(
     answer = _clean(caller(question, context))
     if not answer:
         answer = INSUFFICIENT_CONTEXT
+    if INSUFFICIENT_CONTEXT in answer and sources:
+        fallback_answer = extractive_summary_from_sources(question, context_sources)
+        if fallback_answer:
+            answer = fallback_answer
     log_answer_generation("model generation completed")
     cited_sources = sources[:1] if full_document_context else supporting_sources(answer, sources)
     full_text_sources = full_texts_for_sources(cited_sources)
 
-    return {
+    return with_related_topics({
         "answer": answer_with_full_legal_text(answer, cited_sources),
         "sources": [source.public_dict() for source in cited_sources],
         "full_text": "\n\n".join(record["full_text"] for record in full_text_sources),
         "full_text_sources": full_text_sources,
         "confidence": estimate_confidence(answer, cited_sources, filtered_results),
-    }
+    }, question, cited_sources)
 
 
 def answer_question(question: str) -> dict[str, Any]:

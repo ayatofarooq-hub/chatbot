@@ -124,6 +124,7 @@ THANKS_WORDS = {
     "thank you",
 }
 MISSING_DECISION_NUMBER_ANSWER = "رقم القرار غير مثبت في النص المستخرج من الوثيقة."
+RELATED_TOPICS_HEADING = "مواضيع مقترحة من نفس النص:"
 SOURCE_JSON_DIRS = (
     "data/legal_documents",
     "data/extracted_text",
@@ -208,7 +209,8 @@ def citation_source_label(metadata: dict, registry: dict) -> str:
         or citation.get("law_name")
         or metadata.get("document_title")
         or metadata.get("source_file")
-        or "مصدر غير معروف"
+        or metadata.get("document_type")
+        or ""
     ).strip()
 
 
@@ -534,14 +536,9 @@ def wants_exact_full_document_text(question: str) -> bool:
 
 
 def full_document_text_answer(question: str, results: dict) -> AnswerResult | None:
-    """Return original long_text for exact full-text requests."""
+    """Do not return Word/docx long_text directly; the answer must be a summary."""
 
-    if not wants_exact_full_document_text(question):
-        return None
-    source_text = _source_text_for_metadata(_top_metadata(results))
-    if source_text:
-        return AnswerResult(content=source_text, warnings=[])
-    return AnswerResult(content="النص الكامل للقرار غير مثبت في JSON الأصلي.", warnings=[])
+    return None
 
 
 def results_with_full_document_context(results: dict) -> dict:
@@ -1090,6 +1087,134 @@ def ensure_answer_citations(answer: str, results: dict) -> str:
     return format_concise_answer(answer, results)
 
 
+def related_topics_for_results(question: str, results: dict) -> list[str]:
+    """Build simple related follow-up topics from retrieved source text."""
+
+    documents = results.get("documents", [[]])[0]
+    metadatas = results.get("metadatas", [[]])[0]
+    metadata_text = " ".join(
+        " ".join(str(value or "") for value in metadata.values())
+        for metadata in metadatas
+        if isinstance(metadata, dict)
+    )
+    text = repair_mojibake(" ".join([question, metadata_text, *map(str, documents)]))
+    suggestions: list[str] = []
+
+    def add(topic: str) -> None:
+        if topic not in suggestions:
+            suggestions.append(topic)
+
+    if "قرار" in text or "مجلس الوزراء" in text:
+        add("ما رقم القرار وتاريخ صدوره؟")
+        add("ما الجهات أو الأطراف المشمولة بالقرار؟")
+        add("ما الالتزامات أو الإجراءات المطلوبة لتنفيذه؟")
+    if "قانون" in text:
+        add("ما نطاق تطبيق هذا القانون؟")
+        add("ما أهم الحقوق أو الالتزامات الواردة فيه؟")
+        add("هل توجد عقوبات أو استثناءات مرتبطة بالموضوع؟")
+    if "كتاب" in text:
+        add("ما رقم وتاريخ الكتاب الذي استندت إليه الوثيقة؟")
+    if re.search(r"مبلغ|دينار|دولار|سعر|كلفة|تكلفة", text):
+        add("ما المبلغ أو السعر المذكور وبأي عملة؟")
+    return (suggestions or [
+        "ما أهم النقاط العملية في هذه الوثيقة؟",
+        "ما الجهة المسؤولة أو المعنية بالموضوع؟",
+        "ما المعلومات الناقصة التي تحتاج إلى تحقق من المصدر؟",
+    ])[:3]
+
+
+def _trim_topic_value(value: str, limit: int = 70) -> str:
+    value = re.sub(r"\s+", " ", repair_mojibake(str(value or ""))).strip(" .،؛:")
+    return value[:limit].rstrip(" .،؛:")
+
+
+def _topic_entity_candidates(text: str) -> list[str]:
+    pattern = re.compile(
+        r"\b(?:وزارة|شركة|مجلس|هيئة|دائرة|محافظة|لجنة)\s+[\u0600-\u06FF\s]{2,55}",
+    )
+    entities = []
+    for match in pattern.finditer(text):
+        entity = _trim_topic_value(re.split(r"[،؛:.\n\r]", match.group(0), 1)[0])
+        if entity and entity not in entities:
+            entities.append(entity)
+    return entities
+
+
+def related_topics_for_results(question: str, results: dict) -> list[str]:
+    """Build related topics from facts found in the same retrieved legal text."""
+
+    documents = results.get("documents", [[]])[0]
+    metadatas = results.get("metadatas", [[]])[0]
+    metadata_text = " ".join(
+        " ".join(str(value or "") for value in metadata.values())
+        for metadata in metadatas
+        if isinstance(metadata, dict)
+    )
+    text = repair_mojibake(" ".join([metadata_text, *map(str, documents)]))
+    suggestions: list[str] = []
+
+    def add(topic: str) -> None:
+        if topic not in suggestions:
+            suggestions.append(topic)
+
+    book = re.search(
+        r"كتاب\s+(.{0,80}?)\s+المرقم\s+بالعدد\s*\(\s*([^)]+?)\s*\)\s+المؤرخ\s+في\s+([0-9٠-٩/\\-]+)",
+        text,
+        flags=re.DOTALL,
+    )
+    if book:
+        issuer, number, date = [_trim_topic_value(value) for value in book.groups()]
+        issuer_text = f" {issuer}" if issuer else ""
+        add(f"هل تريد معرفة أثر كتاب{issuer_text} المرقم ({number}) المؤرخ في {date}؟")
+
+    amount = re.search(r"([0-9٠-٩][0-9٠-٩.,/ ]+)\s*(دينار|دولار)", text)
+    if amount:
+        value, currency = [_trim_topic_value(value) for value in amount.groups()]
+        add(f"أستطيع مساعدتك في توضيح تفاصيل المبلغ {value} {currency} الوارد في النص.")
+
+    date = re.search(r"\b([0-9٠-٩]{1,2}\s*/\s*[0-9٠-٩]{1,2}\s*/\s*[0-9٠-٩]{4})\b", text)
+    if date:
+        add(f"هل تريد معرفة دلالة تاريخ {date.group(1)} في هذه الوثيقة؟")
+
+    clause = re.search(r"\b(أولاً|أولًا|ثانياً|ثانيًا|ثالثاً|ثالثًا)\s*[:：]?\s*(.{10,90})", text)
+    if clause:
+        label = _trim_topic_value(clause.group(1))
+        add(f"هل تريد أن أشرح لك البند {label} الوارد في النص؟")
+
+    for entity in _topic_entity_candidates(text)[:2]:
+        add(f"أستطيع مساعدتك في توضيح دور {entity} في النص.")
+
+    return (suggestions or [
+        "هل تريد معرفة النقطة القانونية الرئيسية التي يقررها هذا النص؟",
+        "أستطيع مساعدتك في تحديد العبارة الأهم المرتبطة بسؤالك من نفس النص.",
+        "هل تريد أن أراجع لك الجزء الذي يحتاج إلى قراءة تفصيلية من نفس الوثيقة؟",
+    ])[:3]
+
+
+def append_related_topics(answer: str, question: str, results: dict) -> str:
+    """Append related topics after validation so they do not affect grounding checks."""
+
+    if (
+        not answer
+        or RELATED_TOPICS_HEADING in answer
+        or "مواضيع مقترحة:" in answer
+        or INSUFFICIENT_CONTEXT_MESSAGE in answer
+    ):
+        return answer
+    topics = related_topics_for_results(question, results)
+    topic_lines = "\n".join(f"- {topic}" for topic in topics)
+    return f"{answer.strip()}\n\n{RELATED_TOPICS_HEADING}\n{topic_lines}"
+
+
+def answer_result_with_related_topics(result: AnswerResult, question: str, results: dict) -> AnswerResult:
+    """Append related topics to a direct answer result."""
+
+    return AnswerResult(
+        content=append_related_topics(result.content, question, results),
+        warnings=result.warnings,
+    )
+
+
 def repair_empty_or_title_answer(question: str, answer: str, results: dict) -> str:
     """Replace title-only answers with a direct line from retrieved context."""
 
@@ -1354,39 +1479,8 @@ def _looks_like_government_decision(text: str) -> bool:
 
 
 def complete_uploaded_source_answer(answer: str, results: dict) -> str:
-    """Use full uploaded decision text when the model returned a short summary."""
+    """Keep uploaded Word/doc answers concise instead of expanding to full text."""
 
-    metadatas = results.get("metadatas", [[]])[0]
-    if not metadatas:
-        return answer
-
-    top_metadata = metadatas[0]
-    source_file = str(top_metadata.get("source_file", ""))
-    is_uploaded = bool(
-        str(top_metadata.get("document_upload_id", "")).strip()
-        or source_file.startswith("uploaded_")
-    )
-    if not is_uploaded:
-        return answer
-
-    source_documents = _retrieved_documents_for_source(results, source_file)
-    substantive_documents = _substantive_decision_documents(source_documents)
-    if not substantive_documents:
-        return answer
-
-    source_text = "\n\n".join(substantive_documents)
-    if not _looks_like_government_decision(source_text):
-        return answer
-
-    body = answer_body_only(answer)
-    complete_text = _format_complete_source_text(source_text)
-    if len(complete_text) < 350:
-        return answer
-
-    body_length = len(normalized_answer_text(body))
-    source_length = len(normalized_answer_text(complete_text))
-    if body_length < 450 or body_length < int(source_length * 0.45):
-        return complete_text
     return answer
 
 
@@ -1525,19 +1619,19 @@ def generate_answer(
     direct_decision_number_answer = decision_number_answer(question, results)
     if direct_decision_number_answer:
         log_answer_generation("direct decision-number answer")
-        return direct_decision_number_answer
+        return answer_result_with_related_topics(direct_decision_number_answer, question, results)
     direct_document_date_answer = document_date_answer(question, results)
     if direct_document_date_answer:
         log_answer_generation("direct document-date answer")
-        return direct_document_date_answer
+        return answer_result_with_related_topics(direct_document_date_answer, question, results)
     direct_recommendation_number_answer = recommendation_number_answer(question, results)
     if direct_recommendation_number_answer:
         log_answer_generation("direct recommendation-number answer")
-        return direct_recommendation_number_answer
+        return answer_result_with_related_topics(direct_recommendation_number_answer, question, results)
     direct_source_book_answer = source_book_answer(question, results)
     if direct_source_book_answer:
         log_answer_generation("direct source-book answer")
-        return direct_source_book_answer
+        return answer_result_with_related_topics(direct_source_book_answer, question, results)
     direct_full_text_answer = full_document_text_answer(question, results)
     if direct_full_text_answer:
         log_answer_generation("direct full-document text answer")
@@ -1633,6 +1727,7 @@ def generate_answer(
             registry_filter_warnings + metadata_warnings + validation_errors
         )
     )
+    answer = append_related_topics(answer, question, results)
     return AnswerResult(content=answer, warnings=warnings)
 
 

@@ -51,6 +51,10 @@ REGISTRY = {
     }
 }
 
+def answer_body(answer: str) -> str:
+    return answer.split("\n\nمواضيع مقترحة من نفس النص:", 1)[0]
+
+
 SECTION_HEADING = (
     "\u062a\u0641\u0643\u064a\u0643 \u0627\u0644\u0642\u0648\u0627\u0646\u064a\u0646 "
     "\u0645\u0646 (\u0661\u0661) \u0625\u0644\u0649 (\u0662\u0660) - "
@@ -255,7 +259,7 @@ class AnswerFlowTests(unittest.TestCase):
         answer = result["answer"]
         self.assertIn("قانون الأسلحة", answer)
         self.assertIn("الأسباب الموجبة", answer)
-        self.assertIn("المادة (٢٧)", answer)
+        self.assertNotIn("المادة (٢٧)", answer)
         self.assertNotIn("قانون مجلس القضاء الأعلى", answer)
 
     def test_exact_law_lookup_includes_group_source(self):
@@ -266,7 +270,8 @@ class AnswerFlowTests(unittest.TestCase):
             "تفكيك القوانين من (١١) إلى (٢٠) - "
             "التشريعات القضائية والأمنية والاستثمارية"
         )
-        self.assertTrue(result["answer"].endswith(f"المصدر: {expected_source}"))
+        self.assertTrue(answer_body(result["answer"]).endswith(f"المصدر: {expected_source}"))
+        self.assertIn("مواضيع مقترحة من نفس النص:", result["answer"])
         self.assertEqual(result["citations"][0]["source_file"], expected_source)
         self.assertIn("قانون هيئة الحشد الشعبي", result["answer"])
         self.assertNotIn("قانون الأسلحة رقم", result["answer"])
@@ -276,30 +281,32 @@ class AnswerFlowTests(unittest.TestCase):
 
         self.assertIsNotNone(result)
         answer = result["answer"]
-        self.assertIn("الأسباب الموجبة", answer)
-        self.assertIn("الهيكل التنظيمي", answer)
-        self.assertIn("المادة (١)", answer)
-        self.assertIn("المادة (٣)", answer)
-        self.assertIn("المادة (٥)", answer)
-        self.assertIn("المادة (٦) - تجريم السنن العشائرية", answer)
+        self.assertIn("قانون حمايه الاطباء", answer)
+        self.assertNotIn("المادة (١)", answer)
+        self.assertNotIn("المادة (٣)", answer)
+        self.assertNotIn("المادة (٥)", answer)
+        self.assertNotIn("المادة (٦) - تجريم السنن العشائرية", answer)
         self.assertNotIn("قانون هيئة الحشد الشعبي رقم", answer)
         self.assertEqual(answer.count("تفكيك القوانين من"), 1)
         self.assertTrue(
-            answer.endswith(
+            answer_body(answer).endswith(
                 "المصدر: تفكيك القوانين من (١١) إلى (٢٠) - "
                 "التشريعات القضائية والأمنية والاستثمارية"
             )
         )
+        self.assertIn("مواضيع مقترحة من نفس النص:", answer)
 
     def test_exact_law_lookup_keeps_answer_limited_to_requested_law(self):
         result = answer_exact_law("قانون هيئة الحشد الشعبي رقم (٤٠) لسنة ٢٠١٦")
 
         self.assertIsNotNone(result)
         answer = result["answer"]
-        self.assertIn("المادة (١) - الفقرة ١", answer)
-        self.assertIn("المادة (١) - الفقرة ٢", answer)
-        self.assertIn("المادة (١) - الفقرة ٣", answer)
-        self.assertIn("المادة (٢)", answer)
+        self.assertIn("قانون هيئة الحشد الشعبي", answer)
+        self.assertIn("الأسباب الموجبة", answer)
+        self.assertNotIn("المادة (١) - الفقرة ١", answer)
+        self.assertNotIn("المادة (١) - الفقرة ٢", answer)
+        self.assertNotIn("المادة (١) - الفقرة ٣", answer)
+        self.assertNotIn("المادة (٢)", answer)
         self.assertNotIn("نصوص ذات صلة بهذا القانون", answer)
         self.assertNotIn("إقرار الهيكل القانوني الثابت لهيئة الحشد الشعبي", answer)
         self.assertNotIn("قانون الأسلحة رقم", answer)
@@ -491,10 +498,14 @@ class AnswerFlowTests(unittest.TestCase):
             results,
         )
 
-        self.assertIn("MI-17", answer)
-        self.assertIn("115.442.307.79", answer)
-        self.assertIn("\u062a\u062a\u062d\u0645\u0644 \u0648\u0632\u0627\u0631\u0629 \u0627\u0644\u062f\u0641\u0627\u0639", answer)
-        self.assertTrue(answer.startswith("\u0628\u0646\u0627\u0621\u064b \u0639\u0644\u0649"))
+        self.assertEqual(
+            answer,
+            "\u0642\u0631\u0627\u0631 \u0645\u062c\u0644\u0633 \u0627\u0644\u0648\u0632\u0631\u0627\u0621 "
+            "\u064a\u0642\u0636\u064a \u0628\u0623\u062e\u0630 \u0645\u0627 \u064a\u0642\u062a\u0636\u064a.",
+        )
+        self.assertNotIn("MI-17", answer)
+        self.assertNotIn("115.442.307.79", answer)
+        self.assertNotIn("\u062a\u062a\u062d\u0645\u0644 \u0648\u0632\u0627\u0631\u0629 \u0627\u0644\u062f\u0641\u0627\u0639", answer)
         self.assertNotIn("\u0631\u0642\u0645 (99999)", answer)
         self.assertNotIn("\u062d\u0645\u064a\u062f \u0646\u0639\u064a\u0645", answer)
         self.assertEqual(

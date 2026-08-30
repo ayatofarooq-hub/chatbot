@@ -92,6 +92,15 @@ FUEL_PRICE_RESULTS = {
 }
 
 
+def answer_body(answer: str) -> str:
+    return answer.split("\n\nمواضيع مقترحة من نفس النص:", 1)[0]
+
+
+def assert_interactive_related_topics(answer: str):
+    assert "مواضيع مقترحة من نفس النص:" in answer
+    assert "هل تريد" in answer or "أستطيع مساعدتك" in answer
+
+
 def test_required_fuel_price_decision_question_cases(monkeypatch):
     monkeypatch.setattr(
         "legal_rag.grounded_answer.load_registry",
@@ -124,9 +133,11 @@ def test_required_fuel_price_decision_question_cases(monkeypatch):
     full_text_result = answer_from_results(
         "أعطني نص القرار كاملًا.",
         FUEL_PRICE_RESULTS,
-        qwen_caller=lambda *_args: "wrong",
+        qwen_caller=lambda *_args: "خلاصة القرار: تعديل أسعار منتوجي زيت الوقود وزيت الغاز.",
     )
-    assert full_text_result["answer"] == FUEL_PRICE_LONG_TEXT
+    assert answer_body(full_text_result["answer"]) == "خلاصة القرار: تعديل أسعار منتوجي زيت الوقود وزيت الغاز."
+    assert_interactive_related_topics(full_text_result["answer"])
+    assert full_text_result["full_text_sources"][0]["original_long_text"] == FUEL_PRICE_LONG_TEXT
 
     def answer_from_long_text(_question, context):
         assert FUEL_PRICE_LONG_TEXT in context
@@ -324,7 +335,8 @@ def test_answer_from_results_uses_long_text_for_diesel_decision(monkeypatch):
         qwen_caller=lambda *_args: "wrong",
     )
 
-    assert result["answer"] == "تم تعديل سعر منتوج زيت الغاز ليصبح 400 دينار / لتر بدلًا من 750 دينار / لتر."
+    assert answer_body(result["answer"]) == "تم تعديل سعر منتوج زيت الغاز ليصبح 400 دينار / لتر بدلًا من 750 دينار / لتر."
+    assert_interactive_related_topics(result["answer"])
     assert result["full_text_sources"][0]["original_long_text"].startswith("قــرار مجلس الوزراء")
 
 
@@ -350,8 +362,8 @@ def test_answer_from_results_distinguishes_issue_and_session_dates(monkeypatch):
     issue_result = answer_from_results("متى صدر القرار؟", results, qwen_caller=lambda *_args: "wrong")
     session_result = answer_from_results("متى عقدت الجلسة؟", results, qwen_caller=lambda *_args: "wrong")
 
-    assert issue_result["answer"] == "تاريخ صدور القرار: 30/10/2024."
-    assert session_result["answer"] == "تاريخ انعقاد الجلسة: 29/10/2024."
+    assert answer_body(issue_result["answer"]) == "تاريخ صدور القرار: 30/10/2024."
+    assert answer_body(session_result["answer"]) == "تاريخ انعقاد الجلسة: 29/10/2024."
 
 
 def test_answer_from_results_extracts_source_book_from_long_text(monkeypatch):
@@ -381,7 +393,8 @@ def test_answer_from_results_extracts_source_book_from_long_text(monkeypatch):
         qwen_caller=lambda *_args: "wrong",
     )
 
-    assert result["answer"] == "كتاب وزارة النفط المرقم بالعدد (و/623) المؤرخ في 15/8/2024."
+    assert answer_body(result["answer"]) == "كتاب وزارة النفط المرقم بالعدد (و/623) المؤرخ في 15/8/2024."
+    assert_interactive_related_topics(result["answer"])
     assert result["full_text_sources"][0]["original_long_text"].startswith("الموافقة على تعديل أسعار")
 
 
@@ -402,8 +415,8 @@ def test_answer_wrapper_cites_only_retrieved_sources(monkeypatch):
     )
 
     assert result["answer"].startswith("مبلغ العقد هو (4.594.000.050) دولار.")
-    assert "النص القانوني الكامل:" in result["answer"]
-    assert "الموافقة على العقد المبرم" in result["answer"]
+    assert "النص القانوني الكامل:" not in result["answer"]
+    assert "الموافقة على العقد المبرم" not in result["answer"]
     assert result["confidence"] == 0.88
     source = result["full_text_sources"][0]
     assert source["paragraph_indexes"] == [3, 4]
@@ -435,7 +448,7 @@ def test_full_document_question_uses_original_long_text_in_model_context(monkeyp
         ),
     )
 
-    assert result["answer"] == "FULL LONG TEXT FOR WHOLE DECISION"
+    assert answer_body(result["answer"]) == "تم استخدام النص الكامل"
     assert result["full_text_sources"][0]["original_long_text"] == "FULL LONG TEXT FOR WHOLE DECISION"
 
 
@@ -492,7 +505,7 @@ def test_missing_decision_number_is_not_inferred_from_reference_number(monkeypat
         qwen_caller=lambda *_args: "wrong",
     )
 
-    assert result["answer"] == MISSING_DECISION_NUMBER_ANSWER
+    assert answer_body(result["answer"]) == MISSING_DECISION_NUMBER_ANSWER
     assert "24315" not in result["answer"]
 
 
@@ -514,7 +527,7 @@ def test_known_decision_number_is_answered_from_metadata(monkeypatch):
 
     result = answer_from_results("ما رقم القرار؟", results, qwen_caller=lambda *_args: "wrong")
 
-    assert result["answer"] == "رقم القرار هو 15."
+    assert answer_body(result["answer"]) == "رقم القرار هو 15."
     assert result["sources"] == [
         {
             "document": "قرار توصية الطاقة حقل الناصرية.docx",
@@ -564,9 +577,8 @@ def test_answer_wrapper_returns_full_text_when_model_is_conservative(monkeypatch
         qwen_caller=lambda *_args: INSUFFICIENT_CONTEXT,
     )
 
-    assert result["answer"].startswith("تم العثور على النص القانوني الآتي")
-    assert "النص القانوني الكامل:" in result["answer"]
     assert "الموافقة على العقد المبرم" in result["answer"]
+    assert "النص القانوني الكامل:" not in result["answer"]
     assert result["sources"] == [
         {
             "document": "قرار توصية الطاقة حقل الناصرية.docx",
@@ -577,15 +589,37 @@ def test_answer_wrapper_returns_full_text_when_model_is_conservative(monkeypatch
     ]
 
 
-def test_unregistered_or_empty_context_returns_insufficient_context(monkeypatch):
+def test_unregistered_context_is_still_answered_from_word_text(monkeypatch):
     monkeypatch.setattr(
         "legal_rag.grounded_answer.load_registry",
         lambda: {"by_chunk_id": {}},
     )
 
-    result = answer_from_results("ما هو مبلغ العقد؟", RESULTS, qwen_caller=lambda *_args: "unused")
+    result = answer_from_results(
+        "ما هو مبلغ العقد؟",
+        RESULTS,
+        qwen_caller=lambda *_args: "المبلغ هو (4.594.000.050) دولار.",
+    )
 
-    assert result == {"answer": INSUFFICIENT_CONTEXT, "sources": [], "confidence": 0.0}
+    assert "4.594.000.050" in result["answer"]
+    assert result["sources"][0]["chunk_id"] == "legal_json_test_item_1"
+
+
+def test_empty_context_uses_full_text_fallback(monkeypatch):
+    monkeypatch.setattr("legal_rag.grounded_answer.load_registry", lambda: {"by_chunk_id": {}})
+    monkeypatch.setattr(
+        "legal_rag.grounded_answer.load_full_text_index",
+        lambda: {"fuel.docx": FUEL_PRICE_LONG_TEXT},
+    )
+
+    result = answer_from_results(
+        "كم أصبح سعر زيت الغاز؟",
+        {"documents": [[]], "metadatas": [[]], "distances": [[]]},
+        qwen_caller=lambda *_args: "unused",
+    )
+
+    assert "400 دينار / لتر" in result["answer"]
+    assert result["sources"][0]["document"] == "fuel.docx"
 
 
 def test_full_text_payload_uses_long_text_before_body_or_paragraphs():

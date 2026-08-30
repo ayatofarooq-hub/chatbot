@@ -285,6 +285,76 @@
       "token_hash": "104d1e58bf5f14e8c6da6518af7f8ee61824cbe9462633c7104c7800d56dcc35",
       "expires_at": "2026-08-16T07:28:54.646593+00:00",
       "welcome_phrase_index": 0
+    },
+    {
+      "id": "f49d8a32-f106-4cfa-8dbd-b46cc93b9f92",
+      "admin_user_id": 1,
+      "token_hash": "12e1586c9b392aea86204ec9656a39d24b1357f00e6ebe13e5f68f2e58c65be0",
+      "expires_at": "2026-08-16T08:31:24.874038+00:00",
+      "welcome_phrase_index": 2
+    },
+    {
+      "id": "d0dc8c6a-0128-4c48-b278-3137a10d06b0",
+      "admin_user_id": 1,
+      "token_hash": "04f1262f7c7937bb7caad4901194176151f7150f02816251e145d8aa84cdf413",
+      "expires_at": "2026-08-16T09:31:48.274320+00:00",
+      "welcome_phrase_index": 0
+    },
+    {
+      "id": "f5341a12-a001-4da2-8666-9ef2ce48dbd9",
+      "admin_user_id": 1,
+      "token_hash": "bf7a7025b8b17728b1325ba401b73e3ca57540b59a58aba0229bfdbc21ab0c02",
+      "expires_at": "2026-08-17T10:30:46.716880+00:00",
+      "welcome_phrase_index": 1
+    },
+    {
+      "id": "d5528c53-61b6-41a2-9bb8-d69b02c0f98c",
+      "admin_user_id": 1,
+      "token_hash": "813374cc93bc20900af1e0976369b437ec461fc26c217737e59515f1c5565c83",
+      "expires_at": "2026-08-17T11:48:16.603216+00:00",
+      "welcome_phrase_index": 1
+    },
+    {
+      "id": "09275947-aff5-4ab5-bb8e-397fc6b3df15",
+      "admin_user_id": 1,
+      "token_hash": "0f2702e9f4aae547a7d2a77a2cd8a9492d1101f42ef52c51a9d3ed50f7f76078",
+      "expires_at": "2026-08-23T11:35:00.461265+00:00",
+      "welcome_phrase_index": 2
+    },
+    {
+      "id": "9ae45db0-7c2c-43ee-b698-b8a738ebc298",
+      "admin_user_id": 1,
+      "token_hash": "95cf22127db1d7e3afdea3235835b1f8b78a9e90a294d4d9924a03001ca50f39",
+      "expires_at": "2026-08-24T07:57:07.505616+00:00",
+      "welcome_phrase_index": 2
+    },
+    {
+      "id": "3215a4c0-6d46-4b0d-98d9-0f6877c4bfc5",
+      "admin_user_id": 1,
+      "token_hash": "a1c0f7852c3e8b464e532202bb4d03707ce420388cb78a6dd85dd35adfbf333a",
+      "expires_at": "2026-08-24T09:54:40.139050+00:00",
+      "welcome_phrase_index": 1
+    },
+    {
+      "id": "e5c099bf-76bb-4629-8f4f-97f6b7458558",
+      "admin_user_id": 1,
+      "token_hash": "36612a71c1bba514180104a7783c0d62bad7385a90cb5147b36b6c81032d59e6",
+      "expires_at": "2026-08-26T10:28:22.030436+00:00",
+      "welcome_phrase_index": 1
+    },
+    {
+      "id": "057f409d-38f1-4e81-86ad-9da13d72f4bd",
+      "admin_user_id": 1,
+      "token_hash": "d920bb7b6aae5d2d6087256b1bae3e82a4e8be3c8f1025332f41e062a6106b72",
+      "expires_at": "2026-08-27T08:20:08.721672+00:00",
+      "welcome_phrase_index": 0
+    },
+    {
+      "id": "b49aaeaf-0ea3-4e6f-9198-961e55222756",
+      "admin_user_id": 1,
+      "token_hash": "356132015414a107b11308c70802af550e78a58f576962aea6964d9b4749dbdb",
+      "expires_at": "2026-08-30T07:14:50.940481+00:00",
+      "welcome_phrase_index": 2
     }
   ],
   "audit_log": [
@@ -1251,6 +1321,126 @@
       "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
       "details": {},
       "created_at": "2026-08-16T06:28:54.694798+00:00"
+    },
+    {
+      "id": 73,
+      "action": "login_success",
+      "actor_user_id": 1,
+      "actor_username": "ayat",
+      "target_type": null,
+      "target_id": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+      "details": {},
+      "created_at": "2026-08-16T07:31:24.915614+00:00"
+    },
+    {
+      "id": 74,
+      "action": "login_success",
+      "actor_user_id": 1,
+      "actor_username": "ayat",
+      "target_type": null,
+      "target_id": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+      "details": {},
+      "created_at": "2026-08-16T08:31:48.327841+00:00"
+    },
+    {
+      "id": 75,
+      "action": "login_success",
+      "actor_user_id": 1,
+      "actor_username": "ayat",
+      "target_type": null,
+      "target_id": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+      "details": {},
+      "created_at": "2026-08-17T09:30:46.755472+00:00"
+    },
+    {
+      "id": 76,
+      "action": "login_success",
+      "actor_user_id": 1,
+      "actor_username": "ayat",
+      "target_type": null,
+      "target_id": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+      "details": {},
+      "created_at": "2026-08-17T10:48:16.643795+00:00"
+    },
+    {
+      "id": 77,
+      "action": "login_success",
+      "actor_user_id": 1,
+      "actor_username": "ayat",
+      "target_type": null,
+      "target_id": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+      "details": {},
+      "created_at": "2026-08-23T10:35:00.521821+00:00"
+    },
+    {
+      "id": 78,
+      "action": "login_success",
+      "actor_user_id": 1,
+      "actor_username": "ayat",
+      "target_type": null,
+      "target_id": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+      "details": {},
+      "created_at": "2026-08-24T06:57:07.548335+00:00"
+    },
+    {
+      "id": 79,
+      "action": "login_success",
+      "actor_user_id": 1,
+      "actor_username": "ayat",
+      "target_type": null,
+      "target_id": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+      "details": {},
+      "created_at": "2026-08-24T08:54:40.179344+00:00"
+    },
+    {
+      "id": 80,
+      "action": "login_success",
+      "actor_user_id": 1,
+      "actor_username": "ayat",
+      "target_type": null,
+      "target_id": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+      "details": {},
+      "created_at": "2026-08-26T09:28:22.072669+00:00"
+    },
+    {
+      "id": 81,
+      "action": "login_success",
+      "actor_user_id": 1,
+      "actor_username": "ayat",
+      "target_type": null,
+      "target_id": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+      "details": {},
+      "created_at": "2026-08-27T07:20:08.767857+00:00"
+    },
+    {
+      "id": 82,
+      "action": "login_success",
+      "actor_user_id": 1,
+      "actor_username": "ayat",
+      "target_type": null,
+      "target_id": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+      "details": {},
+      "created_at": "2026-08-30T06:14:50.988828+00:00"
     }
   ]
 }

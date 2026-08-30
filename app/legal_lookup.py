@@ -22,6 +22,7 @@ ARABIC_DIGITS = str.maketrans(
     "01234567890123456789",
 )
 CHUNKS_FILE = PROJECT_ROOT / "data" / "chunks.jsonl"
+RELATED_TOPICS_HEADING = "مواضيع مقترحة من نفس النص:"
 LAW_HEADING_PATTERN = re.compile(
     r"(?m)(?<!\S)([0-9\u0660-\u0669\u06f0-\u06f9]+)\.\s+"
     r"((?:قانون|قرار|تعليمات|نظام)\s+.+?)"
@@ -195,6 +196,69 @@ def format_law_content(content: str) -> str:
     return "\n".join(lines).strip()
 
 
+def summarize_law_content(content: str, max_lines: int = 3) -> str:
+    """Return a short public summary instead of detailed Word/docx content."""
+
+    summary_lines = []
+    for raw_line in clean_law_content(content).splitlines():
+        line = raw_line.strip()
+        if not line:
+            continue
+        if line.startswith(("Ø£Ø¨Ø±Ø² Ø§Ù„Ù…ÙˆØ§Ø¯", "أبرز المواد")):
+            break
+        if line.startswith(("Ø§Ù„Ù…Ø§Ø¯Ø©", "المادة")):
+            continue
+        if line not in summary_lines:
+            summary_lines.append(line)
+        if len(summary_lines) >= max_lines:
+            break
+    return "\n".join(summary_lines).strip() or format_law_content(content)
+
+
+def related_topics_for_law(content: str) -> list[str]:
+    """Return follow-up topics from facts that appear in the exact law text."""
+
+    text = clean_law_content(content)
+    topics: list[str] = []
+
+    def add(topic: str) -> None:
+        if topic not in topics:
+            topics.append(topic)
+
+    article = re.search(r"(?:المادة|Ø§Ù„Ù…Ø§Ø¯Ø©)\s*\(?\s*([0-9٠-٩]+)\s*\)?", text)
+    if article:
+        add(f"هل تريد معرفة مضمون المادة ({article.group(1)}) في نفس القانون؟")
+
+    amount = re.search(r"([0-9٠-٩][0-9٠-٩.,/ ]+)\s*(دينار|دولار)", text)
+    if amount:
+        value, currency = [re.sub(r"\s+", " ", item).strip() for item in amount.groups()]
+        add(f"أستطيع مساعدتك في توضيح تفاصيل المبلغ {value} {currency} الوارد في النص.")
+
+    date = re.search(r"\b([0-9٠-٩]{1,2}\s*/\s*[0-9٠-٩]{1,2}\s*/\s*[0-9٠-٩]{4})\b", text)
+    if date:
+        add(f"هل تريد معرفة دلالة تاريخ {date.group(1)} في نفس النص؟")
+
+    if "الأسباب الموجبة" in text or "Ø§Ù„Ø£Ø³Ø¨Ø§Ø¨ Ø§Ù„Ù…ÙˆØ¬Ø¨Ø©" in text:
+        add("هل تريد معرفة خلاصة الأسباب الموجبة في نفس النص؟")
+    if "الهيكل التنظيمي" in text or "Ø§Ù„Ù‡ÙŠÙƒÙ„ Ø§Ù„ØªÙ†Ø¸ÙŠÙ…ÙŠ" in text:
+        add("أستطيع مساعدتك في توضيح الهيكل التنظيمي المذكور في نفس النص.")
+
+    return (topics or [
+        "هل تريد معرفة النقطة القانونية الرئيسية التي يقررها هذا النص؟",
+        "أستطيع مساعدتك في تحديد العبارة الأهم المرتبطة بسؤالك من نفس النص.",
+        "هل تريد أن أراجع لك الجزء الذي يحتاج إلى قراءة تفصيلية من نفس الوثيقة؟",
+    ])[:3]
+
+
+def append_related_topics(answer: str, content: str) -> str:
+    """Append interactive related topics to exact-law answers."""
+
+    if not answer or RELATED_TOPICS_HEADING in answer or "مواضيع مقترحة:" in answer:
+        return answer
+    topic_lines = "\n".join(f"- {topic}" for topic in related_topics_for_law(content))
+    return f"{answer.strip()}\n\n{RELATED_TOPICS_HEADING}\n{topic_lines}"
+
+
 def detail_bonus(section: str) -> int:
     score = 0
     if "الأسباب الموجبة" in section:
@@ -331,7 +395,8 @@ def answer_exact_law(question: str) -> dict[str, Any] | None:
         return None
     title = match.title or repair_mojibake(str(match.document.get("title") or ""))
     source = match.source or title
-    answer = f"{format_law_content(match.content)}\n\nالمصدر: {source}".strip()
+    answer = f"{summarize_law_content(match.content)}\n\nالمصدر: {source}".strip()
+    answer = append_related_topics(answer, match.content)
     return {
         "answer": answer,
         "citations": [

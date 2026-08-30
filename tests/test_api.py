@@ -118,7 +118,27 @@ class ApiTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["answer"], "إجابة")
-        mock_answer_question.assert_called_once_with("سؤال", False)
+        mock_answer_question.assert_called_once_with("سؤال", False, None)
+
+    def test_filter_results_by_source_hint_keeps_same_document(self):
+        results = {
+            "documents": [["first text", "second text"]],
+            "metadatas": [[
+                {"chunk_id": "first", "source_file": "first.docx", "document_id": "doc-1"},
+                {"chunk_id": "second", "source_file": "second.docx", "document_id": "doc-2"},
+            ]],
+            "distances": [[0.1, 0.2]],
+            "relevance_scores": [[0.9, 0.6]],
+        }
+
+        filtered = api_module.filter_results_by_source_hint(
+            results,
+            {"sources": [{"filename": "second.docx"}]},
+        )
+
+        self.assertEqual(filtered["documents"], [["second text"]])
+        self.assertEqual(filtered["metadatas"][0][0]["document_id"], "doc-2")
+        self.assertEqual(filtered["relevance_scores"], [[0.6]])
 
     @patch("app.auth.admin_for_token", return_value={"id": 1, "username": "admin"})
     @patch("app.api.legal_rag_answer_from_results")
