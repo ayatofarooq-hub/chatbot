@@ -2,7 +2,7 @@
 setlocal EnableExtensions EnableDelayedExpansion
 
 REM Move to this script's folder so paths work from any launch location.
-cd /d "%~dp0"c:\Users\lenovo\Downloads\2024\2024\اياد الجلسة 41\التربية تعيينات صلاح الدين.doc
+cd /d "%~dp0"
 
 echo ============================================================
 echo Iraqi Legal Assistant - Windows Setup
@@ -132,6 +132,15 @@ echo [INFO] Installing dependencies from requirements.txt...
 python -m pip install -r "%~dp0requirements.txt"
 if not "%errorlevel%"=="0" (
     echo [ERROR] Dependency installation failed.
+    pause
+    exit /b 1
+)
+
+REM Download the offline Arabic text-to-speech model once.
+echo [INFO] Checking the local Arabic voice model...
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\install_local_tts.ps1"
+if not "%errorlevel%"=="0" (
+    echo [ERROR] Local Arabic voice installation failed.
     pause
     exit /b 1
 )

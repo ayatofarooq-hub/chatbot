@@ -65,6 +65,40 @@ class ApiTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 204)
 
+    @patch("app.api.voice_status")
+    def test_tts_status_reports_local_voice(self, mock_status):
+        mock_status.return_value = {
+            "available": True,
+            "engine": "sherpa-onnx",
+            "voice": "Kareem",
+            "offline": True,
+        }
+
+        response = self.client.get("/api/tts/status")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json()["available"])
+        self.assertTrue(response.json()["offline"])
+
+    @patch("app.auth.admin_for_token", return_value={"id": 1, "username": "admin"})
+    @patch("app.api.synthesize_arabic", return_value=b"RIFF-local-audio")
+    def test_tts_returns_local_wav(self, mock_synthesize, _mock_admin):
+        response = self.client.post(
+            "/api/tts",
+            json={"text": "مرحباً بكم", "speed": 0.96},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers["content-type"], "audio/wav")
+        self.assertEqual(response.content, b"RIFF-local-audio")
+        mock_synthesize.assert_called_once_with("مرحباً بكم", 0.96)
+
+    @patch("app.auth.admin_for_token", return_value=None)
+    def test_tts_requires_authentication(self, _mock_admin):
+        response = self.client.post("/api/tts", json={"text": "مرحباً"})
+
+        self.assertEqual(response.status_code, 401)
+
     @patch("app.api.transcribe_audio", return_value="ما هي المادة القانونية")
     def test_transcribe_returns_arabic_text(self, mock_transcribe):
         response = self.client.post(

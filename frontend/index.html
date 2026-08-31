@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#145a38">
   <title>المساعد القانوني العراقي</title>
-  <link rel="stylesheet" href="/assets/styles.css?v=20260719-citation-warnings">
+  <link rel="stylesheet" href="/assets/styles.css?v=20260831-ai-avatar">
 </head>
 <body class="auth-gate-pending">
   <div class="app-shell">
@@ -173,6 +173,34 @@
             </div>
           </div>
 
+          <section class="ai-character-dock" id="ai-character" data-state="idle" aria-label="المساعد الذكي المتحرك">
+            <div class="ai-character-halo" aria-hidden="true"></div>
+            <img
+              class="ai-character-image"
+              src="/assets/images/ai-effendi/effendi-web-avatar-alpha.png?v=20260831-effendi"
+              alt="المساعد الذكي بهيئة أفندي بغدادي مرتدياً السيدارة والبدلة الرسمية"
+            >
+            <div class="ai-character-wave" aria-hidden="true">
+              <i></i><i></i><i></i><i></i><i></i>
+            </div>
+            <div class="ai-character-control">
+              <span id="ai-character-status" aria-live="polite">جاهز للمساعدة</span>
+              <button
+                id="ai-voice-toggle"
+                type="button"
+                aria-pressed="true"
+                aria-label="إيقاف صوت المساعد"
+                title="إيقاف صوت المساعد"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M5 9.5v5h3.5l4.5 3.5V6L8.5 9.5H5Z"></path>
+                  <path class="voice-sound-line" d="M16 9a4 4 0 0 1 0 6M18.5 6.5a7.5 7.5 0 0 1 0 11"></path>
+                  <path class="voice-muted-line" d="m16.5 9 5 6M21.5 9l-5 6"></path>
+                </svg>
+              </button>
+            </div>
+          </section>
+
           <div class="chat-scroll" id="chat-scroll">
             <section class="welcome" id="welcome">
               <div class="welcome-shield" aria-hidden="true">✓</div>
@@ -300,6 +328,6 @@
 
   <div class="toast" id="toast" role="alert"></div>
   <div id="modal-root"></div>
-  <script type="module" src="/assets/app.js?v=20260726-ministry-welcome"></script>
+  <script type="module" src="/assets/app.js?v=20260831-local-tts-v2"></script>
 </body>
 </html>

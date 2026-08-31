@@ -46,3 +46,7 @@ data/extracted_text/*
 # Local Chroma vector database
 data/chroma/*
 !data/chroma/.gitkeep
+
+# Downloaded local speech models
+data/models/tts/*
+!data/models/tts/.gitkeep

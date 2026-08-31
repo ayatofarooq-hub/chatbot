@@ -8,6 +8,9 @@ const chatHistoryEndpoint = "/api/chat-history";
 const decisionDraftKey = "iraqi-legal-assistant-decision-draft";
 
 const elements = {
+  aiCharacter: document.querySelector("#ai-character"),
+  aiCharacterStatus: document.querySelector("#ai-character-status"),
+  aiVoiceToggle: document.querySelector("#ai-voice-toggle"),
   assistantNav: document.querySelector("#assistant-nav-button"),
   assistantView: document.querySelector("#assistant-view"),
   capacityRoot: document.querySelector("#file-capacity"),
@@ -106,7 +109,15 @@ let landingVoiceLevel = 0;
 const maximumRecordingMs = 60_000;
 const minimumRecordingMs = 2_000;
 const microphoneStorageKey = "jalssa-selected-microphone";
+const aiVoiceStorageKey = "jalssa-ai-arabic-voice-enabled";
 let pending = false;
+let aiVoiceEnabled = localStorage.getItem(aiVoiceStorageKey) !== "false";
+let aiCharacterRotationTimer = null;
+let aiSpeechSequence = 0;
+let aiSpeechActive = false;
+let aiSpeechAudio = null;
+let aiSpeechObjectUrl = null;
+let localTtsAvailable = null;
 let selectedPriority = "Ø¹Ø§Ù„ÙŠØ©";
 const initialPromptKey = "iraqi-legal-assistant-initial-prompt";
 
@@ -155,6 +166,177 @@ function repairTextTree(root = document.body) {
       }
     });
   });
+}
+
+const aiCharacterLabels = {
+  idle: "جاهز للمساعدة",
+  greeting: "أهلاً بك",
+  thinking: "أراجع المصادر القانونية",
+  speaking: "أشرح الإجابة الآن",
+};
+
+function setAiCharacterState(state = "idle", label = "") {
+  if (!elements.aiCharacter) return;
+  elements.aiCharacter.dataset.state = state;
+  if (elements.aiCharacterStatus) {
+    elements.aiCharacterStatus.textContent = label || aiCharacterLabels[state] || aiCharacterLabels.idle;
+  }
+}
+
+function scheduleAiCharacterRotation(delay = 4600) {
+  window.clearTimeout(aiCharacterRotationTimer);
+  if (pending || aiSpeechActive) return;
+  const rotation = ["idle", "greeting", "idle", "thinking"];
+  let index = 0;
+  aiCharacterRotationTimer = window.setTimeout(function rotateState() {
+    if (pending || aiSpeechActive) return;
+    setAiCharacterState(rotation[index % rotation.length]);
+    index += 1;
+    aiCharacterRotationTimer = window.setTimeout(rotateState, 5200);
+  }, delay);
+}
+
+function speechChunks(value, maximumLength = 230) {
+  const cleaned = normalizeWhitespace(repairMojibake(value))
+    .replace(/https?:\/\/\S+/giu, " ")
+    .replace(/\[[^\]]*\]/gu, " ")
+    .replace(/[*_`#>]+/gu, " ");
+  const sentences = cleaned.match(/[^.!؟؛]+[.!؟؛]?/gu) || [cleaned];
+  const chunks = [];
+  let current = "";
+  sentences.forEach((sentence) => {
+    const next = `${current} ${sentence}`.trim();
+    if (next.length <= maximumLength) {
+      current = next;
+      return;
+    }
+    if (current) chunks.push(current);
+    current = sentence.trim();
+  });
+  if (current) chunks.push(current);
+  return chunks.filter(Boolean);
+}
+
+function updateAiVoiceButton() {
+  if (!elements.aiVoiceToggle) return;
+  elements.aiVoiceToggle.setAttribute("aria-pressed", String(aiVoiceEnabled));
+  const label = aiVoiceEnabled ? "إيقاف صوت المساعد" : "تشغيل صوت المساعد";
+  elements.aiVoiceToggle.setAttribute("aria-label", label);
+  elements.aiVoiceToggle.title = label;
+}
+
+function stopAiSpeech({ resumeRotation = true } = {}) {
+  aiSpeechSequence += 1;
+  aiSpeechActive = false;
+  if (aiSpeechAudio) {
+    aiSpeechAudio.pause();
+    aiSpeechAudio.removeAttribute("src");
+    aiSpeechAudio.load();
+    aiSpeechAudio = null;
+  }
+  if (aiSpeechObjectUrl) {
+    URL.revokeObjectURL(aiSpeechObjectUrl);
+    aiSpeechObjectUrl = null;
+  }
+  if (resumeRotation) {
+    setAiCharacterState("idle", aiVoiceEnabled ? "جاهز للمساعدة" : "الصوت متوقف");
+    scheduleAiCharacterRotation();
+  }
+}
+
+async function playLocalSpeechChunk(text, sequence) {
+  const response = await fetch("/api/tts", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text, speed: 0.96 }),
+  });
+  if (!response.ok) {
+    const payload = await response.json().catch(() => ({}));
+    throw new Error(payload.detail || `Local TTS failed (${response.status}).`);
+  }
+  const blob = await response.blob();
+  if (sequence !== aiSpeechSequence || !aiVoiceEnabled) return;
+  aiSpeechObjectUrl = URL.createObjectURL(blob);
+  const audio = new Audio(aiSpeechObjectUrl);
+  aiSpeechAudio = audio;
+  try {
+    await new Promise((resolve, reject) => {
+      audio.onended = resolve;
+      audio.onerror = () => reject(new Error("The browser could not play local speech."));
+      audio.play().catch(reject);
+    });
+  } finally {
+    if (aiSpeechAudio === audio) aiSpeechAudio = null;
+    if (aiSpeechObjectUrl) {
+      URL.revokeObjectURL(aiSpeechObjectUrl);
+      aiSpeechObjectUrl = null;
+    }
+  }
+}
+
+function speakArabicAnswer(value) {
+  if (!aiVoiceEnabled || !localTtsAvailable) {
+    scheduleAiCharacterRotation();
+    return;
+  }
+  const chunks = speechChunks(value);
+  if (!chunks.length) return;
+
+  stopAiSpeech({ resumeRotation: false });
+  const sequence = aiSpeechSequence;
+  aiSpeechActive = true;
+  setAiCharacterState("speaking");
+
+  const speakNext = async () => {
+    if (sequence !== aiSpeechSequence || !aiVoiceEnabled) return;
+    const text = chunks.shift();
+    if (!text) {
+      aiSpeechActive = false;
+      setAiCharacterState("idle");
+      scheduleAiCharacterRotation(2600);
+      return;
+    }
+    try {
+      await playLocalSpeechChunk(text, sequence);
+      if (sequence === aiSpeechSequence) speakNext();
+    } catch (_error) {
+      localTtsAvailable = false;
+      if (sequence !== aiSpeechSequence) return;
+      aiSpeechActive = false;
+      setAiCharacterState("idle", "تعذر تشغيل الصوت المحلي");
+      scheduleAiCharacterRotation();
+    }
+  };
+  speakNext();
+}
+
+async function initializeAiCharacter() {
+  if (!elements.aiCharacter) return;
+  try {
+    const response = await fetch("/api/tts/status");
+    const status = response.ok ? await response.json() : {};
+    localTtsAvailable = Boolean(status.available);
+  } catch (_error) {
+    localTtsAvailable = false;
+  }
+  if (!localTtsAvailable) {
+    aiVoiceEnabled = false;
+    elements.aiVoiceToggle.disabled = true;
+    setAiCharacterState("idle", "الصوت غير متاح");
+  }
+  updateAiVoiceButton();
+  elements.aiVoiceToggle?.addEventListener("click", () => {
+    aiVoiceEnabled = !aiVoiceEnabled;
+    localStorage.setItem(aiVoiceStorageKey, String(aiVoiceEnabled));
+    updateAiVoiceButton();
+    if (!aiVoiceEnabled) {
+      stopAiSpeech();
+      return;
+    }
+    setAiCharacterState("greeting", "تم تشغيل الصوت العربي");
+    speakArabicAnswer("تم تشغيل صوت المساعد العربي.");
+  });
+  scheduleAiCharacterRotation(2200);
 }
 
 function repairConversationText(message) {
@@ -867,6 +1049,14 @@ function setPending(value) {
   elements.sendButton.disabled = value;
   elements.input.disabled = value;
   elements.sendButton.textContent = value ? "..." : "←";
+  if (value) {
+    stopAiSpeech({ resumeRotation: false });
+    window.clearTimeout(aiCharacterRotationTimer);
+    setAiCharacterState("thinking");
+  } else if (!aiSpeechActive) {
+    setAiCharacterState("idle");
+    scheduleAiCharacterRotation();
+  }
 }
 
 async function hydrateServerChatHistory() {
@@ -961,6 +1151,7 @@ async function submitQuestion(question) {
       citations: (payload.citations || []).map(repairConversationText),
     };
     saveConversations();
+    speakArabicAnswer(payload.answer);
   } catch (error) {
     conversation.messages.push({
       role: "assistant error",
@@ -1442,6 +1633,7 @@ async function exportConversation(format = "pdf") {
 loadDecisionDraft();
 render();
 repairTextTree();
+initializeAiCharacter();
 bootstrapAuthentication();
 hydrateServerChatHistory();
 window.addEventListener("pagehide", saveConversations);

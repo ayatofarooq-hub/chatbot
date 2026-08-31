@@ -28,6 +28,7 @@ Python 3.10 or newer is recommended.
 python -m venv .venv
 .venv\Scripts\Activate.ps1
 python -m pip install -r requirements.txt
+./scripts/install_local_tts.ps1
 ollama pull qwen2.5:7b
 ollama pull bge-m3
 ```
@@ -66,6 +67,8 @@ Open `http://127.0.0.1:8000/`.
 Supported routes include:
 
 - `GET /health`
+- `GET /api/tts/status`
+- `POST /api/tts` (offline Arabic text-to-speech)
 - `POST /ask`
 - Settings, upload, and admin endpoints under `/api/...`
 

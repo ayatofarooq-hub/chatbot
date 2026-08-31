@@ -5,6 +5,7 @@ from html import escape
 from io import BytesIO
 from pathlib import Path
 from tempfile import NamedTemporaryFile
+import mimetypes
 import sys
 import re
 from urllib.parse import quote
@@ -34,6 +35,7 @@ try:
     from .search_index import search
     from .text_encoding import repair_json_text
     from .speech_to_text import inspect_audio, transcribe_audio
+    from .local_tts import LocalTtsUnavailable, synthesize_arabic, voice_status
     from .uploaded_documents import (
         create_uploaded_document,
         delete_uploaded_document,
@@ -70,6 +72,7 @@ except ImportError:
     from search_index import search
     from text_encoding import repair_json_text
     from speech_to_text import inspect_audio, transcribe_audio
+    from local_tts import LocalTtsUnavailable, synthesize_arabic, voice_status
     from uploaded_documents import (
         create_uploaded_document,
         delete_uploaded_document,
@@ -90,6 +93,10 @@ except ImportError:
 
 FRONTEND_FOLDER = Path(__file__).resolve().parent.parent / "frontend"
 CHAT_HISTORY_FILE = PROJECT_ROOT / "data" / "chat_history.json"
+
+# Windows can inherit a registry mapping that labels JavaScript as text/plain.
+# Browsers reject ES modules served with that MIME type, leaving a blank page.
+mimetypes.add_type("text/javascript", ".js")
 
 
 def extract_citations(answer: str) -> list[dict]:
@@ -639,6 +646,55 @@ async def transcribe(request: Request) -> JSONResponse:
             temporary_path.unlink(missing_ok=True)
 
 
+async def tts_status(_: Request) -> JSONResponse:
+    """Report whether the offline Arabic voice is installed and ready."""
+
+    return JSONResponse(voice_status())
+
+
+async def text_to_speech(request: Request) -> Response:
+    """Generate a short Arabic WAV clip entirely on the local machine."""
+
+    if not authenticated_admin(request):
+        return JSONResponse({"detail": "Authentication required."}, status_code=401)
+    try:
+        payload = await request.json()
+    except ValueError:
+        return JSONResponse(
+            {"detail": "Request body must be valid JSON."}, status_code=400
+        )
+    if not isinstance(payload, dict):
+        return JSONResponse(
+            {"detail": "Request body must be a JSON object."}, status_code=400
+        )
+
+    text = payload.get("text")
+    if not isinstance(text, str) or not text.strip():
+        return JSONResponse(
+            {"detail": "Field 'text' must be a non-empty string."},
+            status_code=422,
+        )
+    speed = payload.get("speed", 0.96)
+    if isinstance(speed, bool) or not isinstance(speed, (int, float)):
+        return JSONResponse(
+            {"detail": "Field 'speed' must be a number."}, status_code=422
+        )
+
+    try:
+        wav_content = await run_in_threadpool(synthesize_arabic, text, speed)
+    except ValueError as error:
+        return JSONResponse({"detail": str(error)}, status_code=422)
+    except LocalTtsUnavailable as error:
+        return JSONResponse({"detail": str(error)}, status_code=503)
+    except RuntimeError as error:
+        return JSONResponse({"detail": str(error)}, status_code=500)
+    return Response(
+        content=wav_content,
+        media_type="audio/wav",
+        headers={"Cache-Control": "no-store"},
+    )
+
+
 async def ask(request: Request) -> JSONResponse:
     """Accept a legal question and return a grounded chatbot answer."""
 
@@ -994,6 +1050,8 @@ app = Starlette(
         Route("/favicon.ico", favicon, methods=["GET"]),
         Route("/health", health, methods=["GET"]),
         Route("/transcribe", transcribe, methods=["POST"]),
+        Route("/api/tts/status", tts_status, methods=["GET"]),
+        Route("/api/tts", text_to_speech, methods=["POST"]),
         Route("/ask", ask, methods=["POST"]),
         Route("/api/chat-history", chat_history_get, methods=["GET"]),
         Route("/api/chat-history", chat_history_put, methods=["POST", "PUT"]),
