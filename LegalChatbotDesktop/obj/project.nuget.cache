@@ -1,17 +1,10 @@
 {
   "version": 2,
-  "dgSpecHash": "UHzqemLdAw4=",
+  "dgSpecHash": "sEM+YcT6XjY=",
   "success": true,
-  "projectFilePath": "C:\\Users\\lenovo\\chatbot\\LegalChatbotDesktop\\LegalChatbotDesktop.csproj",
+  "projectFilePath": "C:\\Users\\Lenovo\\chatbot\\LegalChatbotDesktop\\LegalChatbotDesktop.csproj",
   "expectedPackageFiles": [
-    "C:\\Users\\lenovo\\.nuget\\packages\\microsoft.web.webview2\\1.0.2739.15\\microsoft.web.webview2.1.0.2739.15.nupkg.sha512"
+    "C:\\Users\\Lenovo\\.nuget\\packages\\microsoft.web.webview2\\1.0.2739.15\\microsoft.web.webview2.1.0.2739.15.nupkg.sha512"
   ],
-  "logs": [
-    {
-      "code": "NU1900",
-      "level": "Warning",
-      "warningLevel": 1,
-      "message": "Error occurred while getting package vulnerability data: Unable to load the service index for source https://api.nuget.org/v3/index.json."
-    }
-  ]
+  "logs": []
 }

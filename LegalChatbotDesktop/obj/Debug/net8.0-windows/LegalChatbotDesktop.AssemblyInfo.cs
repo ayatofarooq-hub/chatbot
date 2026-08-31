@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyDescriptionAttribute("Jalsah desktop legal assistant")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+c7a7be371d8e86f6a6fb2d5b670017595c4b01ba")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+beecc24a2c6754710cc2da90e1be2a7f08f9599e")]
 [assembly: System.Reflection.AssemblyProductAttribute("Jalsah")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Jalsah")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
