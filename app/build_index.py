@@ -4,7 +4,8 @@ import json
 import sys
 from pathlib import Path
 
-import chromadb
+import chromadb        
+
 import httpx
 import ollama
 from chromadb.errors import NotFoundError
