@@ -5,6 +5,7 @@ from html import escape
 from io import BytesIO
 from pathlib import Path
 from tempfile import NamedTemporaryFile
+import asyncio
 import mimetypes
 import sys
 import re
@@ -35,7 +36,10 @@ try:
     from .search_index import search
     from .text_encoding import repair_json_text
     from .speech_to_text import inspect_audio, transcribe_audio
-    from .local_tts import LocalTtsUnavailable, synthesize_arabic, voice_status
+    from .local_tts import (
+        LocalTtsUnavailable, SYNTHESIS_TIMEOUT_SECONDS,
+        synthesize_arabic, voice_status,
+    )
     from .uploaded_documents import (
         create_uploaded_document,
         delete_uploaded_document,
@@ -72,7 +76,10 @@ except ImportError:
     from search_index import search
     from text_encoding import repair_json_text
     from speech_to_text import inspect_audio, transcribe_audio
-    from local_tts import LocalTtsUnavailable, synthesize_arabic, voice_status
+    from local_tts import (
+        LocalTtsUnavailable, SYNTHESIS_TIMEOUT_SECONDS,
+        synthesize_arabic, voice_status,
+    )
     from uploaded_documents import (
         create_uploaded_document,
         delete_uploaded_document,
@@ -674,14 +681,31 @@ async def text_to_speech(request: Request) -> Response:
             {"detail": "Field 'text' must be a non-empty string."},
             status_code=422,
         )
-    speed = payload.get("speed", 0.96)
+    language = payload.get("language", "ar")
+    if not isinstance(language, str) or not language.lower().startswith("ar"):
+        return JSONResponse(
+            {"detail": "حقل 'language' يجب أن يحدد اللغة العربية."}, status_code=422
+        )
+    speed = payload.get("rate", payload.get("speed", 1.0))
     if isinstance(speed, bool) or not isinstance(speed, (int, float)):
         return JSONResponse(
             {"detail": "Field 'speed' must be a number."}, status_code=422
         )
+    if not 0.75 <= float(speed) <= 1.25:
+        return JSONResponse(
+            {"detail": "سرعة النطق يجب أن تكون بين 0.75 و1.25."}, status_code=422
+        )
 
     try:
-        wav_content = await run_in_threadpool(synthesize_arabic, text, speed)
+        wav_content = await asyncio.wait_for(
+            run_in_threadpool(synthesize_arabic, text, speed),
+            timeout=SYNTHESIS_TIMEOUT_SECONDS,
+        )
+    except asyncio.TimeoutError:
+        return JSONResponse(
+            {"detail": "استغرق إنشاء الصوت المحلي وقتاً أطول من المسموح."},
+            status_code=504,
+        )
     except ValueError as error:
         return JSONResponse({"detail": str(error)}, status_code=422)
     except LocalTtsUnavailable as error:

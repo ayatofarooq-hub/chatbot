@@ -57,6 +57,7 @@ opentelemetry-semantic-conventions==0.63b1
 orjson==3.11.9
 overrides==7.7.0
 packaging==26.2
+piper-tts==1.4.2
 pandas==3.0.3
 propcache==0.5.2
 protobuf==6.33.6

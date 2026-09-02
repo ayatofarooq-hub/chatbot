@@ -3627,6 +3627,177 @@ body.authenticated .profile i {
   user-select: none;
 }
 
+.ai-character-puppet {
+  --puppet-scale: 1;
+  position: absolute;
+  bottom: 46px;
+  left: 50%;
+  width: 210px;
+  height: 390px;
+  filter: drop-shadow(0 16px 16px rgba(13, 55, 36, 0.2));
+  transform: translateX(-50%);
+  transform-origin: 50% 92%;
+  scale: var(--puppet-scale);
+  will-change: transform;
+  pointer-events: none;
+}
+
+.ai-effendi-3d {
+  position: absolute;
+  inset: 0 0 42px;
+  z-index: 3;
+  width: 100%;
+  height: calc(100% - 42px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 260ms ease;
+}
+
+.ai-character-dock--three-ready .ai-effendi-3d {
+  opacity: 1;
+}
+
+.ai-character-dock--three-ready .ai-character-puppet {
+  visibility: hidden;
+}
+
+.ai-puppet-part {
+  position: absolute;
+  display: block;
+  max-width: none;
+  height: auto;
+  user-select: none;
+  pointer-events: none;
+}
+
+.ai-puppet-legs {
+  top: 238px;
+  left: 56px;
+  z-index: 1;
+  width: 99px;
+  transform-origin: 50% 4%;
+}
+
+.ai-puppet-torso {
+  top: 111px;
+  left: 40px;
+  z-index: 4;
+  width: 130px;
+  transform-origin: 50% 88%;
+}
+
+.ai-puppet-arm {
+  position: absolute;
+  top: 116px;
+  z-index: 3;
+  width: 66px;
+  height: 174px;
+  transform-origin: 50% 9%;
+  will-change: transform;
+}
+
+.ai-puppet-arm-left { left: 27px; }
+.ai-puppet-arm-right { left: 132px; }
+
+.ai-puppet-sleeve {
+  top: 0;
+  left: 18px;
+  width: 49px;
+}
+
+.ai-puppet-arm-right .ai-puppet-sleeve {
+  left: 0;
+  width: 50px;
+}
+
+.ai-puppet-hand {
+  top: 96px;
+  left: 5px;
+  z-index: 2;
+  width: 43px;
+  transform-origin: 55% 16%;
+}
+
+.ai-puppet-arm-right .ai-puppet-hand {
+  top: 97px;
+  left: 7px;
+  width: 43px;
+}
+
+.ai-puppet-face {
+  top: 29px;
+  left: 57px;
+  z-index: 6;
+  width: 96px;
+  transform-origin: 50% 90%;
+  will-change: transform;
+}
+
+.ai-puppet-mustache {
+  top: 29px;
+  left: 57px;
+  z-index: 8;
+  width: 96px;
+  clip-path: inset(51% 12% 22% 12%);
+  transform-origin: 50% 45%;
+  will-change: transform;
+}
+
+.ai-puppet-hat {
+  top: 1px;
+  left: 72px;
+  z-index: 7;
+  width: 67px;
+  transform-origin: 50% 100%;
+  will-change: transform;
+}
+
+.ai-character-dock[data-state="idle"] .ai-character-puppet {
+  animation: ai-puppet-idle 4.4s ease-in-out infinite;
+}
+
+.ai-character-dock[data-state="idle"] .ai-puppet-torso {
+  animation: ai-puppet-breathe 3.2s ease-in-out infinite;
+}
+
+.ai-character-dock[data-state="idle"] .ai-puppet-arm-left {
+  animation: ai-puppet-idle-arm 4.6s ease-in-out infinite;
+}
+
+.ai-character-dock[data-state="greeting"] .ai-character-puppet {
+  animation: ai-puppet-bob 1.7s ease-in-out infinite;
+}
+
+.ai-character-dock[data-state="greeting"] .ai-puppet-arm-left .ai-puppet-hand {
+  animation: ai-puppet-wave-hand 0.82s ease-in-out infinite;
+}
+
+.ai-character-dock[data-state="thinking"] .ai-puppet-face,
+.ai-character-dock[data-state="thinking"] .ai-puppet-hat {
+  animation: ai-puppet-think 2s ease-in-out infinite;
+}
+
+.ai-character-dock[data-state="thinking"] .ai-puppet-mustache {
+  animation: ai-puppet-mustache-think 1.15s ease-in-out infinite;
+}
+
+.ai-character-dock[data-state="speaking"] .ai-character-puppet {
+  animation: ai-puppet-speaking 0.9s ease-in-out infinite;
+}
+
+.ai-character-dock[data-state="speaking"] .ai-puppet-face,
+.ai-character-dock[data-state="speaking"] .ai-puppet-hat {
+  animation: ai-puppet-head-talk 0.72s ease-in-out infinite;
+}
+
+.ai-character-dock[data-state="speaking"] .ai-puppet-arm-left .ai-puppet-hand {
+  animation: ai-puppet-explain-left 1.4s ease-in-out infinite;
+}
+
+.ai-character-dock[data-state="speaking"] .ai-puppet-arm-right .ai-puppet-hand {
+  animation: ai-puppet-explain-right 1.7s ease-in-out infinite;
+}
+
 .ai-character-dock[data-state="idle"] .ai-character-image {
   animation: ai-character-idle 5.6s ease-in-out infinite;
 }
@@ -3790,16 +3961,82 @@ body.authenticated .profile i {
   to { height: 25px; opacity: 1; }
 }
 
+@keyframes ai-puppet-idle {
+  0%, 100% { transform: translateX(-50%) translateY(0) rotate(0); }
+  50% { transform: translateX(-50%) translateY(-7px) rotate(-0.7deg); }
+}
+
+@keyframes ai-puppet-breathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.018, 1.012); }
+}
+
+@keyframes ai-puppet-idle-arm {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(-3deg); }
+}
+
+@keyframes ai-puppet-bob {
+  0%, 100% { transform: translateX(-50%) translateY(0); }
+  50% { transform: translateX(-50%) translateY(-9px); }
+}
+
+@keyframes ai-puppet-wave {
+  0%, 100% { transform: rotate(31deg); }
+  35% { transform: rotate(54deg); }
+  70% { transform: rotate(39deg); }
+}
+
+@keyframes ai-puppet-wave-hand {
+  0%, 100% { transform: rotate(-31deg); }
+  35% { transform: rotate(-54deg); }
+  70% { transform: rotate(-39deg); }
+}
+
+@keyframes ai-puppet-think {
+  0%, 100% { transform: translate(0, 0) rotate(0); }
+  50% { transform: translate(3px, -2px) rotate(2.5deg); }
+}
+
+@keyframes ai-puppet-mustache-think {
+  0%, 100% { transform: translateX(0) rotate(0) scaleX(1); }
+  28% { transform: translateX(-1px) rotate(-2deg) scaleX(1.035); }
+  58% { transform: translateX(1px) rotate(2deg) scaleX(0.985); }
+  78% { transform: translateY(-0.5px) rotate(-0.8deg) scaleX(1.02); }
+}
+
+@keyframes ai-puppet-speaking {
+  0%, 100% { transform: translateX(-50%) translateY(0); }
+  50% { transform: translateX(-50%) translateY(-4px); }
+}
+
+@keyframes ai-puppet-head-talk {
+  0%, 100% { transform: translateY(0) rotate(-0.6deg); }
+  50% { transform: translateY(2px) rotate(0.7deg); }
+}
+
+@keyframes ai-puppet-explain-left {
+  0%, 100% { transform: rotate(8deg); }
+  50% { transform: rotate(27deg) translateY(-3px); }
+}
+
+@keyframes ai-puppet-explain-right {
+  0%, 100% { transform: rotate(-7deg); }
+  50% { transform: rotate(-24deg) translateY(-2px); }
+}
+
 @media (max-width: 1280px) {
   .chat-scroll { padding-left: 202px; }
   .ai-character-dock { left: 10px; width: 178px; height: 246px; }
   .ai-character-image { width: 178px; }
+  .ai-character-puppet { --puppet-scale: 0.86; }
 }
 
 @media (max-width: 1020px) {
   .chat-scroll { padding-left: 172px; }
   .ai-character-dock { left: 7px; width: 150px; height: 218px; }
   .ai-character-image { width: 150px; }
+  .ai-character-puppet { --puppet-scale: 0.72; }
   .ai-character-control span { font-size: 10px; }
 }
 
@@ -3807,10 +4044,23 @@ body.authenticated .profile i {
   .chat-scroll { padding-left: 102px; }
   .ai-character-dock { bottom: 100px; left: 2px; width: 92px; height: 148px; }
   .ai-character-image { bottom: 25px; width: 94px; }
+  .ai-character-puppet { --puppet-scale: 0.45; bottom: 32px; }
   .ai-character-halo { right: 4px; bottom: 23px; left: 4px; height: 88px; border-radius: 45px 45px 18px 18px; }
   .ai-character-control { right: 3px; left: 3px; min-height: 35px; justify-content: center; padding: 2px; }
   .ai-character-control span { display: none; }
   #ai-voice-toggle { width: 29px; height: 29px; }
   .ai-character-wave { right: 8px; bottom: 39px; left: 8px; height: 20px; gap: 3px; }
   .ai-character-wave i { width: 3px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ai-character-puppet,
+  .ai-character-puppet .ai-puppet-part,
+  .ai-character-puppet .ai-puppet-arm,
+  .ai-character-puppet .ai-puppet-mustache {
+    animation-duration: 1.6s !important;
+    animation-iteration-count: infinite !important;
+  }
+  .ai-character-wave i { animation-duration: 0.72s !important; }
+  .ai-character-halo { animation-duration: 4.8s !important; }
 }

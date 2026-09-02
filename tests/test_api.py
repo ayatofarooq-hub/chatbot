@@ -26,6 +26,11 @@ class ApiTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertIn("المساعد القانوني العراقي", response.text)
+        self.assertIn('id="ai-character-puppet"', response.text)
+        self.assertIn('id="ai-effendi-3d"', response.text)
+        self.assertIn('effendi-3d.js', response.text)
+        self.assertIn('id="ai-puppet-mustache"', response.text)
+        self.assertIn("sprites/face-neutral.png", response.text)
 
     def test_frontend_assets(self):
         response = self.client.get("/assets/styles.css")
@@ -36,6 +41,7 @@ class ApiTests(unittest.TestCase):
         script_response = self.client.get("/assets/app.js")
         self.assertEqual(script_response.status_code, 200)
         self.assertIn('fetch("/ask"', script_response.text)
+        self.assertIn("startPuppetLipSync", script_response.text)
 
     def test_chat_history_is_persisted_on_server(self):
         payload = {

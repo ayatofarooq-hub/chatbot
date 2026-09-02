@@ -11,6 +11,11 @@ const elements = {
   aiCharacter: document.querySelector("#ai-character"),
   aiCharacterStatus: document.querySelector("#ai-character-status"),
   aiVoiceToggle: document.querySelector("#ai-voice-toggle"),
+  aiSpeechStop: document.querySelector("#ai-speech-stop"),
+  aiSpeechReplay: document.querySelector("#ai-speech-replay"),
+  aiMotionToggle: document.querySelector("#ai-motion-toggle"),
+  aiSpeechRate: document.querySelector("#ai-speech-rate"),
+  aiSpeechVolume: document.querySelector("#ai-speech-volume"),
   assistantNav: document.querySelector("#assistant-nav-button"),
   assistantView: document.querySelector("#assistant-view"),
   capacityRoot: document.querySelector("#file-capacity"),
@@ -112,12 +117,17 @@ const microphoneStorageKey = "jalssa-selected-microphone";
 const aiVoiceStorageKey = "jalssa-ai-arabic-voice-enabled";
 let pending = false;
 let aiVoiceEnabled = localStorage.getItem(aiVoiceStorageKey) !== "false";
-let aiCharacterRotationTimer = null;
 let aiSpeechSequence = 0;
 let aiSpeechActive = false;
 let aiSpeechAudio = null;
 let aiSpeechObjectUrl = null;
+let aiSpeechAbortController = null;
 let localTtsAvailable = null;
+let aiSpeechRate = Number(localStorage.getItem("jalssa-ai-speech-rate")) || 1;
+let aiSpeechVolume = Number(localStorage.getItem("jalssa-ai-speech-volume"));
+if (!Number.isFinite(aiSpeechVolume)) aiSpeechVolume = 1;
+let aiMotionEnabled = localStorage.getItem("jalssa-avatar-motion") !== "false";
+let lastSpokenAnswer = "";
 let selectedPriority = "Ø¹Ø§Ù„ÙŠØ©";
 const initialPromptKey = "iraqi-legal-assistant-initial-prompt";
 
@@ -171,8 +181,11 @@ function repairTextTree(root = document.body) {
 const aiCharacterLabels = {
   idle: "جاهز للمساعدة",
   greeting: "أهلاً بك",
+  listening: "أستمع إليك",
   thinking: "أراجع المصادر القانونية",
-  speaking: "أشرح الإجابة الآن",
+  talking: "أشرح الإجابة الآن",
+  success: "اكتملت الإجابة",
+  error: "تعذر إكمال الطلب",
 };
 
 function setAiCharacterState(state = "idle", label = "") {
@@ -181,19 +194,6 @@ function setAiCharacterState(state = "idle", label = "") {
   if (elements.aiCharacterStatus) {
     elements.aiCharacterStatus.textContent = label || aiCharacterLabels[state] || aiCharacterLabels.idle;
   }
-}
-
-function scheduleAiCharacterRotation(delay = 4600) {
-  window.clearTimeout(aiCharacterRotationTimer);
-  if (pending || aiSpeechActive) return;
-  const rotation = ["idle", "greeting", "idle", "thinking"];
-  let index = 0;
-  aiCharacterRotationTimer = window.setTimeout(function rotateState() {
-    if (pending || aiSpeechActive) return;
-    setAiCharacterState(rotation[index % rotation.length]);
-    index += 1;
-    aiCharacterRotationTimer = window.setTimeout(rotateState, 5200);
-  }, delay);
 }
 
 function speechChunks(value, maximumLength = 230) {
@@ -228,6 +228,9 @@ function updateAiVoiceButton() {
 function stopAiSpeech({ resumeRotation = true } = {}) {
   aiSpeechSequence += 1;
   aiSpeechActive = false;
+  aiSpeechAbortController?.abort();
+  aiSpeechAbortController = null;
+  window.dispatchEvent(new CustomEvent("avatar:speech-stop"));
   if (aiSpeechAudio) {
     aiSpeechAudio.pause();
     aiSpeechAudio.removeAttribute("src");
@@ -240,15 +243,16 @@ function stopAiSpeech({ resumeRotation = true } = {}) {
   }
   if (resumeRotation) {
     setAiCharacterState("idle", aiVoiceEnabled ? "جاهز للمساعدة" : "الصوت متوقف");
-    scheduleAiCharacterRotation();
   }
 }
 
 async function playLocalSpeechChunk(text, sequence) {
+  aiSpeechAbortController = new AbortController();
   const response = await fetch("/api/tts", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ text, speed: 0.96 }),
+    body: JSON.stringify({ text, language: "ar", rate: aiSpeechRate }),
+    signal: aiSpeechAbortController.signal,
   });
   if (!response.ok) {
     const payload = await response.json().catch(() => ({}));
@@ -258,14 +262,19 @@ async function playLocalSpeechChunk(text, sequence) {
   if (sequence !== aiSpeechSequence || !aiVoiceEnabled) return;
   aiSpeechObjectUrl = URL.createObjectURL(blob);
   const audio = new Audio(aiSpeechObjectUrl);
+  audio.volume = aiSpeechVolume;
   aiSpeechAudio = audio;
   try {
     await new Promise((resolve, reject) => {
       audio.onended = resolve;
       audio.onerror = () => reject(new Error("The browser could not play local speech."));
-      audio.play().catch(reject);
+      audio.play().then(() => {
+        window.dispatchEvent(new CustomEvent("avatar:volume", { detail: { volume: aiSpeechVolume } }));
+        window.dispatchEvent(new CustomEvent("avatar:speech-start", { detail: { audio } }));
+      }).catch(reject);
     });
   } finally {
+    window.dispatchEvent(new CustomEvent("avatar:speech-stop"));
     if (aiSpeechAudio === audio) aiSpeechAudio = null;
     if (aiSpeechObjectUrl) {
       URL.revokeObjectURL(aiSpeechObjectUrl);
@@ -276,16 +285,16 @@ async function playLocalSpeechChunk(text, sequence) {
 
 function speakArabicAnswer(value) {
   if (!aiVoiceEnabled || !localTtsAvailable) {
-    scheduleAiCharacterRotation();
     return;
   }
+  lastSpokenAnswer = value;
   const chunks = speechChunks(value);
   if (!chunks.length) return;
 
   stopAiSpeech({ resumeRotation: false });
   const sequence = aiSpeechSequence;
   aiSpeechActive = true;
-  setAiCharacterState("speaking");
+  setAiCharacterState("talking");
 
   const speakNext = async () => {
     if (sequence !== aiSpeechSequence || !aiVoiceEnabled) return;
@@ -293,18 +302,17 @@ function speakArabicAnswer(value) {
     if (!text) {
       aiSpeechActive = false;
       setAiCharacterState("idle");
-      scheduleAiCharacterRotation(2600);
       return;
     }
     try {
       await playLocalSpeechChunk(text, sequence);
       if (sequence === aiSpeechSequence) speakNext();
     } catch (_error) {
+      if (_error?.name === "AbortError") return;
       localTtsAvailable = false;
       if (sequence !== aiSpeechSequence) return;
       aiSpeechActive = false;
-      setAiCharacterState("idle", "تعذر تشغيل الصوت المحلي");
-      scheduleAiCharacterRotation();
+      setAiCharacterState("error", "تعذر تشغيل الصوت المحلي");
     }
   };
   speakNext();
@@ -312,6 +320,9 @@ function speakArabicAnswer(value) {
 
 async function initializeAiCharacter() {
   if (!elements.aiCharacter) return;
+  if (elements.aiSpeechRate) elements.aiSpeechRate.value = String(aiSpeechRate);
+  if (elements.aiSpeechVolume) elements.aiSpeechVolume.value = String(aiSpeechVolume);
+  elements.aiMotionToggle?.setAttribute("aria-pressed", String(aiMotionEnabled));
   try {
     const response = await fetch("/api/tts/status");
     const status = response.ok ? await response.json() : {};
@@ -336,7 +347,26 @@ async function initializeAiCharacter() {
     setAiCharacterState("greeting", "تم تشغيل الصوت العربي");
     speakArabicAnswer("تم تشغيل صوت المساعد العربي.");
   });
-  scheduleAiCharacterRotation(2200);
+  elements.aiSpeechStop?.addEventListener("click", () => stopAiSpeech());
+  elements.aiSpeechReplay?.addEventListener("click", () => {
+    if (lastSpokenAnswer) speakArabicAnswer(lastSpokenAnswer);
+  });
+  elements.aiSpeechRate?.addEventListener("input", () => {
+    aiSpeechRate = Number(elements.aiSpeechRate.value) || 1;
+    localStorage.setItem("jalssa-ai-speech-rate", String(aiSpeechRate));
+  });
+  elements.aiSpeechVolume?.addEventListener("input", () => {
+    aiSpeechVolume = Number(elements.aiSpeechVolume.value);
+    localStorage.setItem("jalssa-ai-speech-volume", String(aiSpeechVolume));
+    if (aiSpeechAudio) aiSpeechAudio.volume = aiSpeechVolume;
+    window.dispatchEvent(new CustomEvent("avatar:volume", { detail: { volume: aiSpeechVolume } }));
+  });
+  elements.aiMotionToggle?.addEventListener("click", () => {
+    aiMotionEnabled = !aiMotionEnabled;
+    localStorage.setItem("jalssa-avatar-motion", String(aiMotionEnabled));
+    elements.aiMotionToggle.setAttribute("aria-pressed", String(aiMotionEnabled));
+    window.dispatchEvent(new CustomEvent("avatar:motion", { detail: { enabled: aiMotionEnabled } }));
+  });
 }
 
 function repairConversationText(message) {
@@ -1051,11 +1081,9 @@ function setPending(value) {
   elements.sendButton.textContent = value ? "..." : "←";
   if (value) {
     stopAiSpeech({ resumeRotation: false });
-    window.clearTimeout(aiCharacterRotationTimer);
     setAiCharacterState("thinking");
   } else if (!aiSpeechActive) {
     setAiCharacterState("idle");
-    scheduleAiCharacterRotation();
   }
 }
 
@@ -1260,6 +1288,7 @@ function resetRecorder() {
     recordingButton.setAttribute("aria-label", "Ø¨Ø¯Ø¡ Ø§Ù„Ø¥Ø¯Ø®Ø§Ù„ Ø§Ù„ØµÙˆØªÙŠ");
   }
   setLandingRecordingUi(false);
+  if (!pending && !aiSpeechActive) setAiCharacterState("idle");
 }
 
 function updateLandingWaveform(samples = null) {
@@ -1413,6 +1442,7 @@ async function toggleRecording(button = elements.voiceButton, input = elements.i
     }
     recordingStartedAt = Date.now();
     recordingActive = true;
+    setAiCharacterState("listening");
     recordingButton.classList.add("recording");
     recordingButton.innerHTML = stopRecordingIconMarkup;
     recordingButton.setAttribute("aria-label", "Ø¥ÙŠÙ‚Ø§Ù Ø§Ù„ØªØ³Ø¬ÙŠÙ„");
