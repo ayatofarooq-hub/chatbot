@@ -419,6 +419,12 @@
       "admin_user_id": 2,
       "token_hash": "4c6c9d29cf6c1a47714a602f26b863659baaec7948de9c621c9bb96b043b10d4",
       "expires_at": "2026-09-02T08:27:31.262113+00:00"
+    },
+    {
+      "id": "aeccf446-2429-4624-9ce9-c2e980c60216",
+      "admin_user_id": 2,
+      "token_hash": "2b1cc0025bed69f13e8bf41d333b077644def84a82088927eca37bd99aa3101c",
+      "expires_at": "2026-09-02T11:09:34.550417+00:00"
     }
   ],
   "audit_log": [
@@ -1913,6 +1919,18 @@
       "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
       "details": {},
       "created_at": "2026-09-02T07:27:31.370282+00:00"
+    },
+    {
+      "id": 117,
+      "action": "login_success",
+      "actor_user_id": 2,
+      "actor_username": "shamsmj",
+      "target_type": null,
+      "target_id": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "details": {},
+      "created_at": "2026-09-02T10:09:34.658491+00:00"
     }
   ]
 }
