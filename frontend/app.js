@@ -13,9 +13,13 @@ const elements = {
   aiVoiceToggle: document.querySelector("#ai-voice-toggle"),
   aiSpeechStop: document.querySelector("#ai-speech-stop"),
   aiSpeechReplay: document.querySelector("#ai-speech-replay"),
+  aiAudioSettings: document.querySelector("#ai-audio-settings"),
+  aiCharacterSliders: document.querySelector("#ai-character-sliders"),
   aiMotionToggle: document.querySelector("#ai-motion-toggle"),
   aiSpeechRate: document.querySelector("#ai-speech-rate"),
   aiSpeechVolume: document.querySelector("#ai-speech-volume"),
+  aiSpeechRateValue: document.querySelector("#ai-speech-rate-value"),
+  aiSpeechVolumeValue: document.querySelector("#ai-speech-volume-value"),
   assistantNav: document.querySelector("#assistant-nav-button"),
   assistantView: document.querySelector("#assistant-view"),
   capacityRoot: document.querySelector("#file-capacity"),
@@ -322,6 +326,8 @@ async function initializeAiCharacter() {
   if (!elements.aiCharacter) return;
   if (elements.aiSpeechRate) elements.aiSpeechRate.value = String(aiSpeechRate);
   if (elements.aiSpeechVolume) elements.aiSpeechVolume.value = String(aiSpeechVolume);
+  if (elements.aiSpeechRateValue) elements.aiSpeechRateValue.value = `${aiSpeechRate.toFixed(2).replace(/0+$/, "").replace(/\.$/, "")}×`;
+  if (elements.aiSpeechVolumeValue) elements.aiSpeechVolumeValue.value = `${Math.round(aiSpeechVolume * 100)}%`;
   elements.aiMotionToggle?.setAttribute("aria-pressed", String(aiMotionEnabled));
   try {
     const response = await fetch("/api/tts/status");
@@ -351,13 +357,20 @@ async function initializeAiCharacter() {
   elements.aiSpeechReplay?.addEventListener("click", () => {
     if (lastSpokenAnswer) speakArabicAnswer(lastSpokenAnswer);
   });
+  elements.aiAudioSettings?.addEventListener("click", () => {
+    const opening = elements.aiCharacterSliders?.hidden ?? true;
+    if (elements.aiCharacterSliders) elements.aiCharacterSliders.hidden = !opening;
+    elements.aiAudioSettings.setAttribute("aria-expanded", String(opening));
+  });
   elements.aiSpeechRate?.addEventListener("input", () => {
     aiSpeechRate = Number(elements.aiSpeechRate.value) || 1;
     localStorage.setItem("jalssa-ai-speech-rate", String(aiSpeechRate));
+    if (elements.aiSpeechRateValue) elements.aiSpeechRateValue.value = `${aiSpeechRate.toFixed(2).replace(/0+$/, "").replace(/\.$/, "")}×`;
   });
   elements.aiSpeechVolume?.addEventListener("input", () => {
     aiSpeechVolume = Number(elements.aiSpeechVolume.value);
     localStorage.setItem("jalssa-ai-speech-volume", String(aiSpeechVolume));
+    if (elements.aiSpeechVolumeValue) elements.aiSpeechVolumeValue.value = `${Math.round(aiSpeechVolume * 100)}%`;
     if (aiSpeechAudio) aiSpeechAudio.volume = aiSpeechVolume;
     window.dispatchEvent(new CustomEvent("avatar:volume", { detail: { volume: aiSpeechVolume } }));
   });

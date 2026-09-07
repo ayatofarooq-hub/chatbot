@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#145a38">
   <title>المساعد القانوني العراقي</title>
-  <link rel="stylesheet" href="/assets/styles.css?v=20260901-cartoon-effendi-v3">
+  <link rel="stylesheet" href="/assets/styles.css?v=20260907-smooth-flipbook-v2">
 </head>
 <body class="auth-gate-pending">
   <div class="app-shell">
@@ -173,16 +173,17 @@
             </div>
           </div>
 
-          <section class="ai-character-dock" id="ai-character" data-state="idle" aria-label="المساعد الذكي المتحرك">
+          <section class="ai-character-dock ai-character-dock--static" id="ai-character" data-state="idle" aria-label="صورة المساعد الذكي">
             <div class="ai-character-halo" aria-hidden="true"></div>
-            <canvas class="ai-effendi-3d" id="ai-effendi-3d" aria-hidden="true"></canvas>
-            <img
-              class="ai-character-fallback"
+            <div
+              class="ai-character-fallback ai-character-flipbook"
               id="ai-character-fallback"
-              src="/assets/images/ai-effendi/fallback/effendi-fallback-v2.png?v=20260901-3d-v1"
-              alt="شخصية الأفندي البغدادي الكارتونية"
+              role="img"
+              aria-label="شخصية الأفندي البغدادي الكارتونية بكامل الجسم"
             >
-            <span class="ai-character-loading" id="ai-character-loading" role="status">جارٍ تحميل الشخصية ثلاثية الأبعاد…</span>
+              <span class="ai-character-frame ai-character-frame--a" aria-hidden="true"></span>
+              <span class="ai-character-frame ai-character-frame--b" aria-hidden="true"></span>
+            </div>
             <div class="ai-character-wave" aria-hidden="true">
               <i></i><i></i><i></i><i></i><i></i>
             </div>
@@ -201,13 +202,19 @@
                   <path class="voice-muted-line" d="m16.5 9 5 6M21.5 9l-5 6"></path>
                 </svg>
               </button>
-              <button id="ai-speech-stop" type="button" aria-label="إيقاف الكلام" title="إيقاف الكلام">■</button>
-              <button id="ai-speech-replay" type="button" aria-label="إعادة تشغيل آخر إجابة" title="إعادة تشغيل آخر إجابة">↻</button>
-              <button id="ai-motion-toggle" type="button" aria-pressed="true" aria-label="إيقاف حركات الشخصية" title="إيقاف حركات الشخصية">◉</button>
+              <button id="ai-speech-stop" type="button" aria-label="إيقاف الكلام" title="إيقاف الكلام">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="7" width="10" height="10" rx="2"></rect></svg>
+              </button>
+              <button id="ai-speech-replay" type="button" aria-label="إعادة تشغيل آخر إجابة" title="إعادة تشغيل آخر إجابة">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 8V4l-2 2a8 8 0 1 0 2.1 8"></path><path d="M19 4h-4"></path></svg>
+              </button>
+              <button id="ai-audio-settings" type="button" aria-expanded="false" aria-controls="ai-character-sliders" aria-label="إعدادات الصوت" title="إعدادات الصوت">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h2M10 17h10M14 4v6M7 14v6"></path></svg>
+              </button>
             </div>
-            <div class="ai-character-sliders" aria-label="إعدادات الصوت">
-              <label>السرعة <input id="ai-speech-rate" type="range" min="0.75" max="1.25" step="0.05" value="1" aria-label="سرعة الصوت"></label>
-              <label>الصوت <input id="ai-speech-volume" type="range" min="0" max="1" step="0.05" value="1" aria-label="مستوى الصوت"></label>
+            <div class="ai-character-sliders" id="ai-character-sliders" aria-label="إعدادات الصوت" hidden>
+              <label><span>السرعة</span><input id="ai-speech-rate" type="range" min="0.75" max="1.25" step="0.05" value="1" aria-label="سرعة الصوت"><output id="ai-speech-rate-value">1×</output></label>
+              <label><span>الصوت</span><input id="ai-speech-volume" type="range" min="0" max="1" step="0.05" value="1" aria-label="مستوى الصوت"><output id="ai-speech-volume-value">100%</output></label>
             </div>
           </section>
 
@@ -338,10 +345,7 @@
 
   <div class="toast" id="toast" role="alert"></div>
   <div id="modal-root"></div>
-  <script type="importmap">
-    {"imports":{"three":"/assets/vendor/three/three.module.js"}}
-  </script>
-  <script type="module" src="/assets/app.js?v=20260901-cartoon-effendi-v3"></script>
-  <script type="module" src="/assets/effendi-3d.js?v=20260901-3d-v2"></script>
+  <script type="module" src="/assets/app.js?v=20260907-smooth-flipbook-v2"></script>
+  <script type="module" src="/assets/effendi-flipbook.js?v=20260907-smooth-v2"></script>
 </body>
 </html>

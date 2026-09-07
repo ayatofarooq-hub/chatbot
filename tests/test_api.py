@@ -26,11 +26,15 @@ class ApiTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertIn("المساعد القانوني العراقي", response.text)
-        self.assertIn('id="ai-character-puppet"', response.text)
-        self.assertIn('id="ai-effendi-3d"', response.text)
-        self.assertIn('effendi-3d.js', response.text)
-        self.assertIn('id="ai-puppet-mustache"', response.text)
-        self.assertIn("sprites/face-neutral.png", response.text)
+        self.assertIn('id="ai-character-fallback"', response.text)
+        self.assertIn("effendi-flipbook.js", response.text)
+        self.assertIn("شخصية الأفندي البغدادي الكارتونية بكامل الجسم", response.text)
+        self.assertIn('id="ai-audio-settings"', response.text)
+        self.assertIn('id="ai-character-sliders"', response.text)
+        self.assertIn('class="ai-character-dock ai-character-dock--static"', response.text)
+        self.assertNotIn('id="ai-character-puppet"', response.text)
+        self.assertNotIn('id="ai-effendi-3d"', response.text)
+        self.assertNotIn('src="/assets/effendi-3d.js', response.text)
 
     def test_frontend_assets(self):
         response = self.client.get("/assets/styles.css")
@@ -41,7 +45,8 @@ class ApiTests(unittest.TestCase):
         script_response = self.client.get("/assets/app.js")
         self.assertEqual(script_response.status_code, 200)
         self.assertIn('fetch("/ask"', script_response.text)
-        self.assertIn("startPuppetLipSync", script_response.text)
+        self.assertIn('fetch("/api/tts"', script_response.text)
+        self.assertIn('id="ai-speech-stop"', self.client.get("/").text)
 
     def test_chat_history_is_persisted_on_server(self):
         payload = {

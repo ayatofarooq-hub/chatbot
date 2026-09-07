@@ -3613,6 +3613,62 @@ body.authenticated .profile i {
   animation: ai-halo-breathe 4.8s ease-in-out infinite;
 }
 
+/* Static production fallback. The 3D sources remain in the repository for later use. */
+.ai-character-dock--static .ai-character-halo {
+  animation: none;
+}
+
+.ai-character-fallback {
+  position: absolute;
+  inset: 0 0 42px;
+  z-index: 3;
+  width: 100%;
+  height: calc(100% - 42px);
+  display: block;
+  object-fit: contain;
+  object-position: center bottom;
+  filter: drop-shadow(0 14px 16px rgba(13, 55, 36, 0.18));
+  pointer-events: none;
+  user-select: none;
+}
+
+.ai-character-dock--static .ai-effendi-3d,
+.ai-character-dock--static .ai-character-loading {
+  display: none;
+}
+
+.ai-character-flipbook {
+  inset: auto auto 68px 50%;
+  width: 109px;
+  height: 218px;
+  --avatar-x: 0px;
+  --avatar-y: 0px;
+  --avatar-turn: 0deg;
+  --avatar-scale: 1;
+  overflow: visible;
+  transform: translateX(calc(-50% + var(--avatar-x))) translateY(var(--avatar-y)) rotate(var(--avatar-turn)) scale(var(--avatar-scale));
+  object-fit: initial;
+  image-rendering: auto;
+  will-change: transform;
+}
+
+.ai-character-frame {
+  position: absolute;
+  inset: 0;
+  display: block;
+  background-image: url("/assets/images/ai-effendi/fallback/effendi-fullbody-flipbook-transparent-v1.png?v=20260903-alpha-v1");
+  background-repeat: no-repeat;
+  background-size: 400% 300%;
+  background-position: 0 0;
+  opacity: 0;
+  transition: opacity 110ms ease-in-out;
+  will-change: opacity;
+}
+
+.ai-character-frame--a {
+  opacity: 1;
+}
+
 .ai-character-image {
   position: absolute;
   bottom: 30px;
@@ -3820,22 +3876,118 @@ body.authenticated .profile i {
   right: 4px;
   bottom: 0;
   left: 4px;
-  min-height: 42px;
-  display: flex;
+  min-height: 68px;
+  display: grid;
+  grid-template-columns: repeat(4, 34px);
   align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 5px 6px 5px 12px;
+  justify-content: center;
+  gap: 5px;
+  padding: 7px 10px;
   color: #fff;
   background: rgba(13, 71, 45, 0.94);
   border: 1px solid rgba(255, 255, 255, 0.5);
-  border-radius: 999px;
+  border-radius: 20px;
   box-shadow: 0 9px 24px rgba(13, 71, 45, 0.22);
+  backdrop-filter: blur(10px);
+  pointer-events: auto;
+  z-index: 20;
+}
+
+.ai-character-sliders {
+  position: absolute;
+  right: auto;
+  bottom: calc(100% + 10px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 15;
+  width: 194px;
+  display: grid;
+  gap: 10px;
+  padding: 11px 12px;
+  color: var(--text-strong, #173c2d);
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid rgba(20, 90, 56, 0.16);
+  border-radius: 14px;
+  box-shadow: 0 10px 26px rgba(13, 71, 45, 0.14);
   backdrop-filter: blur(10px);
   pointer-events: auto;
 }
 
+.ai-character-sliders[hidden] {
+  display: none;
+}
+
+.ai-character-sliders label {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) 38px;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: var(--font-weight-semibold);
+  white-space: nowrap;
+}
+
+.ai-character-sliders output {
+  direction: ltr;
+  color: var(--green-dark);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  text-align: left;
+}
+
+.ai-character-sliders input[type="range"] {
+  width: 100%;
+  min-width: 0;
+  accent-color: var(--green-dark);
+}
+
+#ai-speech-stop,
+#ai-speech-replay,
+#ai-audio-settings {
+  width: 32px;
+  height: 32px;
+  flex: 0 0 auto;
+  padding: 0;
+  color: var(--green-dark);
+  background: #fff;
+  border: 0;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: color 160ms ease, background 160ms ease, transform 160ms ease;
+}
+
+#ai-speech-stop svg,
+#ai-speech-replay svg,
+#ai-audio-settings svg {
+  width: 17px;
+  height: 17px;
+  display: block;
+  margin: auto;
+  fill: currentColor;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+#ai-speech-replay svg,
+#ai-audio-settings svg {
+  fill: none;
+}
+
+#ai-speech-stop:hover,
+#ai-speech-replay:hover,
+#ai-audio-settings:hover,
+#ai-audio-settings[aria-expanded="true"] {
+  color: #fff;
+  background: var(--gold);
+  transform: translateY(-1px);
+}
+
 .ai-character-control span {
+  grid-column: 1 / -1;
+  width: 100%;
+  text-align: center;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -4038,6 +4190,11 @@ body.authenticated .profile i {
   .ai-character-image { width: 150px; }
   .ai-character-puppet { --puppet-scale: 0.72; }
   .ai-character-control span { font-size: 10px; }
+  .ai-character-sliders {
+    bottom: calc(100% + 8px);
+    left: 50%;
+    width: 150px;
+  }
 }
 
 @media (max-width: 720px) {
@@ -4048,6 +4205,7 @@ body.authenticated .profile i {
   .ai-character-halo { right: 4px; bottom: 23px; left: 4px; height: 88px; border-radius: 45px 45px 18px 18px; }
   .ai-character-control { right: 3px; left: 3px; min-height: 35px; justify-content: center; padding: 2px; }
   .ai-character-control span { display: none; }
+  .ai-character-sliders { display: none; }
   #ai-voice-toggle { width: 29px; height: 29px; }
   .ai-character-wave { right: 8px; bottom: 39px; left: 8px; height: 20px; gap: 3px; }
   .ai-character-wave i { width: 3px; }

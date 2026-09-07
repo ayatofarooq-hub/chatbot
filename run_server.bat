@@ -34,6 +34,23 @@ if not "%errorlevel%"=="0" (
     exit /b 1
 )
 
+REM Avoid WinError 10048 when this project is already serving on port 8000.
+powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "try { $r = Invoke-RestMethod -Uri 'http://127.0.0.1:8000/health' -TimeoutSec 2; if ($r.status -eq 'ok') { exit 0 } } catch {}; exit 1" >nul 2>&1
+if "%errorlevel%"=="0" (
+    echo [INFO] The Iraqi Legal Assistant is already running.
+    echo [INFO] Open http://localhost:8000 and press CTRL+F5 to refresh.
+    exit /b 0
+)
+
+set "PORT_PID="
+for /f "tokens=5" %%P in ('netstat -ano -p TCP ^| findstr ":8000" ^| findstr "LISTENING"') do set "PORT_PID=%%P"
+if defined PORT_PID (
+    echo [ERROR] Port 8000 is being used by another application ^(PID %PORT_PID%^).
+    echo [INFO] Stop that application or start this server on a different port.
+    pause
+    exit /b 1
+)
+
 REM Verify uvicorn is installed before launching.
 python -m uvicorn --version >nul 2>&1
 if not "%errorlevel%"=="0" (
