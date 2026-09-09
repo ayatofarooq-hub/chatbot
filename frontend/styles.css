@@ -26,6 +26,19 @@
   --chat-sidebar-collapsed-width: 72px;
 }
 
+[data-theme="dark"] {
+  color-scheme: dark;
+  --ink: #edf4f0;
+  --muted: #a8b9b0;
+  --border: #30463a;
+  --canvas: #0c1511;
+  --surface: #15221b;
+  --green-soft: #20392d;
+  --danger-soft: #351f20;
+  --success-soft: #173527;
+  --shadow: 0 8px 24px rgba(0, 0, 0, 0.24);
+}
+
 @font-face {
   font-family: "Omnes Arabic";
   src: url("/assets/fonts/omnes-arabic-regular.ttf") format("truetype");
@@ -604,6 +617,59 @@ body.chat-sidebar-enabled.chat-sidebar-collapsed .chat-sidebar-scroll {
   background: var(--surface);
   border-bottom: 1px solid var(--border);
   direction: ltr;
+}
+
+.theme-toggle {
+  position: absolute;
+  right: 34px;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  color: var(--green);
+  background: var(--green-soft);
+  border: 1px solid rgba(20, 90, 56, 0.24);
+  border-radius: 50%;
+  font-size: 22px;
+  line-height: 1;
+  transition: transform 160ms ease, background 160ms ease, color 160ms ease;
+}
+
+.theme-toggle:hover {
+  transform: translateY(-1px);
+  color: #fff;
+  background: var(--green);
+}
+
+[data-theme="dark"] .landing-view {
+  background:
+    radial-gradient(circle at 26% 30%, rgba(200, 160, 8, 0.09), transparent 28%),
+    radial-gradient(circle at 72% 68%, rgba(61, 143, 99, 0.13), transparent 30%),
+    linear-gradient(180deg, #101a15 0%, #0c1511 100%);
+}
+
+[data-theme="dark"] .landing-hero h1,
+[data-theme="dark"] .landing-prompt textarea {
+  color: var(--ink);
+}
+
+[data-theme="dark"] .landing-hero p,
+[data-theme="dark"] .landing-model {
+  color: var(--muted);
+}
+
+[data-theme="dark"] .landing-prompt,
+[data-theme="dark"] .chat-history-sidebar,
+[data-theme="dark"] .chat-toolbar,
+[data-theme="dark"] .clear-history {
+  color: var(--ink);
+  background: var(--surface);
+  border-color: var(--border);
+}
+
+[data-theme="dark"] .chat-panel {
+  background: #101b15;
 }
 
 .header-title {
@@ -2585,6 +2651,13 @@ body.authenticated .profile i {
     padding-inline: 14px;
   }
 
+  .theme-toggle {
+    right: 14px;
+    width: 36px;
+    height: 36px;
+    font-size: 19px;
+  }
+
   .header-title {
     max-width: calc(100% - 130px);
     font-size: 15px;
@@ -3535,45 +3608,40 @@ body.authenticated .profile i {
   }
 }
 
-/* Dark theme support */
-@media (prefers-color-scheme: dark) {
-  .toolbar-buttons > button,
-  #export-button {
-    color: #e0e0e0;
-    background: #333;
-    border-color: #555;
-  }
+/* Dark theme support is controlled by the local clock, not the operating system. */
+[data-theme="dark"] .toolbar-buttons > button,
+[data-theme="dark"] #export-button {
+  color: #e0e0e0;
+  background: #28352e;
+  border-color: #45584e;
+}
 
-  .toolbar-buttons > button:hover:not(:disabled),
-  #export-button:hover:not(:disabled) {
-    background: #444;
-    border-color: #999;
-  }
+[data-theme="dark"] .toolbar-buttons > button:hover:not(:disabled),
+[data-theme="dark"] #export-button:hover:not(:disabled) {
+  background: #34463c;
+  border-color: #71857a;
+}
 
-  .export-dropdown {
-    background: #2a2a2a;
-    border-color: #444;
-  }
+[data-theme="dark"] .export-dropdown,
+[data-theme="dark"] .export-format {
+  color: #e0e0e0;
+  background: #1d2b24;
+  border-color: #3b4d43;
+}
 
-  .export-format {
-    background: #2a2a2a;
-    color: #e0e0e0;
-  }
+[data-theme="dark"] .export-format:hover {
+  background: #293a31;
+}
 
-  .export-format:hover {
-    background: #333;
-  }
+[data-theme="dark"] .landing-voice,
+[data-theme="dark"] .landing-attach {
+  color: #dcebe2;
+  background: #20392d;
+}
 
-  .landing-voice,
-  .landing-attach {
-    color: #26312b;
-    background: #e8f5ed;
-  }
-
-  .landing-voice:hover:not(:disabled),
-  .landing-attach:hover:not(:disabled) {
-    background: #d0ead3;
-  }
+[data-theme="dark"] .landing-voice:hover:not(:disabled),
+[data-theme="dark"] .landing-attach:hover:not(:disabled) {
+  background: #294a39;
 }
 
 /* Animated AI character and Arabic voice controls */
@@ -3599,18 +3667,7 @@ body.authenticated .profile i {
 }
 
 .ai-character-halo {
-  position: absolute;
-  right: 17px;
-  bottom: 25px;
-  left: 17px;
-  z-index: -1;
-  height: 178px;
-  border: 1px solid rgba(20, 90, 56, 0.14);
-  border-radius: 48% 48% 28px 28px;
-  background:
-    radial-gradient(circle at 50% 42%, rgba(255, 255, 255, 0.92), rgba(232, 245, 237, 0.72) 56%, rgba(20, 90, 56, 0.08) 100%);
-  box-shadow: 0 18px 38px rgba(13, 71, 45, 0.16);
-  animation: ai-halo-breathe 4.8s ease-in-out infinite;
+  display: none;
 }
 
 /* Static production fallback. The 3D sources remain in the repository for later use. */
@@ -3639,34 +3696,26 @@ body.authenticated .profile i {
 
 .ai-character-flipbook {
   inset: auto auto 68px 50%;
-  width: 109px;
+  width: 164px;
   height: 218px;
-  --avatar-x: 0px;
-  --avatar-y: 0px;
-  --avatar-turn: 0deg;
-  --avatar-scale: 1;
-  overflow: visible;
-  transform: translateX(calc(-50% + var(--avatar-x))) translateY(var(--avatar-y)) rotate(var(--avatar-turn)) scale(var(--avatar-scale));
+  min-width: 164px;
+  max-width: 164px;
+  min-height: 218px;
+  max-height: 218px;
+  background-image: url("/assets/images/ai-effendi/fallback/effendi-idle-8-aligned-transparent-v1.png?v=20260907-night-effendi-v4");
+  background-repeat: no-repeat;
+  background-size: 400% 200%;
+  background-position: 0 0;
+  animation: none !important;
+  transform: translateX(-50%) scale(1) !important;
+  transform-origin: 50% 100%;
+  scale: 1 !important;
   object-fit: initial;
   image-rendering: auto;
-  will-change: transform;
 }
 
-.ai-character-frame {
-  position: absolute;
-  inset: 0;
-  display: block;
-  background-image: url("/assets/images/ai-effendi/fallback/effendi-fullbody-flipbook-transparent-v1.png?v=20260903-alpha-v1");
-  background-repeat: no-repeat;
-  background-size: 400% 300%;
-  background-position: 0 0;
-  opacity: 0;
-  transition: opacity 110ms ease-in-out;
-  will-change: opacity;
-}
-
-.ai-character-frame--a {
-  opacity: 1;
+[data-theme="dark"] .ai-character-flipbook {
+  background-image: url("/assets/images/ai-effendi/fallback/effendi-night-idle-8-aligned-transparent-v1.png?v=20260907-night-effendi-v4");
 }
 
 .ai-character-image {

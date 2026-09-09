@@ -455,6 +455,42 @@
       "admin_user_id": 2,
       "token_hash": "50a37f8a376a1cb3502c309b597ddc1813272e0e5cf0b8cc50785cc212d4f94b",
       "expires_at": "2026-09-06T11:57:47.799476+00:00"
+    },
+    {
+      "id": "5fe3a2de-b792-4521-90f6-da4241564954",
+      "admin_user_id": 2,
+      "token_hash": "f8af3d74d4f3ae02744e8755b4b0d352dd22abdef4431ce29a917277761e6e0b",
+      "expires_at": "2026-09-07T08:31:23.950492+00:00"
+    },
+    {
+      "id": "0b109585-4fc1-44f5-89c5-88769a9eb7b2",
+      "admin_user_id": 2,
+      "token_hash": "164c4fa675d1b5a50d4b422cd9306ca07ba3fa3cdabce5d654ed2b053a4bf8eb",
+      "expires_at": "2026-09-07T09:38:53.900594+00:00"
+    },
+    {
+      "id": "f2460289-2467-415d-b05d-74bda7871794",
+      "admin_user_id": 2,
+      "token_hash": "88dabff9bf688d796ef660ff1c5d80d32921d7b3d5b464b37905dc2cbf3a9a01",
+      "expires_at": "2026-09-07T12:03:49.429161+00:00"
+    },
+    {
+      "id": "199a5584-2bb3-4d7f-a410-d7e04e34d620",
+      "admin_user_id": 2,
+      "token_hash": "4206c81e507c04f9a4fe36ae342201847b33f91908b1ed0dce2232dbfbdc9c01",
+      "expires_at": "2026-09-07T12:31:04.337566+00:00"
+    },
+    {
+      "id": "a15e6c1f-cddb-4d53-af0a-f6e410f2567c",
+      "admin_user_id": 2,
+      "token_hash": "3f77f1b570112689e6d8b44ec78e4a1e55c479930ee6d67873d02fc41d8c952f",
+      "expires_at": "2026-09-08T12:05:10.099944+00:00"
+    },
+    {
+      "id": "da765cbf-e9f5-42ca-9fc6-83d93b41d040",
+      "admin_user_id": 2,
+      "token_hash": "c8dc8d7e83fa3f305e2ee5b9afbb807200cc1a09ea008ee9e6428ef0976cafd7",
+      "expires_at": "2026-09-09T07:40:41.702976+00:00"
     }
   ],
   "audit_log": [
@@ -2021,6 +2057,94 @@
       "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
       "details": {},
       "created_at": "2026-09-06T10:57:47.898024+00:00"
+    },
+    {
+      "id": 123,
+      "action": "login_success",
+      "actor_user_id": 2,
+      "actor_username": "shamsmj",
+      "target_type": null,
+      "target_id": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "details": {},
+      "created_at": "2026-09-07T07:31:24.028044+00:00"
+    },
+    {
+      "id": 124,
+      "action": "login_success",
+      "actor_user_id": 2,
+      "actor_username": "shamsmj",
+      "target_type": null,
+      "target_id": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "details": {},
+      "created_at": "2026-09-07T08:38:53.985784+00:00"
+    },
+    {
+      "id": 125,
+      "action": "login_success",
+      "actor_user_id": 2,
+      "actor_username": "shamsmj",
+      "target_type": null,
+      "target_id": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "details": {},
+      "created_at": "2026-09-07T11:03:49.488813+00:00"
+    },
+    {
+      "id": 126,
+      "action": "login_success",
+      "actor_user_id": 2,
+      "actor_username": "shamsmj",
+      "target_type": null,
+      "target_id": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "details": {},
+      "created_at": "2026-09-07T11:31:04.389710+00:00"
+    },
+    {
+      "id": 127,
+      "action": "settings_updated",
+      "actor_user_id": 1,
+      "actor_username": "admin",
+      "target_type": "settings",
+      "target_id": null,
+      "ip_address": "testclient",
+      "user_agent": "testclient",
+      "details": {
+        "sections": [
+          "appearance"
+        ]
+      },
+      "created_at": "2026-09-08T05:00:15.412137+00:00"
+    },
+    {
+      "id": 128,
+      "action": "login_success",
+      "actor_user_id": 2,
+      "actor_username": "shamsmj",
+      "target_type": null,
+      "target_id": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "details": {},
+      "created_at": "2026-09-08T11:05:10.211914+00:00"
+    },
+    {
+      "id": 129,
+      "action": "login_success",
+      "actor_user_id": 2,
+      "actor_username": "shamsmj",
+      "target_type": null,
+      "target_id": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "details": {},
+      "created_at": "2026-09-09T06:40:41.745994+00:00"
     }
   ]
 }

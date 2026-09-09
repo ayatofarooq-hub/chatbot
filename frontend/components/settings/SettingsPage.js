@@ -132,7 +132,7 @@ export function createSettingsModule({ root, modalRoot, showToast, onAuthenticat
   function applyAppearance() {
     state.appearance.language = "ar";
     applyLanguage("ar");
-    document.documentElement.dataset.theme = state.appearance.theme;
+    // The automatic clock schedule and its manual toggle own the active theme.
     document.documentElement.dataset.scale = state.appearance.interface_scale;
     document.documentElement.dataset.primary = state.appearance.primary_color;
     const custom = state.appearance.primary_color === "custom" ? state.appearance.custom_primary_color : "";

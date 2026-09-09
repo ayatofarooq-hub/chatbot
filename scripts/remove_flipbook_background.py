@@ -7,8 +7,16 @@ from PIL import Image, ImageFilter
 
 
 ROOT = Path(__file__).resolve().parents[1]
-SOURCE = ROOT / "frontend/images/ai-effendi/fallback/effendi-fullbody-flipbook-v1.png"
-OUTPUT = ROOT / "frontend/images/ai-effendi/fallback/effendi-fullbody-flipbook-transparent-v1.png"
+ASSET_DIRECTORY = ROOT / "frontend/images/ai-effendi/fallback"
+JOBS = (
+    ("effendi-fullbody-flipbook-v1.png", "effendi-fullbody-flipbook-transparent-v1.png"),
+    ("effendi-idle-8-v1.png", "effendi-idle-8-transparent-v1.png"),
+    ("effendi-talking-8-v1.png", "effendi-talking-8-transparent-v1.png"),
+    ("effendi-thinking-8-v1.png", "effendi-thinking-8-transparent-v1.png"),
+    ("effendi-night-idle-8-v1.png", "effendi-night-idle-8-transparent-v1.png"),
+    ("effendi-night-talking-8-v1.png", "effendi-night-talking-8-transparent-v1.png"),
+    ("effendi-night-thinking-8-v1.png", "effendi-night-thinking-8-transparent-v1.png"),
+)
 
 
 def is_background(pixel: tuple[int, int, int]) -> bool:
@@ -61,9 +69,14 @@ def connected_background(image: Image.Image) -> Image.Image:
 
 
 if __name__ == "__main__":
-    output = connected_background(Image.open(SOURCE))
-    output.save(OUTPUT, optimize=True)
-    print(
-        f"Saved {OUTPUT} ({output.width}x{output.height}, "
-        f"RGBA, alpha={output.getchannel('A').getextrema()})"
-    )
+    for source_name, output_name in JOBS:
+        source_path = ASSET_DIRECTORY / source_name
+        if not source_path.exists():
+            continue
+        output_path = ASSET_DIRECTORY / output_name
+        output = connected_background(Image.open(source_path))
+        output.save(output_path, optimize=True)
+        print(
+            f"Saved {output_path} ({output.width}x{output.height}, "
+            f"RGBA, alpha={output.getchannel('A').getextrema()})"
+        )
