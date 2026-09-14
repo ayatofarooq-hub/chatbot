@@ -491,6 +491,30 @@
       "admin_user_id": 2,
       "token_hash": "c8dc8d7e83fa3f305e2ee5b9afbb807200cc1a09ea008ee9e6428ef0976cafd7",
       "expires_at": "2026-09-09T07:40:41.702976+00:00"
+    },
+    {
+      "id": "5d9a243d-8df0-4297-8fdc-da6bb1ad7552",
+      "admin_user_id": 2,
+      "token_hash": "5643082a1db1473fdc91e1bd2a3da0ec55da3b46dbf73858576b757724594354",
+      "expires_at": "2026-09-09T11:12:37.005203+00:00"
+    },
+    {
+      "id": "9e1b26f1-c239-4a3b-9d7a-9f3f78f315d3",
+      "admin_user_id": 2,
+      "token_hash": "45b89c0e6ed9685e3311164d198e63db1b64fb1f85c6365ba66f599a0a8c32eb",
+      "expires_at": "2026-09-10T07:58:37.615252+00:00"
+    },
+    {
+      "id": "d903a579-e3a4-49c7-949c-c47386077362",
+      "admin_user_id": 2,
+      "token_hash": "2362bfc2f2e088f667d5da3e2db9a7e18f140bdf867db727e640d8eb4fc35e66",
+      "expires_at": "2026-09-13T11:09:44.141372+00:00"
+    },
+    {
+      "id": "400357fa-ce60-42b9-a813-062a609ebcc6",
+      "admin_user_id": 2,
+      "token_hash": "c7275d28dbf9aa126c9c7fd70e008eb1f93fe1f444d4b2f1cbe0bb84dbbfcaf3",
+      "expires_at": "2026-09-14T07:16:47.121815+00:00"
     }
   ],
   "audit_log": [
@@ -2145,6 +2169,94 @@
       "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
       "details": {},
       "created_at": "2026-09-09T06:40:41.745994+00:00"
+    },
+    {
+      "id": 130,
+      "action": "login_success",
+      "actor_user_id": 2,
+      "actor_username": "shamsmj",
+      "target_type": null,
+      "target_id": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "details": {},
+      "created_at": "2026-09-09T10:12:37.059318+00:00"
+    },
+    {
+      "id": 131,
+      "action": "settings_updated",
+      "actor_user_id": 1,
+      "actor_username": "admin",
+      "target_type": "settings",
+      "target_id": null,
+      "ip_address": "testclient",
+      "user_agent": "testclient",
+      "details": {
+        "sections": [
+          "appearance"
+        ]
+      },
+      "created_at": "2026-09-10T05:54:57.516500+00:00"
+    },
+    {
+      "id": 132,
+      "action": "login_success",
+      "actor_user_id": 2,
+      "actor_username": "shamsmj",
+      "target_type": null,
+      "target_id": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "details": {},
+      "created_at": "2026-09-10T06:58:37.663255+00:00"
+    },
+    {
+      "id": 133,
+      "action": "login_success",
+      "actor_user_id": 2,
+      "actor_username": "shamsmj",
+      "target_type": null,
+      "target_id": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "details": {},
+      "created_at": "2026-09-13T10:00:59.898954+00:00"
+    },
+    {
+      "id": 134,
+      "action": "logout",
+      "actor_user_id": 2,
+      "actor_username": "shamsmj",
+      "target_type": null,
+      "target_id": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "details": {},
+      "created_at": "2026-09-13T10:09:41.475289+00:00"
+    },
+    {
+      "id": 135,
+      "action": "login_success",
+      "actor_user_id": 2,
+      "actor_username": "shamsmj",
+      "target_type": null,
+      "target_id": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "details": {},
+      "created_at": "2026-09-13T10:09:44.207011+00:00"
+    },
+    {
+      "id": 136,
+      "action": "login_success",
+      "actor_user_id": 2,
+      "actor_username": "shamsmj",
+      "target_type": null,
+      "target_id": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "details": {},
+      "created_at": "2026-09-14T06:16:47.180120+00:00"
     }
   ]
 }

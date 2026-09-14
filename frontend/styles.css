@@ -844,6 +844,95 @@ body.authenticated .profile i {
   animation: landing-rise 420ms ease-out both;
 }
 
+.landing-effendi-welcome {
+  position: absolute;
+  left: -178px;
+  bottom: 38px;
+  z-index: 2;
+  width: 158px;
+  height: 234px;
+  pointer-events: none;
+}
+
+.landing-effendi-flipbook {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 150px;
+  height: 200px;
+  background-image: url("/assets/images/ai-effendi/fallback/effendi-idle-8-aligned-transparent-v1.png?v=20260910-landing-effendi-v5");
+  background-repeat: no-repeat;
+  background-size: 400% 200%;
+  background-position: 0 0;
+  filter: drop-shadow(0 12px 13px rgba(13, 55, 36, 0.18));
+  transform: translateX(-50%);
+}
+
+[data-theme="dark"] .landing-effendi-flipbook {
+  background-image: url("/assets/images/ai-effendi/fallback/effendi-night-idle-8-aligned-transparent-v1.png?v=20260910-landing-effendi-v5");
+}
+
+.landing-effendi-greeting {
+  position: absolute;
+  top: 0;
+  right: -22px;
+  z-index: 2;
+  padding: 7px 12px;
+  color: var(--green);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px 16px 4px 16px;
+  box-shadow: var(--shadow);
+  font-size: 12px;
+  font-weight: var(--font-weight-semibold);
+  white-space: nowrap;
+}
+
+[data-theme="dark"] .landing-effendi-greeting {
+  color: #f1cd3b;
+}
+
+@media (max-width: 1500px) {
+  .landing-effendi-welcome {
+    position: relative;
+    left: auto;
+    bottom: auto;
+    width: 116px;
+    height: 154px;
+    margin-bottom: -12px;
+  }
+
+  .landing-effendi-flipbook {
+    width: 108px;
+    height: 144px;
+  }
+
+  .landing-effendi-greeting {
+    top: 4px;
+    right: -45px;
+    padding: 6px 10px;
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 720px) {
+  .landing-effendi-welcome {
+    width: 88px;
+    height: 120px;
+    margin-bottom: -8px;
+  }
+
+  .landing-effendi-flipbook {
+    width: 84px;
+    height: 112px;
+  }
+
+  .landing-effendi-greeting {
+    right: -52px;
+    font-size: 10px;
+  }
+}
+
 .landing-badge {
   margin-bottom: 28px;
   padding: 9px 16px;

@@ -1,3 +1,5 @@
+
+
 /** CPU-friendly Web Audio energy lip sync for an HTMLAudioElement. */
 export function createAudioLipSync({ onFrame, onError } = {}) {
   let context = null;

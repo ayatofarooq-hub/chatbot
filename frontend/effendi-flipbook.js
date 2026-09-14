@@ -1,6 +1,7 @@
 /** Deterministic whole-body animation: 8 complete images per state, no crossfade. */
 const character = document.querySelector("#ai-character");
 const flipbook = document.querySelector("#ai-character-fallback");
+const landingFlipbook = document.querySelector("#landing-effendi");
 
 if (character && flipbook) {
   const assetVersion = "20260907-night-effendi-v4";
@@ -54,13 +55,18 @@ if (character && flipbook) {
   function showFrame(frame) {
     const column = frame % 4;
     const row = Math.floor(frame / 4);
-    flipbook.style.backgroundPosition = `${column * (100 / 3)}% ${row * 100}%`;
+    const position = `${column * (100 / 3)}% ${row * 100}%`;
+    flipbook.style.backgroundPosition = position;
+    if (landingFlipbook) landingFlipbook.style.backgroundPosition = position;
   }
 
   function applyStateAsset() {
     const assetName = stateAsset[state] || "idle";
     const activeAssets = isNightMode() ? assetSets.night : assetSets.day;
     flipbook.style.backgroundImage = `url("${activeAssets[assetName]}")`;
+    if (landingFlipbook) {
+      landingFlipbook.style.backgroundImage = `url("${activeAssets.idle}")`;
+    }
   }
 
   function animate(now) {
