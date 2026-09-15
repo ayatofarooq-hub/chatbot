@@ -515,6 +515,18 @@
       "admin_user_id": 2,
       "token_hash": "c7275d28dbf9aa126c9c7fd70e008eb1f93fe1f444d4b2f1cbe0bb84dbbfcaf3",
       "expires_at": "2026-09-14T07:16:47.121815+00:00"
+    },
+    {
+      "id": "fc2e1201-fffe-45f4-85b8-a347edc3fbce",
+      "admin_user_id": 2,
+      "token_hash": "0a3828a919a4ad6eb194aa88df1ba3ffd1000884903dba57165fae9335d7ca78",
+      "expires_at": "2026-09-14T10:00:54.468122+00:00"
+    },
+    {
+      "id": "fcbf09d2-9009-41f7-b60a-cbb1078c1ac4",
+      "admin_user_id": 2,
+      "token_hash": "6557514a1df0acf6c8ed0d1d6d414a3bded717aa19b17bc620d20ec4e64ef3d8",
+      "expires_at": "2026-09-15T07:34:02.283122+00:00"
     }
   ],
   "audit_log": [
@@ -2257,6 +2269,62 @@
       "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
       "details": {},
       "created_at": "2026-09-14T06:16:47.180120+00:00"
+    },
+    {
+      "id": 137,
+      "action": "login_success",
+      "actor_user_id": 2,
+      "actor_username": "shamsmj",
+      "target_type": null,
+      "target_id": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "details": {},
+      "created_at": "2026-09-14T09:00:54.552250+00:00"
+    },
+    {
+      "id": 138,
+      "action": "settings_updated",
+      "actor_user_id": 1,
+      "actor_username": "admin",
+      "target_type": "settings",
+      "target_id": null,
+      "ip_address": "testclient",
+      "user_agent": "testclient",
+      "details": {
+        "sections": [
+          "appearance"
+        ]
+      },
+      "created_at": "2026-09-14T09:06:55.398635+00:00"
+    },
+    {
+      "id": 139,
+      "action": "login_success",
+      "actor_user_id": 2,
+      "actor_username": "shamsmj",
+      "target_type": null,
+      "target_id": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "details": {},
+      "created_at": "2026-09-15T06:34:02.404072+00:00"
+    },
+    {
+      "id": 140,
+      "action": "settings_updated",
+      "actor_user_id": 1,
+      "actor_username": "admin",
+      "target_type": "settings",
+      "target_id": null,
+      "ip_address": "testclient",
+      "user_agent": "testclient",
+      "details": {
+        "sections": [
+          "appearance"
+        ]
+      },
+      "created_at": "2026-09-15T06:45:02.112892+00:00"
     }
   ]
 }

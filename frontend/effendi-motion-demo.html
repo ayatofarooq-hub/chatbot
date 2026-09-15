@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>تجربة فريمات الأفندي الوسيطة</title>
+<style>
+  body {margin:0;min-height:100vh;display:grid;place-content:center;background:#f7faf8;color:#194d38;font:18px system-ui;text-align:center}
+  body.dark {background:#18251f;color:#f2f6f3}
+  #sprite {width:288px;height:384px;margin:auto;background-image:url('/assets/images/ai-effendi/fallback/effendi-hand-lower-inbetweens-day-8-aligned-transparent-v1.png');background-size:400% 200%;background-repeat:no-repeat}
+  button {border:0;border-radius:14px;background:#14593b;color:white;padding:12px 20px;margin:6px;cursor:pointer;font:inherit}
+  p {max-width:440px;font-size:15px;line-height:1.8}
+</style>
+<main>
+  <h2>تجربة حركة اليد</h2>
+  <div id="sprite" role="img" aria-label="الأفندي ينزل يده من الذقن إلى مسند الكرسي"></div>
+  <div><button id="replay">إعادة الحركة</button><button id="background">خلفية فاتحة / داكنة</button></div>
+  <p>٨ فريمات متسلسلة، بدون تلاشي أو عشوائية. هذه معاينة منفصلة؛ حركة المحادثة لم تتغير.</p>
+</main>
+<script>
+  const sprite = document.getElementById('sprite');
+  let timer;
+  function play() {
+    clearTimeout(timer);
+    let frame = 0;
+    function next() {
+      sprite.style.backgroundPosition = `${(frame % 4) * 100 / 3}% ${Math.floor(frame / 4) * 100}%`;
+      if (++frame < 8) timer = setTimeout(next, 110);
+    }
+    next();
+  }
+  document.getElementById('replay').addEventListener('click', play);
+  document.getElementById('background').addEventListener('click', () => document.body.classList.toggle('dark'));
+  const image = new Image();
+  image.onload = play;
+  image.src = '/assets/images/ai-effendi/fallback/effendi-hand-lower-inbetweens-day-8-aligned-transparent-v1.png';
+</script>
+</html>

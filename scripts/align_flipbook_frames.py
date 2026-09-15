@@ -14,6 +14,8 @@ SOURCES = (
     "effendi-night-idle-8-transparent-v1.png",
     "effendi-night-talking-8-transparent-v1.png",
     "effendi-night-thinking-8-transparent-v1.png",
+    "effendi-thinking-chair-day-8-transparent-v1.png",
+    "effendi-thinking-chair-night-8-transparent-v1.png",
 )
 COLUMNS = 4
 ROWS = 2
@@ -50,7 +52,8 @@ def align_sheet(source_path: Path, output_path: Path) -> None:
         origin_x = column * cell_width
         origin_y = row * cell_height
         cell = source.crop((origin_x, origin_y, origin_x + cell_width, origin_y + cell_height))
-        bounds = cell.getchannel("A").getbbox()
+        # Ignore near-transparent fringe pixels when measuring body/chair scale.
+        bounds = cell.getchannel("A").point(lambda value: 255 if value >= 96 else 0).getbbox()
         if not bounds:
             continue
 

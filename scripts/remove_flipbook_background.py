@@ -16,11 +16,14 @@ JOBS = (
     ("effendi-night-idle-8-v1.png", "effendi-night-idle-8-transparent-v1.png"),
     ("effendi-night-talking-8-v1.png", "effendi-night-talking-8-transparent-v1.png"),
     ("effendi-night-thinking-8-v1.png", "effendi-night-thinking-8-transparent-v1.png"),
+    ("effendi-thinking-chair-day-8-v1.png", "effendi-thinking-chair-day-8-transparent-v1.png"),
+    ("effendi-thinking-chair-night-8-v1.png", "effendi-thinking-chair-night-8-transparent-v1.png"),
 )
 
 
 def is_background(pixel: tuple[int, int, int]) -> bool:
-    return min(pixel) >= 225 and max(pixel) - min(pixel) <= 14
+    # Generated sheets use both a pale and a medium neutral checker square.
+    return min(pixel) >= 195 and max(pixel) - min(pixel) <= 18
 
 
 def connected_background(image: Image.Image) -> Image.Image:
@@ -65,7 +68,72 @@ def connected_background(image: Image.Image) -> Image.Image:
     alpha = alpha.filter(ImageFilter.GaussianBlur(0.45))
     result = image.convert("RGBA")
     result.putalpha(alpha)
-    return result
+    return keep_largest_component_per_cell(result)
+
+
+def keep_largest_component_per_cell(
+    image: Image.Image,
+    columns: int = 4,
+    rows: int = 2,
+) -> Image.Image:
+    """Discard isolated checker artifacts while preserving the main sprite."""
+
+    alpha = image.getchannel("A")
+    width, height = alpha.size
+    cell_width = width // columns
+    cell_height = height // rows
+    pixels = alpha.load()
+    keep = bytearray(width * height)
+
+    for row in range(rows):
+        for column in range(columns):
+            left = column * cell_width
+            top = row * cell_height
+            right = left + cell_width
+            bottom = top + cell_height
+            seen = set()
+            largest: list[tuple[int, int]] = []
+
+            for y in range(top, bottom):
+                for x in range(left, right):
+                    if (x, y) in seen or pixels[x, y] < 24:
+                        continue
+                    component: list[tuple[int, int]] = []
+                    queue = deque([(x, y)])
+                    seen.add((x, y))
+                    while queue:
+                        current_x, current_y = queue.popleft()
+                        component.append((current_x, current_y))
+                        for next_x, next_y in (
+                            (current_x - 1, current_y),
+                            (current_x + 1, current_y),
+                            (current_x, current_y - 1),
+                            (current_x, current_y + 1),
+                        ):
+                            if (
+                                left <= next_x < right
+                                and top <= next_y < bottom
+                                and (next_x, next_y) not in seen
+                                and pixels[next_x, next_y] >= 24
+                            ):
+                                seen.add((next_x, next_y))
+                                queue.append((next_x, next_y))
+                    if len(component) > len(largest):
+                        largest = component
+
+            for x, y in largest:
+                keep[y * width + x] = 1
+
+    cleaned = image.copy()
+    cleaned_alpha = cleaned.getchannel("A")
+    cleaned_pixels = cleaned_alpha.load()
+    for y in range(height):
+        offset = y * width
+        for x in range(width):
+            if not keep[offset + x]:
+                cleaned_pixels[x, y] = 0
+    cleaned.putalpha(cleaned_alpha)
+    return cleaned
 
 
 if __name__ == "__main__":
