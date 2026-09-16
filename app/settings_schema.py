@@ -66,7 +66,7 @@ RANGES = {
 ENUMS = {
     ("retrieval", "ocr_language"): {"ara", "eng", "ara+eng"},
     ("authentication", "session_timeout_minutes"): {15, 30, 60, 240, None},
-    ("appearance", "language"): {"ar", "en"},
+    ("appearance", "language"): {"ar", "en", "ckb", "ku"},
     ("appearance", "theme"): {"light", "dark", "system"},
     ("appearance", "primary_color"): {"green", "gold", "blue", "custom"},
     ("appearance", "interface_scale"): {"small", "medium", "large"},

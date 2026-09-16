@@ -1,5 +1,5 @@
 import { createUploadManager } from "./components/upload/useUploadManager.js?v=20260712-upload-settings";
-import { createSettingsModule } from "./components/settings/SettingsPage.js?v=20260712-upload-settings";
+import { createSettingsModule } from "./components/settings/SettingsPage.js?v=20260916-mujib-language";
 
 const storageKey = "iraqi-legal-assistant-conversations";
 const storageBackupKey = "iraqi-legal-assistant-conversations-backup";
@@ -20,6 +20,7 @@ const elements = {
   aiSpeechVolume: document.querySelector("#ai-speech-volume"),
   aiSpeechRateValue: document.querySelector("#ai-speech-rate-value"),
   aiSpeechVolumeValue: document.querySelector("#ai-speech-volume-value"),
+  assistantLanguage: document.querySelector("#assistant-language"),
   assistantNav: document.querySelector("#assistant-nav-button"),
   assistantView: document.querySelector("#assistant-view"),
   capacityRoot: document.querySelector("#file-capacity"),
@@ -119,6 +120,8 @@ const maximumRecordingMs = 60_000;
 const minimumRecordingMs = 2_000;
 const microphoneStorageKey = "jalssa-selected-microphone";
 const aiVoiceStorageKey = "jalssa-ai-arabic-voice-enabled";
+const assistantLanguageStorageKey = "jalssa-assistant-language";
+let assistantLanguage = ["ku", "ckb"].includes(localStorage.getItem(assistantLanguageStorageKey)) ? "ku" : "ar";
 let pending = false;
 let aiVoiceEnabled = localStorage.getItem(aiVoiceStorageKey) !== "false";
 let aiSpeechSequence = 0;
@@ -127,6 +130,7 @@ let aiSpeechAudio = null;
 let aiSpeechObjectUrl = null;
 let aiSpeechAbortController = null;
 let localTtsAvailable = null;
+let localTtsLanguages = {};
 let aiSpeechRate = Number(localStorage.getItem("jalssa-ai-speech-rate")) || 1;
 let aiSpeechVolume = Number(localStorage.getItem("jalssa-ai-speech-volume"));
 if (!Number.isFinite(aiSpeechVolume)) aiSpeechVolume = 1;
@@ -134,6 +138,47 @@ let aiMotionEnabled = localStorage.getItem("jalssa-avatar-motion") !== "false";
 let lastSpokenAnswer = "";
 let selectedPriority = "Ø¹Ø§Ù„ÙŠØ©";
 const initialPromptKey = "iraqi-legal-assistant-initial-prompt";
+
+function applyAssistantLanguage(language, { announce = false } = {}) {
+  assistantLanguage = ["ku", "ckb"].includes(language) ? "ku" : "ar";
+  localStorage.setItem(assistantLanguageStorageKey, assistantLanguage);
+  document.documentElement.lang = assistantLanguage;
+  document.documentElement.dir = "rtl";
+  document.documentElement.dataset.language = assistantLanguage;
+  if (elements.assistantLanguage) elements.assistantLanguage.value = assistantLanguage;
+
+  const kurdish = assistantLanguage === "ku";
+  const greeting = document.querySelector("#mujib-greeting");
+  if (greeting) greeting.textContent = kurdish ? "Mûcîb · Bi xêr hatî" : "مُجيب · أهلاً وسهلاً";
+  if (elements.landingWelcomeTitle) {
+    elements.landingWelcomeTitle.textContent = kurdish
+      ? "Bi xêr hatî alîkarê qanûnî"
+      : "أهلاً بك في المساعد القانوني";
+  }
+  if (elements.landingWelcomeSubtitle) {
+    elements.landingWelcomeSubtitle.textContent = kurdish
+      ? "Pirsek qanûnî binivîse; Mûcîb bersivê ji çavkaniyên qanûnî yên berdest amade dike."
+      : "ابدأ بسؤال قانوني، وسننقلك مباشرة إلى صفحة المحادثة الحالية مع إرسال السؤال تلقائياً دون تغيير منطق المحادثة أو مصادر الإجابة.";
+  }
+  if (elements.landingInput) {
+    elements.landingInput.placeholder = kurdish
+      ? "Îro ez dikarim çawa alîkariya te bikim?"
+      : "كيف يمكنني مساعدتك اليوم؟";
+  }
+  if (elements.welcomeTitle) {
+    elements.welcomeTitle.textContent = kurdish
+      ? "Bi xêr hatî alîkarê qanûnî"
+      : "مرحباً بك في المساعد القانوني";
+  }
+
+  if (aiSpeechActive) stopAiSpeech({ resumeRotation: false });
+  const languageStatus = localTtsLanguages[assistantLanguage];
+  localTtsAvailable = languageStatus ? Boolean(languageStatus.available) : localTtsAvailable;
+  if (elements.aiVoiceToggle) elements.aiVoiceToggle.disabled = localTtsAvailable === false;
+  setAiCharacterState("idle", kurdish ? "Amade ye ku alîkariya te bike" : "مُجيب · جاهز للمساعدة");
+  window.dispatchEvent(new CustomEvent("assistant:language-change", { detail: { language: assistantLanguage } }));
+  if (announce) showToast(kurdish ? "Kurdî (Kurmancî) hat hilbijartin." : "تم اختيار اللغة العربية.");
+}
 
 const cp1252Bytes = new Map([
   ["€", 0x80], ["‚", 0x82], ["ƒ", 0x83], ["„", 0x84], ["…", 0x85],
@@ -192,11 +237,23 @@ const aiCharacterLabels = {
   error: "تعذر إكمال الطلب",
 };
 
+const aiCharacterLabelsKurdish = {
+  idle: "ئامادەی یارمەتیدانم",
+  greeting: "بەخێربێیت",
+  listening: "گوێت لێ دەگرم",
+  thinking: "سەرچاوە یاساییەکان دەبینمەوە",
+  talking: "ئێستا وەڵامەکە ڕوون دەکەمەوە",
+  success: "وەڵامەکە تەواو بوو",
+  error: "داواکارییەکە تەواو نەبوو",
+};
+
 function setAiCharacterState(state = "idle", label = "") {
   if (!elements.aiCharacter) return;
   elements.aiCharacter.dataset.state = state;
   if (elements.aiCharacterStatus) {
-    elements.aiCharacterStatus.textContent = label || aiCharacterLabels[state] || aiCharacterLabels.idle;
+    const labels = assistantLanguage === "ku" ? aiCharacterLabelsKurdish : aiCharacterLabels;
+    const status = label || labels[state] || labels.idle;
+    elements.aiCharacterStatus.textContent = status.includes("مُجيب") ? status : `مُجيب · ${status}`;
   }
 }
 
@@ -251,11 +308,14 @@ function stopAiSpeech({ resumeRotation = true } = {}) {
 }
 
 async function playLocalSpeechChunk(text, sequence) {
+  // Keep the avatar in its preparation pose while Piper generates the WAV.
+  // The talking animation must begin only after the browser starts playback.
+  setAiCharacterState("thinking");
   aiSpeechAbortController = new AbortController();
   const response = await fetch("/api/tts", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ text, language: "ar", rate: aiSpeechRate }),
+    body: JSON.stringify({ text, language: assistantLanguage, rate: aiSpeechRate }),
     signal: aiSpeechAbortController.signal,
   });
   if (!response.ok) {
@@ -273,6 +333,12 @@ async function playLocalSpeechChunk(text, sequence) {
       audio.onended = resolve;
       audio.onerror = () => reject(new Error("The browser could not play local speech."));
       audio.play().then(() => {
+        if (sequence !== aiSpeechSequence || !aiVoiceEnabled) {
+          audio.pause();
+          resolve();
+          return;
+        }
+        setAiCharacterState("talking");
         window.dispatchEvent(new CustomEvent("avatar:volume", { detail: { volume: aiSpeechVolume } }));
         window.dispatchEvent(new CustomEvent("avatar:speech-start", { detail: { audio } }));
       }).catch(reject);
@@ -298,7 +364,7 @@ function speakArabicAnswer(value) {
   stopAiSpeech({ resumeRotation: false });
   const sequence = aiSpeechSequence;
   aiSpeechActive = true;
-  setAiCharacterState("talking");
+  setAiCharacterState("thinking");
 
   const speakNext = async () => {
     if (sequence !== aiSpeechSequence || !aiVoiceEnabled) return;
@@ -314,6 +380,7 @@ function speakArabicAnswer(value) {
     } catch (_error) {
       if (_error?.name === "AbortError") return;
       localTtsAvailable = false;
+      localTtsLanguages[assistantLanguage] = { available: false };
       if (sequence !== aiSpeechSequence) return;
       aiSpeechActive = false;
       setAiCharacterState("error", "تعذر تشغيل الصوت المحلي");
@@ -332,7 +399,8 @@ async function initializeAiCharacter() {
   try {
     const response = await fetch("/api/tts/status");
     const status = response.ok ? await response.json() : {};
-    localTtsAvailable = Boolean(status.available);
+    localTtsLanguages = status.languages || { ar: { available: Boolean(status.available) } };
+    localTtsAvailable = Boolean(localTtsLanguages[assistantLanguage]?.available);
   } catch (_error) {
     localTtsAvailable = false;
   }
@@ -340,6 +408,9 @@ async function initializeAiCharacter() {
     aiVoiceEnabled = false;
     elements.aiVoiceToggle.disabled = true;
     setAiCharacterState("idle", "الصوت غير متاح");
+  }
+  if (elements.aiVoiceToggle) {
+    elements.aiVoiceToggle.disabled = !localTtsAvailable;
   }
   updateAiVoiceButton();
   elements.aiVoiceToggle?.addEventListener("click", () => {
@@ -350,8 +421,11 @@ async function initializeAiCharacter() {
       stopAiSpeech();
       return;
     }
-    setAiCharacterState("greeting", "تم تشغيل الصوت العربي");
-    speakArabicAnswer("تم تشغيل صوت المساعد العربي.");
+    const greeting = assistantLanguage === "ku"
+      ? "Dengê Kurdî hate çalakirin."
+      : "تم تشغيل صوت المساعد العربي.";
+    setAiCharacterState("greeting");
+    speakArabicAnswer(greeting);
   });
   elements.aiSpeechStop?.addEventListener("click", () => stopAiSpeech());
   elements.aiSpeechReplay?.addEventListener("click", () => {
@@ -1167,6 +1241,7 @@ async function submitQuestion(question) {
         question: cleanQuestion,
         include_snippets: true,
         source_hint: sourceHint,
+        response_language: assistantLanguage,
       }),
     });
     const payload = await response.json();
@@ -1601,6 +1676,10 @@ elements.landingVoiceButton?.addEventListener("click", async (event) => {
   await toggleRecording(elements.landingVoiceButton, elements.landingInput);
 });
 
+elements.assistantLanguage?.addEventListener("change", (event) => {
+  applyAssistantLanguage(event.currentTarget.value, { announce: true });
+});
+
 elements.priorityOptions?.addEventListener("click", (event) => {
   const button = event.target.closest("button[data-priority]");
   if (!button) return;
@@ -1676,6 +1755,7 @@ async function exportConversation(format = "pdf") {
 loadDecisionDraft();
 render();
 repairTextTree();
+applyAssistantLanguage(assistantLanguage);
 initializeAiCharacter();
 bootstrapAuthentication();
 hydrateServerChatHistory();

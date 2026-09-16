@@ -1,4 +1,4 @@
-import { applyLanguage, t } from "./i18n.js";
+import { applyLanguage, t } from "./i18n.js?v=20260916-kurdish";
 
 const labels = {
   authFields: [
@@ -130,8 +130,7 @@ export function createSettingsModule({ root, modalRoot, showToast, onAuthenticat
   }
 
   function applyAppearance() {
-    state.appearance.language = "ar";
-    applyLanguage("ar");
+    applyLanguage(localStorage.getItem("jalssa-assistant-language") || state.appearance.language || "ar");
     // The automatic clock schedule and its manual toggle own the active theme.
     document.documentElement.dataset.scale = state.appearance.interface_scale;
     document.documentElement.dataset.primary = state.appearance.primary_color;
@@ -677,7 +676,6 @@ export function createSettingsModule({ root, modalRoot, showToast, onAuthenticat
   async function load() {
     try {
       state = await api("/api/settings");
-      state.appearance.language = "ar";
       applyAppearance();
       render();
     } catch (error) {

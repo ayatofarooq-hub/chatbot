@@ -38,7 +38,7 @@ try:
     from .speech_to_text import inspect_audio, transcribe_audio
     from .local_tts import (
         LocalTtsUnavailable, SYNTHESIS_TIMEOUT_SECONDS,
-        synthesize_arabic, voice_status,
+        synthesize_arabic, synthesize_kurmanji, voice_status,
     )
     from .uploaded_documents import (
         create_uploaded_document,
@@ -78,7 +78,7 @@ except ImportError:
     from speech_to_text import inspect_audio, transcribe_audio
     from local_tts import (
         LocalTtsUnavailable, SYNTHESIS_TIMEOUT_SECONDS,
-        synthesize_arabic, voice_status,
+        synthesize_arabic, synthesize_kurmanji, voice_status,
     )
     from uploaded_documents import (
         create_uploaded_document,
@@ -382,10 +382,11 @@ def answer_question(
     question: str,
     include_snippets: bool = True,
     source_hint: object | None = None,
+    response_language: str = "ar",
 ) -> dict:
     """Run the shared chatbot flow and return an API response payload."""
 
-    quick_response = get_quick_response(question)
+    quick_response = get_quick_response(question) if response_language == "ar" else None
     if quick_response:
         return {
             "question": question,
@@ -398,7 +399,11 @@ def answer_question(
             "snippets": [],
         }
 
-    exact_answer = answer_exact_law(question) if should_use_exact_law_lookup(question) else None
+    exact_answer = (
+        answer_exact_law(question)
+        if response_language == "ar" and should_use_exact_law_lookup(question)
+        else None
+    )
     if exact_answer:
         return {
             "question": question,
@@ -445,7 +450,11 @@ def answer_question(
         validated_results,
         registry=registry,
     )
-    grounded_answer = legal_rag_answer_from_results(question, answer_results)
+    grounded_answer = legal_rag_answer_from_results(
+        question,
+        answer_results,
+        response_language=response_language,
+    )
     sources = sources_from_grounded_answer(grounded_answer, answer_results)
     full_text_sources = full_text_sources_from_grounded_answer(
         grounded_answer,
@@ -682,9 +691,10 @@ async def text_to_speech(request: Request) -> Response:
             status_code=422,
         )
     language = payload.get("language", "ar")
-    if not isinstance(language, str) or not language.lower().startswith("ar"):
+    normalized_language = language.lower().strip() if isinstance(language, str) else ""
+    if normalized_language not in {"ar", "ku", "ckb"}:
         return JSONResponse(
-            {"detail": "حقل 'language' يجب أن يحدد اللغة العربية."}, status_code=422
+            {"detail": "Field 'language' must be 'ar' or 'ku'."}, status_code=422
         )
     speed = payload.get("rate", payload.get("speed", 1.0))
     if isinstance(speed, bool) or not isinstance(speed, (int, float)):
@@ -697,8 +707,9 @@ async def text_to_speech(request: Request) -> Response:
         )
 
     try:
+        synthesizer = synthesize_arabic if normalized_language == "ar" else synthesize_kurmanji
         wav_content = await asyncio.wait_for(
-            run_in_threadpool(synthesize_arabic, text, speed),
+            run_in_threadpool(synthesizer, text, speed),
             timeout=SYNTHESIS_TIMEOUT_SECONDS,
         )
     except asyncio.TimeoutError:
@@ -770,12 +781,22 @@ async def ask(request: Request) -> JSONResponse:
             status_code=422,
         )
 
+    response_language = payload.get("response_language", "ar")
+    if response_language == "ckb":
+        response_language = "ku"
+    if response_language not in {"ar", "ku"}:
+        return JSONResponse(
+            {"detail": "Field 'response_language' must be 'ar' or 'ku'."},
+            status_code=422,
+        )
+
     try:
         response = await run_in_threadpool(
             answer_question,
             question.strip(),
             include_snippets,
             source_hint,
+            response_language,
         )
         return JSONResponse(response)
     except NotFoundError:

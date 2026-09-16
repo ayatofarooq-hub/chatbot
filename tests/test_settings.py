@@ -44,6 +44,13 @@ class SettingsValidationTests(unittest.TestCase):
             result = validate_settings({"upload": {"max_file_size_mb": size}})
             self.assertEqual(result["upload"]["max_file_size_mb"], size)
 
+    def test_accepts_central_kurdish_interface_language(self):
+        result = validate_settings({"appearance": {"language": "ckb"}})
+        self.assertEqual(result["appearance"]["language"], "ckb")
+
+        kurmanji = validate_settings({"appearance": {"language": "ku"}})
+        self.assertEqual(kurmanji["appearance"]["language"], "ku")
+
     def test_rejects_unsupported_upload_file_size(self):
         with self.assertRaises(SettingsValidationError) as context:
             validate_settings({"upload": {"max_file_size_mb": 30}})

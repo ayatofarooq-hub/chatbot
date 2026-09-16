@@ -28,7 +28,8 @@ class ApiTests(unittest.TestCase):
         self.assertIn("المساعد القانوني العراقي", response.text)
         self.assertIn('id="ai-character-fallback"', response.text)
         self.assertIn("effendi-flipbook.js", response.text)
-        self.assertIn("شخصية الأفندي البغدادي الكارتونية بكامل الجسم", response.text)
+        self.assertIn("شخصية مُجيب الكارتونية بكامل الجسم", response.text)
+        self.assertIn('id="assistant-language"', response.text)
         self.assertIn('id="ai-audio-settings"', response.text)
         self.assertIn('id="ai-character-sliders"', response.text)
         self.assertIn('class="ai-character-dock ai-character-dock--static"', response.text)
@@ -163,7 +164,39 @@ class ApiTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["answer"], "إجابة")
-        mock_answer_question.assert_called_once_with("سؤال", False, None)
+        mock_answer_question.assert_called_once_with("سؤال", False, None, "ar")
+
+    @patch("app.auth.admin_for_token", return_value={"id": 1, "username": "admin"})
+    @patch("app.api.answer_question")
+    def test_ask_forwards_kurmanji_response_language(self, mock_answer_question, _mock_admin):
+        mock_answer_question.return_value = {
+            "question": "Pirs",
+            "answer": "Bersiv",
+            "sources": [],
+            "warnings": [],
+            "citations": [],
+            "snippets": [],
+        }
+
+        response = self.client.post(
+            "/ask",
+            json={"question": "Pirs", "response_language": "ku"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        mock_answer_question.assert_called_once_with("Pirs", True, None, "ku")
+
+    @patch("app.auth.admin_for_token", return_value={"id": 1, "username": "admin"})
+    @patch("app.api.synthesize_kurmanji", return_value=b"RIFF-kurmanji-audio")
+    def test_tts_returns_kurmanji_wav(self, mock_synthesize, _mock_admin):
+        response = self.client.post(
+            "/api/tts",
+            json={"text": "Silav, ez Mucib im.", "language": "ku", "rate": 1.0},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.content, b"RIFF-kurmanji-audio")
+        mock_synthesize.assert_called_once_with("Silav, ez Mucib im.", 1.0)
 
     def test_filter_results_by_source_hint_keeps_same_document(self):
         results = {

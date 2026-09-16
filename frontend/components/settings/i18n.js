@@ -43,7 +43,32 @@ const dictionary = {
     exportEmpty: "No messages to export.",
     filter: "Filter",
   },
+  ckb: {
+    settings: "ڕێکخستنەکان",
+    save: "پاشەکەوتکردنی گۆڕانکارییەکان",
+    reset: "ڕێکخستنەوە",
+    login: "چوونەژوورەوەی بەڕێوەبەر",
+    username: "ناوی بەکارهێنەر",
+    password: "وشەی نهێنی",
+    saved: "ڕێکخستنەکان پاشەکەوت کران.",
+    unsaved: "گۆڕانکاری پاشەکەوت‌نەکراو هەیە",
+    classifications: "پۆلێنکردنی بەڵگە یاساییەکان",
+    add: "زیادکردن",
+    cancel: "هەڵوەشاندنەوە",
+    export: "هەناردەکردنی گفتوگۆ",
+    exportAs: "هەناردەکردن وەک",
+    exportMarkdown: "Markdown",
+    exportText: "دەقی سادە",
+    exporting: "هەناردە دەکرێت...",
+    exportSuccess: "گفتوگۆکە هەناردە کرا.",
+    exportError: "هەناردەکردن سەرکەوتوو نەبوو.",
+    exportEmpty: "هیچ پەیامێک نییە بۆ هەناردەکردن.",
+    filter: "پاڵاوتن",
+  },
 };
+
+// Keep the existing Kurdish UI translations available under the Kurmanji code.
+dictionary.ku = dictionary.ckb;
 
 export function t(key, language = document.documentElement.lang || "ar") {
   return dictionary[language]?.[key] || dictionary.ar[key] || dictionary.en[key] || key;
@@ -51,7 +76,7 @@ export function t(key, language = document.documentElement.lang || "ar") {
 
 export function applyLanguage(language) {
   document.documentElement.lang = language;
-  document.documentElement.dir = language === "ar" ? "rtl" : "ltr";
+  document.documentElement.dir = ["ar", "ckb", "ku"].includes(language) ? "rtl" : "ltr";
   localStorage.setItem("legal-ui-language", language);
   document.querySelectorAll("[data-i18n]").forEach((node) => {
     node.textContent = t(node.dataset.i18n, language);

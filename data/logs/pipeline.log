@@ -697,3 +697,17 @@ Start
 Batch: 1 files=1
 Save JSON: sample.json
 Finished
+Read File: sample.docx
+Extract: sample.docx
+LLM: sample.docx
+Read File: sample.docx
+Extract: sample.docx
+LLM: sample.docx
+Chunking: 1 files
+Embedding: 1 chunks
+ChromaDB: 1 chunks
+citation_registry.json
+Start
+Batch: 1 files=1
+Save JSON: sample.json
+Finished

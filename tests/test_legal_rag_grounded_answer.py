@@ -194,6 +194,31 @@ def test_context_uses_required_source_block_format():
     assert "PRIMARY LONG TEXT" not in context
 
 
+def test_kurmanji_answer_uses_model_and_latin_language_instruction(monkeypatch):
+    monkeypatch.setattr(
+        "legal_rag.grounded_answer.load_registry",
+        lambda: {"by_chunk_id": {"legal_json_test_item_1": {"chunk_id": "legal_json_test_item_1"}}},
+    )
+    captured = {}
+
+    def answer_in_kurmanji(question, context):
+        captured["question"] = question
+        captured["context"] = context
+        return "Ev bersiv tenê ji belgeya qanûnî hatiye amadekirin."
+
+    result = answer_from_results(
+        "Ev biryar li ser çi ye?",
+        RESULTS,
+        qwen_caller=answer_in_kurmanji,
+        response_language="ku",
+    )
+
+    assert "Answer only in Kurmanji Kurdish" in captured["question"]
+    assert "Arabic script" in captured["question"]
+    assert result["answer"].startswith("Ev bersiv")
+    assert "مواضيع مقترحة" not in result["answer"]
+
+
 def test_document_answer_context_uses_structured_full_source_text(monkeypatch):
     sources = extracted_sources(RESULTS)
     monkeypatch.setattr(

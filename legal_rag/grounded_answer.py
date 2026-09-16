@@ -27,6 +27,9 @@ from .json_loader import load_legal_json_documents, primary_document_text
 
 
 INSUFFICIENT_CONTEXT = "لم أجد نصًا قانونيًا كافيًا للإجابة عن هذا السؤال في المستندات المتاحة."
+INSUFFICIENT_CONTEXT_KURMANJI = (
+    "Di belgeyên berdest de min nivîseke qanûnî ya têr ji bo bersivdayîna vê pirsê nedît."
+)
 FULL_TEXT_HEADING = "النص القانوني الكامل:"
 FULL_TEXT_FALLBACK_ANSWER = "تم العثور على النص القانوني الآتي في المصدر الأقرب للسؤال."
 MISSING_DECISION_NUMBER_ANSWER = "رقم القرار غير مثبت في النص المستخرج من الوثيقة."
@@ -1118,9 +1121,12 @@ def answer_from_results(
     question: str,
     results: dict,
     qwen_caller: Callable[[str, str], str] | None = None,
+    response_language: str = "ar",
 ) -> dict[str, Any]:
     """Generate a grounded answer from already retrieved results."""
 
+    response_language = "ku" if response_language in {"ku", "ckb"} else "ar"
+    kurmanji = response_language == "ku"
     registry = load_registry()
     filtered_results, _warnings = filter_results_to_registered(results, registry=registry)
     log_retrieval_results(question, filtered_results)
@@ -1141,7 +1147,8 @@ def answer_from_results(
             log_answer_generation("using full-text Word/doc fallback")
     if not sources:
         log_answer_generation("no sources found")
-        return {"answer": INSUFFICIENT_CONTEXT, "sources": [], "confidence": 0.0}
+        answer = INSUFFICIENT_CONTEXT_KURMANJI if kurmanji else INSUFFICIENT_CONTEXT
+        return {"answer": answer, "sources": [], "confidence": 0.0}
     top_metadata = _top_metadata(filtered_results)
     top_full_text_sources = full_texts_for_sources(sources[:1])
     top_full_text_found = bool(top_full_text_sources and top_full_text_sources[0].get("full_text"))
@@ -1159,20 +1166,24 @@ def answer_from_results(
     )
     if unusable_source_text_answer:
         log_answer_generation(NO_USABLE_LEGAL_SOURCE_TEXT)
+        if kurmanji:
+            unusable_source_text_answer["answer"] = (
+                "Di çavkaniya hilbijartî de nivîsa qanûnî ya bikêrhatî nehat dîtin."
+            )
         return unusable_source_text_answer
-    decision_number_answer = answer_decision_number_if_known(question, filtered_results)
+    decision_number_answer = None if kurmanji else answer_decision_number_if_known(question, filtered_results)
     if decision_number_answer:
         log_answer_generation("direct decision-number answer")
         return with_related_topics(decision_number_answer, question, sources[:1])
-    document_date_answer = answer_document_date_if_known(question, filtered_results, sources)
+    document_date_answer = None if kurmanji else answer_document_date_if_known(question, filtered_results, sources)
     if document_date_answer:
         log_answer_generation("direct document-date answer")
         return with_related_topics(document_date_answer, question, sources[:1])
-    recommendation_number_answer = answer_recommendation_number_if_known(question, filtered_results, sources)
+    recommendation_number_answer = None if kurmanji else answer_recommendation_number_if_known(question, filtered_results, sources)
     if recommendation_number_answer:
         log_answer_generation("direct recommendation-number answer")
         return with_related_topics(recommendation_number_answer, question, sources[:1])
-    source_book_answer = answer_source_book_if_known(question, sources)
+    source_book_answer = None if kurmanji else answer_source_book_if_known(question, sources)
     if source_book_answer:
         log_answer_generation("direct source-book answer")
         return with_related_topics(source_book_answer, question, sources[:1])
@@ -1183,7 +1194,7 @@ def answer_from_results(
 
     full_document_context = wants_full_document_context(question)
     context_sources = sources_with_full_text_context(sources) if full_document_context else sources
-    product_price_answer = product_price_answer_from_sources(question, context_sources)
+    product_price_answer = None if kurmanji else product_price_answer_from_sources(question, context_sources)
     if product_price_answer:
         log_answer_generation("direct product-price answer")
         cited_sources = sources[:1] if full_document_context else supporting_sources(product_price_answer, sources)
@@ -1204,10 +1215,26 @@ def answer_from_results(
     )
     caller = qwen_caller or (lambda q, c: call_qwen(q, c))
     log_answer_generation("model generation started")
-    answer = _clean(caller(question, context))
+    generation_question = question
+    if kurmanji:
+        generation_question = (
+            f"{question}\n\n"
+            "IMPORTANT: Answer only in Kurmanji Kurdish written with the Latin alphabet. "
+            "Do not use Arabic script. Preserve exact legal numbers, dates, document names, "
+            "and citations. Use only the retrieved legal context."
+        )
+    answer = _clean(caller(generation_question, context))
+    if kurmanji and re.search(r"[\u0600-\u06ff]", answer):
+        retry_question = (
+            f"{question}\n\n"
+            "Rewrite the answer in Kurmanji Kurdish using Latin letters only. "
+            "No Arabic-script characters are allowed. Keep every legal fact, number, "
+            "date and citation grounded in the supplied context."
+        )
+        answer = _clean(caller(retry_question, context))
     if not answer:
-        answer = INSUFFICIENT_CONTEXT
-    if INSUFFICIENT_CONTEXT in answer and sources:
+        answer = INSUFFICIENT_CONTEXT_KURMANJI if kurmanji else INSUFFICIENT_CONTEXT
+    if not kurmanji and INSUFFICIENT_CONTEXT in answer and sources:
         fallback_answer = extractive_summary_from_sources(question, context_sources)
         if fallback_answer:
             answer = fallback_answer
@@ -1215,13 +1242,14 @@ def answer_from_results(
     cited_sources = sources[:1] if full_document_context else supporting_sources(answer, sources)
     full_text_sources = full_texts_for_sources(cited_sources)
 
-    return with_related_topics({
+    result = {
         "answer": answer_with_full_legal_text(answer, cited_sources),
         "sources": [source.public_dict() for source in cited_sources],
         "full_text": "\n\n".join(record["full_text"] for record in full_text_sources),
         "full_text_sources": full_text_sources,
         "confidence": estimate_confidence(answer, cited_sources, filtered_results),
-    }, question, cited_sources)
+    }
+    return result if kurmanji else with_related_topics(result, question, cited_sources)
 
 
 def answer_question(question: str) -> dict[str, Any]:

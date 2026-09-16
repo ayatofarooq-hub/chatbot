@@ -144,7 +144,7 @@ if (dock && canvas && window.WebGLRenderingContext) {
       loading?.setAttribute("hidden", "");
       dock.classList.add("ai-character-dock--fallback");
       dock.dispatchEvent(new CustomEvent("avatar:error", { detail: { error } }));
-      console.warn("The 3D Effendi could not load; showing the static portrait.", error);
+      console.warn("The 3D Mujib avatar could not load; showing the static portrait.", error);
     }
   }
 

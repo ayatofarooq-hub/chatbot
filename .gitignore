@@ -50,3 +50,9 @@ data/chroma/*
 # Downloaded local speech models
 data/models/tts/*
 !data/models/tts/.gitkeep
+
+# Local speech-engine installers and diagnostic audio (not application assets)
+espeak-ng-portable/
+vendor/
+frontend/audio/*-preview.wav
+frontend/audio/*-control.wav

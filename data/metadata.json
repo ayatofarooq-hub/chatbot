@@ -527,6 +527,24 @@
       "admin_user_id": 2,
       "token_hash": "6557514a1df0acf6c8ed0d1d6d414a3bded717aa19b17bc620d20ec4e64ef3d8",
       "expires_at": "2026-09-15T07:34:02.283122+00:00"
+    },
+    {
+      "id": "48cb686b-1f35-4e7a-b030-84ae5cda23b9",
+      "admin_user_id": 2,
+      "token_hash": "3ae02ff430e3cf45ddf6b0edefa0077c884f81139c65035cc78e728059f7e61c",
+      "expires_at": "2026-09-15T11:38:12.202419+00:00"
+    },
+    {
+      "id": "17ade257-02fb-4d03-b785-f8b4fbd65b7d",
+      "admin_user_id": 2,
+      "token_hash": "edf4fff458435c2a9cb70888ed28c2330657b4de0880dad1111bfc29f23ec781",
+      "expires_at": "2026-09-16T07:08:27.772892+00:00"
+    },
+    {
+      "id": "f36ca679-d1b4-4c13-953d-c30e29c583ed",
+      "admin_user_id": 2,
+      "token_hash": "3645435e447b3662455931197e02a4b31afaf53c3a5686c03db4a7f6b4fd536b",
+      "expires_at": "2026-09-16T09:59:52.905499+00:00"
     }
   ],
   "audit_log": [
@@ -2325,6 +2343,122 @@
         ]
       },
       "created_at": "2026-09-15T06:45:02.112892+00:00"
+    },
+    {
+      "id": 141,
+      "action": "login_success",
+      "actor_user_id": 2,
+      "actor_username": "shamsmj",
+      "target_type": null,
+      "target_id": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "details": {},
+      "created_at": "2026-09-15T10:38:12.292317+00:00"
+    },
+    {
+      "id": 142,
+      "action": "login_success",
+      "actor_user_id": 2,
+      "actor_username": "shamsmj",
+      "target_type": null,
+      "target_id": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "details": {},
+      "created_at": "2026-09-16T06:08:27.855745+00:00"
+    },
+    {
+      "id": 143,
+      "action": "settings_updated",
+      "actor_user_id": 1,
+      "actor_username": "admin",
+      "target_type": "settings",
+      "target_id": null,
+      "ip_address": "testclient",
+      "user_agent": "testclient",
+      "details": {
+        "sections": [
+          "appearance"
+        ]
+      },
+      "created_at": "2026-09-16T06:35:56.046739+00:00"
+    },
+    {
+      "id": 144,
+      "action": "settings_updated",
+      "actor_user_id": 1,
+      "actor_username": "admin",
+      "target_type": "settings",
+      "target_id": null,
+      "ip_address": "testclient",
+      "user_agent": "testclient",
+      "details": {
+        "sections": [
+          "appearance"
+        ]
+      },
+      "created_at": "2026-09-16T06:39:28.127232+00:00"
+    },
+    {
+      "id": 145,
+      "action": "login_success",
+      "actor_user_id": 2,
+      "actor_username": "shamsmj",
+      "target_type": null,
+      "target_id": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36",
+      "details": {},
+      "created_at": "2026-09-16T08:59:52.954381+00:00"
+    },
+    {
+      "id": 146,
+      "action": "settings_updated",
+      "actor_user_id": 1,
+      "actor_username": "admin",
+      "target_type": "settings",
+      "target_id": null,
+      "ip_address": "testclient",
+      "user_agent": "testclient",
+      "details": {
+        "sections": [
+          "appearance"
+        ]
+      },
+      "created_at": "2026-09-16T09:17:52.735257+00:00"
+    },
+    {
+      "id": 147,
+      "action": "settings_updated",
+      "actor_user_id": 1,
+      "actor_username": "admin",
+      "target_type": "settings",
+      "target_id": null,
+      "ip_address": "testclient",
+      "user_agent": "testclient",
+      "details": {
+        "sections": [
+          "appearance"
+        ]
+      },
+      "created_at": "2026-09-16T09:19:50.779959+00:00"
+    },
+    {
+      "id": 148,
+      "action": "settings_updated",
+      "actor_user_id": 1,
+      "actor_username": "admin",
+      "target_type": "settings",
+      "target_id": null,
+      "ip_address": "testclient",
+      "user_agent": "testclient",
+      "details": {
+        "sections": [
+          "appearance"
+        ]
+      },
+      "created_at": "2026-09-16T09:22:08.370170+00:00"
     }
   ]
 }

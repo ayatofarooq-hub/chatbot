@@ -74,6 +74,21 @@ class LocalTtsTests(unittest.TestCase):
         self.assertTrue(first.startswith(b"RIFF"))
         self.assertEqual(voice.calls, 1)
 
+    def test_kurmanji_rejects_non_latin_text_before_running_engine(self):
+        with self.assertRaisesRegex(ValueError, "Latin alphabet"):
+            local_tts.synthesize_kurmanji("سڵاو")
+
+    def test_voice_status_reports_each_offline_language(self):
+        with (
+            patch.object(local_tts, "model_is_ready", return_value=True),
+            patch.object(local_tts, "espeak_is_ready", return_value=True),
+        ):
+            status = local_tts.voice_status()
+
+        self.assertTrue(status["languages"]["ar"]["available"])
+        self.assertTrue(status["languages"]["ku"]["available"])
+        self.assertEqual(status["languages"]["ku"]["engine"], "espeak-ng")
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -4,7 +4,7 @@ const flipbook = document.querySelector("#ai-character-fallback");
 const landingFlipbook = document.querySelector("#landing-effendi");
 
 if (character && flipbook) {
-  const assetVersion = "20260915-thinking-sequences-v7";
+  const assetVersion = "20260916-mujib-kurdish-v8";
   const assetSets = {
     day: {
       idle: `/assets/images/ai-effendi/fallback/effendi-idle-8-aligned-transparent-v1.png?v=${assetVersion}`,
@@ -23,6 +23,15 @@ if (character && flipbook) {
       thinkingB: `/assets/images/ai-effendi/fallback/effendi-thinking-chair-night-b-8-aligned-transparent-v1.png?v=${assetVersion}`,
       thinkingC: `/assets/images/ai-effendi/fallback/effendi-thinking-chair-night-c-8-aligned-transparent-v1.png?v=${assetVersion}`,
       thinkingD: `/assets/images/ai-effendi/fallback/effendi-thinking-chair-night-d-8-aligned-transparent-v1.png?v=${assetVersion}`,
+    },
+    kurdish: {
+      idle: `/assets/images/ai-effendi/fallback/effendi-kurdish-idle-8-aligned-transparent-v1.png?v=${assetVersion}`,
+      talking: `/assets/images/ai-effendi/fallback/effendi-kurdish-talking-8-aligned-transparent-v1.png?v=${assetVersion}`,
+      listening: `/assets/images/ai-effendi/fallback/effendi-kurdish-thinking-chair-8-aligned-transparent-v1.png?v=${assetVersion}`,
+      thinking: `/assets/images/ai-effendi/fallback/effendi-kurdish-thinking-chair-8-aligned-transparent-v1.png?v=${assetVersion}`,
+      thinkingB: `/assets/images/ai-effendi/fallback/effendi-kurdish-thinking-chair-8-aligned-transparent-v1.png?v=${assetVersion}`,
+      thinkingC: `/assets/images/ai-effendi/fallback/effendi-kurdish-thinking-chair-8-aligned-transparent-v1.png?v=${assetVersion}`,
+      thinkingD: `/assets/images/ai-effendi/fallback/effendi-kurdish-thinking-chair-8-aligned-transparent-v1.png?v=${assetVersion}`,
     },
   };
   const stateAsset = {
@@ -68,6 +77,11 @@ if (character && flipbook) {
     return document.documentElement.dataset.theme === "dark";
   }
 
+  function activeAssetSet() {
+    if (["ku", "ckb"].includes(document.documentElement.dataset.language)) return assetSets.kurdish;
+    return isNightMode() ? assetSets.night : assetSets.day;
+  }
+
   function framePosition(frame) {
     const column = frame % 4;
     const row = Math.floor(frame / 4);
@@ -84,7 +98,7 @@ if (character && flipbook) {
     const assetName = state === "thinking"
       ? thinkingTimeline[shownThinkingPosition].asset
       : stateAsset[state] || "idle";
-    const activeAssets = isNightMode() ? assetSets.night : assetSets.day;
+    const activeAssets = activeAssetSet();
     flipbook.style.backgroundImage = `url("${activeAssets[assetName]}")`;
     if (landingFlipbook) {
       landingFlipbook.style.backgroundImage = `url("${activeAssets.idle}")`;
@@ -131,7 +145,7 @@ if (character && flipbook) {
 
   new MutationObserver(applyStateAsset).observe(document.documentElement, {
     attributes: true,
-    attributeFilter: ["data-theme"],
+    attributeFilter: ["data-theme", "data-language"],
   });
   applyStateAsset();
   showFrame(0);
