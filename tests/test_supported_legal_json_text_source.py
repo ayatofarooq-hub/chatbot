@@ -98,3 +98,45 @@ def test_generic_chunk_builder_adds_structured_fields_to_embedding_text():
     assert "diesel price adjustment" in chunks[0]["embedding_text"]
     assert "pricing reference" in chunks[0]["embedding_text"]
     assert "Oil Ministry" in chunks[0]["embedding_text"]
+
+
+def test_generic_chunk_builder_extracts_searchable_legal_metadata():
+    payload = {
+        **SUPPORTED_PAYLOAD,
+        "long_text": (
+            "بناء على كتاب وزارة النفط المرقم بالعدد (و/623) المؤرخ في 15/8/2024. "
+            "توصية المجلس الوزاري للاقتصاد (24315 ق). "
+            "تقرر تعديل السعر بمبلغ 400 دينار."
+        ),
+        "legal_entities": {"organizations": ["وزارة النفط"]},
+    }
+
+    chunks = build_chunks_from_document(payload)
+
+    assert chunks[0]["reference_numbers"] == "و/623"
+    assert chunks[0]["recommendation_numbers"] == "24315 ق"
+    assert "15/8/2024" in chunks[0]["dates"]
+    assert "وزارة النفط" in chunks[0]["entities"]
+    assert "400 دينار" in chunks[0]["amounts"]
+    assert "decision_number" not in chunks[0]
+
+
+def test_generic_chunk_builder_extracts_session_date_from_session_phrase():
+    payload = {
+        **SUPPORTED_PAYLOAD,
+        "document": {
+            **SUPPORTED_PAYLOAD["document"],
+            "session_date": None,
+        },
+        "long_text": (
+            "بناء على كتاب وزارة النفط المرقم بالعدد (و/623) المؤرخ في 15/8/2024. "
+            "قرر مجلس الوزراء في جلسته الاعتيادية الرابعة والأربعين المنعقدة في 29/10/2024 "
+            "الموافقة على تعديل السعر."
+        ),
+    }
+
+    chunks = build_chunks_from_document(payload)
+
+    assert chunks[0]["session_date"] == "29/10/2024"
+    assert chunks[0]["document_session_date"] == "29/10/2024"
+    assert chunks[0]["reference_numbers"] == "و/623"

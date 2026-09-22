@@ -4,8 +4,11 @@ import unittest
 
 from app.search_index import (
     candidate_search_text,
+    detect_query_intents,
     document_dedupe_key,
+    expand_question_for_retrieval,
     extract_strong_signals,
+    is_summary_only_chunk_text,
     legacy_record_text,
     lexical_relevance,
     lexical_search_candidates,
@@ -13,6 +16,7 @@ from app.search_index import (
     metadata_filter_candidates,
     needs_multiple_documents,
     normalize_for_search,
+    query_intent_score,
     rerank_results,
     strong_signal_score,
     tokenize_for_search,
@@ -69,6 +73,24 @@ class SearchIndexTests(unittest.TestCase):
         self.assertGreater(
             strong_signal_score(question, matching),
             strong_signal_score(question, unrelated),
+        )
+
+    def test_query_expansion_detects_source_book_intent(self):
+        question = "\u0634\u0646\u0648 \u0627\u0644\u0643\u062a\u0627\u0628 \u0627\u0644\u064a \u0627\u0639\u062a\u0645\u062f \u0639\u0644\u064a\u0647 \u0627\u0644\u0642\u0631\u0627\u0631\u061f"
+        expanded = expand_question_for_retrieval(question)
+
+        self.assertIn("source_book", detect_query_intents(question))
+        self.assertIn("\u0627\u0644\u0645\u0631\u0642\u0645 \u0628\u0627\u0644\u0639\u062f\u062f", expanded)
+        self.assertIn("\u0627\u0644\u0645\u0624\u0631\u062e \u0641\u064a", expanded)
+
+    def test_query_intent_score_rewards_answer_shape(self):
+        question = "\u0645\u0627 \u0631\u0642\u0645 \u0648\u062a\u0627\u0631\u064a\u062e \u0627\u0644\u0643\u062a\u0627\u0628\u061f"
+        matching = "\u0643\u062a\u0627\u0628 \u0648\u0632\u0627\u0631\u0629 \u0627\u0644\u0646\u0641\u0637 \u0627\u0644\u0645\u0631\u0642\u0645 \u0628\u0627\u0644\u0639\u062f\u062f (123/45) \u0627\u0644\u0645\u0624\u0631\u062e \u0641\u064a 30/10/2024"
+        unrelated = "\u0646\u0635 \u0639\u0627\u0645 \u0639\u0646 \u0627\u062c\u062a\u0645\u0627\u0639 \u0648\u0627\u062d\u062f"
+
+        self.assertGreater(
+            query_intent_score(question, matching),
+            query_intent_score(question, unrelated),
         )
 
     def test_lexical_relevance_prioritizes_exact_law_number_and_year(self):
@@ -136,6 +158,25 @@ class SearchIndexTests(unittest.TestCase):
             reranked["documents"][0],
         )
 
+    def test_reranking_uses_question_intent_for_source_book_questions(self):
+        question = "\u0634\u0646\u0648 \u0627\u0644\u0643\u062a\u0627\u0628 \u0627\u0644\u064a \u0627\u0639\u062a\u0645\u062f \u0639\u0644\u064a\u0647 \u0627\u0644\u0642\u0631\u0627\u0631\u061f"
+        results = {
+            "_question": question,
+            "documents": [[
+                "\u0642\u0631\u0631 \u0645\u062c\u0644\u0633 \u0627\u0644\u0648\u0632\u0631\u0627\u0621 \u0627\u0644\u0645\u0648\u0627\u0641\u0642\u0629 \u0639\u0644\u0649 \u0627\u0644\u0637\u0644\u0628",
+                "\u0628\u0646\u0627\u0621 \u0639\u0644\u0649 \u0643\u062a\u0627\u0628 \u0648\u0632\u0627\u0631\u0629 \u0627\u0644\u0646\u0641\u0637 \u0627\u0644\u0645\u0631\u0642\u0645 \u0628\u0627\u0644\u0639\u062f\u062f (123/45) \u0627\u0644\u0645\u0624\u0631\u062e \u0641\u064a 30/10/2024",
+            ]],
+            "metadatas": [[
+                {"source_file": "decision.docx", "section": "body"},
+                {"source_file": "decision.docx", "section": "body"},
+            ]],
+            "distances": [[0.05, 0.25]],
+        }
+
+        reranked = rerank_results(results, result_count=2)
+
+        self.assertIn("(123/45)", reranked["documents"][0][0])
+        self.assertGreater(reranked["intent_scores"][0][0], 0)
 
     def test_aggregate_query_keeps_best_result_per_document(self):
         question = "\u0645\u0627 \u0627\u0644\u0642\u0631\u0627\u0631\u0627\u062a \u0627\u0644\u062a\u064a \u0639\u062f\u0644\u062a \u0623\u0633\u0639\u0627\u0631 \u0627\u0644\u0645\u0646\u062a\u062c\u0627\u062a \u0627\u0644\u0646\u0641\u0637\u064a\u0629 \u062e\u0644\u0627\u0644 2024\u061f"
@@ -306,6 +347,20 @@ class SearchIndexTests(unittest.TestCase):
         }
 
         self.assertEqual(legacy_record_text(record), "legacy content")
+
+    def test_summary_only_chunks_are_detected(self):
+        summary_text = (
+            "\u0627\u0644\u0639\u0646\u0648\u0627\u0646: \u0642\u0631\u0627\u0631 \u0645\u062c\u0644\u0633\n"
+            "\u0627\u0644\u0634\u0631\u062d \u0627\u0644\u062a\u0641\u0635\u064a\u0644\u064a: \u0647\u0630\u0627 \u0648\u0635\u0641 \u0645\u0648\u0644\u062f \u0648\u0644\u064a\u0633 \u0646\u0635\u0627 \u0623\u0635\u0644\u064a\u0627."
+        )
+        source_text = (
+            "\u0642\u0631\u0631 \u0645\u062c\u0644\u0633 \u0627\u0644\u0648\u0632\u0631\u0627\u0621 "
+            "\u0641\u064a \u062c\u0644\u0633\u062a\u0647 \u0627\u0644\u0645\u0646\u0639\u0642\u062f\u0629 \u0641\u064a 29/10/2024 "
+            "\u0627\u0644\u0645\u0648\u0627\u0641\u0642\u0629 \u0639\u0644\u0649 \u0627\u0644\u0637\u0644\u0628."
+        )
+
+        self.assertTrue(is_summary_only_chunk_text(summary_text))
+        self.assertFalse(is_summary_only_chunk_text(source_text))
 
 
 if __name__ == "__main__":

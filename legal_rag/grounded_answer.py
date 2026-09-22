@@ -33,7 +33,11 @@ INSUFFICIENT_CONTEXT_KURMANJI = (
 FULL_TEXT_HEADING = "النص القانوني الكامل:"
 FULL_TEXT_FALLBACK_ANSWER = "تم العثور على النص القانوني الآتي في المصدر الأقرب للسؤال."
 MISSING_DECISION_NUMBER_ANSWER = "رقم القرار غير مثبت في النص المستخرج من الوثيقة."
+SUMMARY_HEADING = "الخلاصة:"
 RELATED_TOPICS_HEADING = "مواضيع مقترحة من نفس النص:"
+GENERAL_SECRETARIAT_PATTERN = re.compile(
+    r"(?:الأمانة|الامانة)\s+العامة\s+لمجلس\s+الوزراء"
+)
 JSON_TEXT_DIRS = (
     PROJECT_ROOT / "legal_document_parser" / "output" / "json",
     PROJECT_ROOT / "data" / "output",
@@ -57,13 +61,15 @@ SYSTEM_INSTRUCTION = """
 إذا سأل المستخدم عن مبلغ، فابحث في النصوص عن كلمة "بمبلغ" أو "مقداره" أو رقم متبوع بعملة، وانقل المبلغ كما ورد.
 لا تقل إنك لم تجد الإجابة إذا كان النص المسترجع يحتوي عبارة مباشرة تجيب السؤال.
 اكتب جوابًا مباشرًا فقط، ولا تبدأ بعبارات عامة مثل "وفقًا للنصوص المسترجعة".
-For Word/docx-derived documents, always answer with a brief summary only.
-Do not quote, append, or reproduce the full document text. Keep the answer to
-one short paragraph or at most three concise bullets, while preserving exact
-numbers, dates, parties, and obligations that directly answer the question.
-End useful answers with "مواضيع مقترحة من نفس النص:" followed by up to three
-related follow-up questions extracted from facts that appear in the retrieved
-Word/docx legal text itself.
+For Word/docx-derived documents, answer fully from the retrieved source text.
+Include every relevant decision, obligation, exception, date, amount, party,
+reference number, and implementation responsibility that directly relates to
+the user's question. Do not use outside knowledge. Do not paste unrelated raw
+text; organize the complete answer into clear paragraphs or bullets.
+End useful answers with "الخلاصة:" followed by a concise summary, then
+"مواضيع مقترحة من نفس النص:" followed by up to three related follow-up
+questions extracted from facts that appear in the same retrieved Word/docx
+legal text itself.
 Phrase the suggestions interactively, for example "هل تريد معرفة..." or
 "أستطيع مساعدتك في...".
 """.strip()
@@ -349,7 +355,7 @@ def product_price_answer_from_sources(question: str, sources: list[RetrievedSour
 
 
 def sources_with_full_text_context(sources: list[RetrievedSource]) -> list[RetrievedSource]:
-    """Replace the best source text with original long_text for full-document questions."""
+    """Replace source text with original long_text when complete Word text exists."""
 
     if not sources:
         return []
@@ -387,13 +393,23 @@ def build_user_message(question: str, context: str) -> str:
             "السؤال:",
             question,
             (
-                "For Word/docx sources, provide a summary only. Do not include or "
-                "append the full legal text, even when full source text appears in "
-                "the retrieved context."
+                "For Word/docx sources, answer from the FULL SOURCE TEXT/long_text "
+                "when it is present. Write a concise answer summary that directly "
+                "answers the question; do not copy the whole Word text unless the "
+                "user explicitly asks for exact wording. Include only the relevant "
+                "facts, numbers, dates, parties, obligations, exceptions, and "
+                "references found in that source. Do not add outside information."
             ),
             (
-                'End the answer with "مواضيع مقترحة من نفس النص:" and up to '
-                "three follow-up questions extracted from facts in the source text."
+                "Do not answer Word/docx questions with only a bare date, amount, "
+                "number, or title. Even when the requested fact is a date or amount, "
+                "write one short explanatory paragraph grounded in the Word text, "
+                "then provide the required summary and suggested questions."
+            ),
+            (
+                'End the answer with "الخلاصة:" as a concise summary, then '
+                '"مواضيع مقترحة من نفس النص:" and up to three follow-up questions '
+                "extracted from facts in the same Word source text."
             ),
             "النصوص القانونية المسترجعة:",
             context,
@@ -729,7 +745,7 @@ def extractive_summary_from_sources(question: str, sources: list[RetrievedSource
     candidates.sort(key=lambda item: item[0], reverse=True)
     selected = []
     for score, line in candidates:
-        if score <= 0 and selected:
+        if score <= 0:
             continue
         if line in selected:
             continue
@@ -738,7 +754,10 @@ def extractive_summary_from_sources(question: str, sources: list[RetrievedSource
             break
 
     if not selected:
-        return ""
+        fallback_lines = [line for _score, line in candidates[:1]]
+        if not fallback_lines:
+            return ""
+        selected = fallback_lines
     if len(selected) == 1:
         return selected[0]
     return "\n".join(f"- {line}" for line in selected)
@@ -995,6 +1014,7 @@ def answer_source_book_if_known(
 def answer_with_full_legal_text(answer: str, sources: list[RetrievedSource]) -> str:
     """Keep the public answer concise; full text remains in full_text_sources."""
 
+
     return answer
 
 
@@ -1067,7 +1087,7 @@ def related_topics_for_sources(question: str, sources: list[RetrievedSource]) ->
         issuer_text = f" {issuer}" if issuer else ""
         add(f"هل تريد معرفة أثر كتاب{issuer_text} المرقم ({number}) المؤرخ في {date}؟")
 
-    amount = re.search(r"([0-9٠-٩][0-9٠-٩.,/ ]+)\s*(دينار|دولار)", text)
+    amount = re.search(r"\(?\s*([0-9٠-٩][0-9٠-٩.,/ ]+)\s*\)?\s*(دينار|دولار)", text)
     if amount:
         value, currency = [_trim_topic_value(value) for value in amount.groups()]
         add(f"أستطيع مساعدتك في توضيح تفاصيل المبلغ {value} {currency} الوارد في النص.")
@@ -1093,28 +1113,107 @@ def related_topics_for_sources(question: str, sources: list[RetrievedSource]) ->
     return suggestions[:3]
 
 
-def append_related_topics(answer: str, question: str, sources: list[RetrievedSource]) -> str:
-    """Append interactive follow-up topics to valid grounded answers."""
+def _summary_from_answer(answer: str) -> str:
+    """Build a concise fallback summary from the generated answer."""
+
+    body = answer.split(RELATED_TOPICS_HEADING, 1)[0]
+    body = body.split(SUMMARY_HEADING, 1)[0]
+    lines = [
+        re.sub(r"^\s*[-•]\s*", "", line).strip()
+        for line in body.splitlines()
+        if line.strip()
+    ]
+    if not lines:
+        return ""
+    text = " ".join(lines)
+    sentences = re.split(r"(?<=[.؟!])\s+", text)
+    summary = sentences[0].strip() if sentences else text.strip()
+    if len(summary) > 260:
+        summary = summary[:260].rsplit(" ", 1)[0].strip()
+    return summary.strip(" .،؛") + "."
+
+
+def keep_general_secretariat_once(answer: str) -> str:
+    """Keep the General Secretariat phrase only on its first occurrence."""
+
+    seen = False
+
+    def replace(match: re.Match[str]) -> str:
+        nonlocal seen
+        if seen:
+            return ""
+        seen = True
+        return match.group(0)
+
+    cleaned = GENERAL_SECRETARIAT_PATTERN.sub(replace, answer)
+    cleaned = re.sub(r"[ \t]{2,}", " ", cleaned)
+    cleaned = re.sub(r"\s+([،؛:.؟])", r"\1", cleaned)
+    cleaned = re.sub(r"([،؛])\s*([،؛:.؟])", r"\2", cleaned)
+    cleaned = re.sub(r"\n[ \t]+", "\n", cleaned)
+    return cleaned.strip()
+
+
+def append_answer_summary_and_related_topics(
+    answer: str,
+    question: str,
+    sources: list[RetrievedSource],
+) -> str:
+    """Append a final summary and source-grounded follow-up questions."""
 
     if (
         not answer
         or INSUFFICIENT_CONTEXT in answer
-        or RELATED_TOPICS_HEADING in answer
-        or "مواضيع مقترحة:" in answer
     ):
         return answer
-    topics = related_topics_for_sources(question, sources)
-    if not topics:
-        return answer
-    topic_lines = "\n".join(f"- {topic}" for topic in topics)
-    return f"{answer.strip()}\n\n{RELATED_TOPICS_HEADING}\n{topic_lines}"
+
+    answer = answer.strip()
+    if RELATED_TOPICS_HEADING in answer:
+        answer_body, existing_topics = answer.split(RELATED_TOPICS_HEADING, 1)
+        answer_body = answer_body.rstrip()
+        topics_block = existing_topics.strip()
+    else:
+        answer_body = answer
+        topics = related_topics_for_sources(question, sources)
+        topics_block = "\n".join(f"- {topic}" for topic in topics)
+
+    if SUMMARY_HEADING in answer_body:
+        formatted = answer_body
+    else:
+        summary = _summary_from_answer(answer_body)
+        formatted = f"{answer_body}\n\n{SUMMARY_HEADING}\n{summary}" if summary else answer_body
+
+    if not topics_block:
+        return keep_general_secretariat_once(formatted)
+    return keep_general_secretariat_once(
+        f"{formatted}\n\n{RELATED_TOPICS_HEADING}\n{topics_block}"
+    )
+
+
+def append_related_topics(answer: str, question: str, sources: list[RetrievedSource]) -> str:
+    """Backward-compatible wrapper for final answer formatting."""
+
+    return append_answer_summary_and_related_topics(answer, question, sources)
+
+
+def sources_for_related_topics(sources: list[RetrievedSource]) -> list[RetrievedSource]:
+    """Prefer complete Word text when building same-source follow-up topics."""
+
+    expanded = sources_with_full_text_context(sources)
+    return expanded or sources
 
 
 def with_related_topics(result: dict[str, Any], question: str, sources: list[RetrievedSource]) -> dict[str, Any]:
     """Return an answer payload with related topics appended when appropriate."""
 
     answer = str(result.get("answer") or "")
-    return {**result, "answer": append_related_topics(answer, question, sources)}
+    return {
+        **result,
+        "answer": append_related_topics(
+            answer,
+            question,
+            sources_for_related_topics(sources),
+        ),
+    }
 
 
 def answer_from_results(
@@ -1193,11 +1292,15 @@ def answer_from_results(
         return full_document_text_answer
 
     full_document_context = wants_full_document_context(question)
-    context_sources = sources_with_full_text_context(sources) if full_document_context else sources
+    context_sources = sources_with_full_text_context(sources)
+    using_full_source_context = any(
+        context_source.text != source.text
+        for context_source, source in zip(context_sources, sources)
+    )
     product_price_answer = None if kurmanji else product_price_answer_from_sources(question, context_sources)
     if product_price_answer:
         log_answer_generation("direct product-price answer")
-        cited_sources = sources[:1] if full_document_context else supporting_sources(product_price_answer, sources)
+        cited_sources = sources[:1] if (full_document_context or using_full_source_context) else supporting_sources(product_price_answer, sources)
         full_text_sources = full_texts_for_sources(cited_sources)
         return with_related_topics({
             "answer": product_price_answer,
@@ -1206,11 +1309,11 @@ def answer_from_results(
             "full_text_sources": full_text_sources,
             "confidence": estimate_confidence(product_price_answer, cited_sources, filtered_results),
         }, question, cited_sources)
-    context = build_document_answer_context(filtered_results, context_sources)
+    context = build_document_answer_context(filtered_results, sources)
     log_long_text_status(
         top_metadata,
         top_full_text_found,
-        "Full document loaded" if full_document_context else "Structured context built",
+        "Full document loaded" if using_full_source_context else "Structured context built",
         len(context),
     )
     caller = qwen_caller or (lambda q, c: call_qwen(q, c))
@@ -1235,11 +1338,14 @@ def answer_from_results(
     if not answer:
         answer = INSUFFICIENT_CONTEXT_KURMANJI if kurmanji else INSUFFICIENT_CONTEXT
     if not kurmanji and INSUFFICIENT_CONTEXT in answer and sources:
-        fallback_answer = extractive_summary_from_sources(question, context_sources)
+        fallback_answer = (
+            extractive_summary_from_sources(question, sources)
+            or extractive_summary_from_sources(question, context_sources)
+        )
         if fallback_answer:
             answer = fallback_answer
     log_answer_generation("model generation completed")
-    cited_sources = sources[:1] if full_document_context else supporting_sources(answer, sources)
+    cited_sources = sources[:1] if (full_document_context or using_full_source_context) else supporting_sources(answer, sources)
     full_text_sources = full_texts_for_sources(cited_sources)
 
     result = {

@@ -81,13 +81,348 @@
     },
     {
       "id": 2,
-      "username": "shamsmj",
-      "password_hash": "$2b$12$c4kn.tw5UwmEEjI7JpCE7eaO3N03yrSghW8xdQkTSjUkt9VfLzzFu",
-      "role": "super_admin",
+      "username": "minister.oil",
+      "password_hash": "$2b$12$B.j3c2Ub6vth4Gl0ns01geJJy/T7xI1AX5OV1Q9ID/x6ZD97zxOUu",
+      "display_name": "وزير النفط",
+      "email": "oil.minister@decisions.local",
+      "ministry": "وزارة النفط",
+      "role": "admin",
       "is_active": true,
-      "display_name": "shamsmj",
-      "email": "",
-      "ministry": ""
+      "created_by": 1,
+      "created_at": "2026-09-03T11:37:59.149656",
+      "updated_at": "2026-09-03T11:37:59.149656",
+      "password_changed_at": "2026-09-03T11:37:59.149656",
+      "last_login_at": null
+    },
+    {
+      "id": 3,
+      "username": "minister.electricity",
+      "password_hash": "$2b$12$VaWQWeKMXhee4YzM.WbJu.D6dTeDKV2BCZWAaaiEwbhrMaBKF81GO",
+      "display_name": "وزير الكهرباء",
+      "email": "electricity.minister@decisions.local",
+      "ministry": "وزارة الكهرباء",
+      "role": "admin",
+      "is_active": true,
+      "created_by": 1,
+      "created_at": "2026-09-03T12:03:59.830908",
+      "updated_at": "2026-09-03T12:07:02.366601",
+      "password_changed_at": "2026-09-03T12:03:59.830908",
+      "last_login_at": null
+    },
+    {
+      "id": 4,
+      "username": "minister.agriculture",
+      "password_hash": "$2b$12$0KNBaydpZfhG4yDJ6mUI0O7IhZr2Jh43o/V.rygsVr5SWKCq2DElu",
+      "display_name": "وزير الزراعة",
+      "email": "agriculture.minister@decisions.local",
+      "ministry": "وزارة الزراعة",
+      "role": "admin",
+      "is_active": true,
+      "created_by": 1,
+      "created_at": "2026-09-03T12:05:17.613080",
+      "updated_at": "2026-09-03T12:07:10.407324",
+      "password_changed_at": "2026-09-03T12:05:17.613080",
+      "last_login_at": null
+    },
+    {
+      "id": 5,
+      "username": "minister.industry",
+      "password_hash": "$2b$12$YxPEppkFemfET4z61y2QQOYLuMeKrVu79gDVdFwLgTyGJ9d.507g2",
+      "display_name": "وزير الصناعة والمعادن",
+      "email": "industry.minister@decisions.local",
+      "ministry": "وزارة الصناعة والمعادن",
+      "role": "admin",
+      "is_active": true,
+      "created_by": 1,
+      "created_at": "2026-09-03T12:05:51.716809",
+      "updated_at": "2026-09-03T12:07:19.164199",
+      "password_changed_at": "2026-09-03T12:05:51.716809",
+      "last_login_at": null
+    },
+    {
+      "id": 6,
+      "username": "minister.education",
+      "password_hash": "$2b$12$ZRmz244H0kgfkhy.bAZixewt.Hf1nHcWODz6eFCLfhnZnTfu7Qtby",
+      "display_name": "وزير التربية",
+      "email": "education.minister@decisions.local",
+      "ministry": "وزارة التربية",
+      "role": "admin",
+      "is_active": true,
+      "created_by": 1,
+      "created_at": "2026-09-03T12:06:50.687516",
+      "updated_at": "2026-09-03T12:06:50.687516",
+      "password_changed_at": "2026-09-03T12:06:50.687516",
+      "last_login_at": null
+    },
+    {
+      "id": 7,
+      "username": "minister.water",
+      "password_hash": "$2b$12$hGORiQWvshCU1gpmMs7xFuPqcT6qyGBj14VhdpPEXwJRrfB8MoFpS",
+      "display_name": "وزير الموارد المائية",
+      "email": "water.minister@decisions.local",
+      "ministry": "وزارة الموارد المائية",
+      "role": "admin",
+      "is_active": true,
+      "created_by": 1,
+      "created_at": "2026-09-03T12:08:29.240988",
+      "updated_at": "2026-09-03T12:08:29.240988",
+      "password_changed_at": "2026-09-03T12:08:29.240988",
+      "last_login_at": null
+    },
+    {
+      "id": 8,
+      "username": "minister.transport",
+      "password_hash": "$2b$12$5eCfexRBoKJJrJNlKLcjWe1NTYLmi.7RLgeoEWbvuqnQxzxQ2TNom",
+      "display_name": "وزير النقل",
+      "email": "transport.minister@decisions.local",
+      "ministry": "وزارة النقل",
+      "role": "admin",
+      "is_active": true,
+      "created_by": 1,
+      "created_at": "2026-09-03T12:09:09.469407",
+      "updated_at": "2026-09-03T12:09:09.469407",
+      "password_changed_at": "2026-09-03T12:09:09.469407",
+      "last_login_at": null
+    },
+    {
+      "id": 9,
+      "username": "minister.foreign",
+      "password_hash": "$2b$12$ASDGIKmEFVB.FJGYgM88TudLp4zk7qOuJIIH.8vrhcIEJjbrBK6Ge",
+      "display_name": "وزير الخارجية",
+      "email": "foreign.minister@decisions.local",
+      "ministry": "وزارة الخارجية",
+      "role": "admin",
+      "is_active": true,
+      "created_by": 1,
+      "created_at": "2026-09-03T12:09:53.936785",
+      "updated_at": "2026-09-03T12:09:53.936785",
+      "password_changed_at": "2026-09-03T12:09:53.936785",
+      "last_login_at": null
+    },
+    {
+      "id": 10,
+      "username": "minister.finance",
+      "password_hash": "$2b$12$1aVURwkQWD3rH2GCvKNgUO3s1M/1kWAXbWD0vd3KfDrjZqYR9Plhe",
+      "display_name": "وزير المالية",
+      "email": "finance.minister@decisions.local",
+      "ministry": "وزارة المالية",
+      "role": "admin",
+      "is_active": true,
+      "created_by": 1,
+      "created_at": "2026-09-03T12:10:30.117089",
+      "updated_at": "2026-09-03T12:10:30.117089",
+      "password_changed_at": "2026-09-03T12:10:30.117089",
+      "last_login_at": null
+    },
+    {
+      "id": 11,
+      "username": "minister.communications",
+      "password_hash": "$2b$12$0yKkPuX5qRC9IbgYjC9i7.tzn549MUl9EXz.mqCxLCNV8EHVnR1pG",
+      "display_name": "وزير الاتصالات",
+      "email": "communications.minister@decisions.local",
+      "ministry": "وزارة الاتصالات",
+      "role": "admin",
+      "is_active": true,
+      "created_by": 1,
+      "created_at": "2026-09-03T12:11:14.422540",
+      "updated_at": "2026-09-03T12:11:14.422540",
+      "password_changed_at": "2026-09-03T12:11:14.422540",
+      "last_login_at": null
+    },
+    {
+      "id": 12,
+      "username": "minister.health",
+      "password_hash": "$2b$12$4LuX7zyCpfjZ89.THL5mZOeQcY.lXecmAc4t0eziqKf8h.RbMHLBa",
+      "display_name": "وزير الصحة",
+      "email": "health.minister@decisions.local",
+      "ministry": "وزارة الصحة",
+      "role": "admin",
+      "is_active": true,
+      "created_by": 1,
+      "created_at": "2026-09-03T12:11:56.124748",
+      "updated_at": "2026-09-03T12:11:56.124748",
+      "password_changed_at": "2026-09-03T12:11:56.124748",
+      "last_login_at": null
+    },
+    {
+      "id": 13,
+      "username": "minister.environment",
+      "password_hash": "$2b$12$hLKWBn7tupbHQSRhX/8ZjOzd/G4R5R/Mco/rTIPKs1G0Yxi2BrovW",
+      "display_name": "وزير البيئة",
+      "email": "environment.minister@decisions.local",
+      "ministry": "وزارة البيئة",
+      "role": "admin",
+      "is_active": true,
+      "created_by": 1,
+      "created_at": "2026-09-03T12:12:34.060966",
+      "updated_at": "2026-09-03T12:12:34.060966",
+      "password_changed_at": "2026-09-03T12:12:34.060966",
+      "last_login_at": null
+    },
+    {
+      "id": 14,
+      "username": "minister.justice",
+      "password_hash": "$2b$12$3c.7GJd6QavZjhFn8P0YquiQRyiE.ErGERHuC6ZqMjJNVHeqWR4Ta",
+      "display_name": "وزير العدل",
+      "email": "justice.minister@decisions.local",
+      "ministry": "وزارة العدل",
+      "role": "admin",
+      "is_active": true,
+      "created_by": 1,
+      "created_at": "2026-09-03T12:13:15.675041",
+      "updated_at": "2026-09-03T12:13:15.675041",
+      "password_changed_at": "2026-09-03T12:13:15.675041",
+      "last_login_at": null
+    },
+    {
+      "id": 15,
+      "username": "minister.trade",
+      "password_hash": "$2b$12$avY02Pdk4O4UeG/bjAK8BeeAmSHpdgZgMu5vzXENrFRjruDlO04hG",
+      "display_name": "وزير التجارة",
+      "email": "trade.minister@decisions.local",
+      "ministry": "وزارة التجارة",
+      "role": "admin",
+      "is_active": true,
+      "created_by": 1,
+      "created_at": "2026-09-03T12:13:49.110734",
+      "updated_at": "2026-09-03T12:13:49.110734",
+      "password_changed_at": "2026-09-03T12:13:49.110734",
+      "last_login_at": null
+    },
+    {
+      "id": 16,
+      "username": "acting.construction",
+      "password_hash": "$2b$12$RlPhVoi34C9k53zCe2hQj.H8s0uS8nI/ZdWpWWw23LW9A1DqpfulO",
+      "display_name": "وزير الإعمار والإسكان والبلديات العامة",
+      "email": "construction.acting@decisions.local",
+      "ministry": "وزارة الإعمار والإسكان",
+      "role": "admin",
+      "is_active": true,
+      "created_by": 1,
+      "created_at": "2026-09-03T12:14:28.742604",
+      "updated_at": "2026-09-03T12:14:28.742604",
+      "password_changed_at": "2026-09-03T12:14:28.742604",
+      "last_login_at": null
+    },
+    {
+      "id": 17,
+      "username": "acting.planning",
+      "password_hash": "$2b$12$slDUpVO3prBDFRnzcvOnxOddonZDtA2ZgOMWDVjonO/38h4nbXuE6",
+      "display_name": "وزير التخطيط",
+      "email": "planning.acting@decisions.local",
+      "ministry": "وزارة التخطيط",
+      "role": "admin",
+      "is_active": true,
+      "created_by": 1,
+      "created_at": "2026-09-03T12:15:01.890191",
+      "updated_at": "2026-09-03T12:15:01.890191",
+      "password_changed_at": "2026-09-03T12:15:01.890191",
+      "last_login_at": null
+    },
+    {
+      "id": 18,
+      "username": "acting.interior",
+      "password_hash": "$2b$12$TICV6ztoS6sjZhq2zAMdZ.DYFWQV2zn/Ou.GbD9n0fV1IMxZ7LT2.",
+      "display_name": "وزير الداخلية",
+      "email": "interior.acting@decisions.local",
+      "ministry": "وزارة الداخلية",
+      "role": "admin",
+      "is_active": true,
+      "created_by": 1,
+      "created_at": "2026-09-03T12:15:36.927998",
+      "updated_at": "2026-09-03T12:15:36.927998",
+      "password_changed_at": "2026-09-03T12:15:36.927998",
+      "last_login_at": null
+    },
+    {
+      "id": 19,
+      "username": "acting.higher.education",
+      "password_hash": "$2b$12$ajTScg.a9plNjUzZZjjoneW71pCe1h/i/AA6bxsP9wkz59Ko1ptW2",
+      "display_name": "وزير التعليم العالي والبحث العلمي",
+      "email": "highered.acting@decisions.local",
+      "ministry": "وزارة التعليم العالي والبحث العلمي",
+      "role": "admin",
+      "is_active": true,
+      "created_by": 1,
+      "created_at": "2026-09-03T12:16:12.559377",
+      "updated_at": "2026-09-03T12:16:12.559377",
+      "password_changed_at": "2026-09-03T12:16:12.559377",
+      "last_login_at": null
+    },
+    {
+      "id": 20,
+      "username": "acting.youth",
+      "password_hash": "$2b$12$Vt7JRTXjyQ7UuRKoqGgTOuazo9vWH61sNlYpGNRa/QOM96CxBX0q6",
+      "display_name": "وزير الشباب والرياضة",
+      "email": "youth.acting@decisions.local",
+      "ministry": "وزارة الشباب والرياضة",
+      "role": "admin",
+      "is_active": true,
+      "created_by": 1,
+      "created_at": "2026-09-03T12:17:26.175808",
+      "updated_at": "2026-09-03T12:18:23.343304",
+      "password_changed_at": "2026-09-03T12:17:26.175808",
+      "last_login_at": null
+    },
+    {
+      "id": 21,
+      "username": "acting.defense",
+      "password_hash": "$2b$12$YBmk67cQpxwbvlDW60MrROl9RSYt5g7.Y0N8efE/kG5A9zhQQ2Yzi",
+      "display_name": "وزير الدفاع",
+      "email": "defense.acting@decisions.local",
+      "ministry": "وزارة الدفاع",
+      "role": "admin",
+      "is_active": true,
+      "created_by": 1,
+      "created_at": "2026-09-03T12:18:09.502267",
+      "updated_at": "2026-09-03T12:18:09.502267",
+      "password_changed_at": "2026-09-03T12:18:09.502267",
+      "last_login_at": null
+    },
+    {
+      "id": 22,
+      "username": "acting.labor",
+      "password_hash": "$2b$12$gRdrcpn2I8LF735pU3PDNuCtFZbTni9A02N.72AVhmSXSRdectAnC",
+      "display_name": "وزير العمل والشؤون الاجتماعية",
+      "email": "labor.acting@decisions.local",
+      "ministry": "وزارة العمل والشؤون الاجتماعية",
+      "role": "admin",
+      "is_active": true,
+      "created_by": 1,
+      "created_at": "2026-09-03T12:19:11.143402",
+      "updated_at": "2026-09-03T12:19:11.143402",
+      "password_changed_at": "2026-09-03T12:19:11.143402",
+      "last_login_at": null
+    },
+    {
+      "id": 23,
+      "username": "acting.culture",
+      "password_hash": "$2b$12$/GUj24U256de2NplGEUDqu8rSHk/6qZElrplnCBtGeM6.aSDEV/G.",
+      "display_name": "وزير الثقافة والسياحة والآثار",
+      "email": "culture.acting@decisions.local",
+      "ministry": "وزارة الثقافة والسياحة والآثار",
+      "role": "admin",
+      "is_active": true,
+      "created_by": 1,
+      "created_at": "2026-09-03T12:19:46.662265",
+      "updated_at": "2026-09-03T12:19:46.662265",
+      "password_changed_at": "2026-09-03T12:19:46.662265",
+      "last_login_at": null
+    },
+    {
+      "id": 24,
+      "username": "acting.migration",
+      "password_hash": "$2b$12$.2GHiiS6lMi3CC8VafyC.eLXfP2a2nxCjx38fPrky7yULFb2pmrG2",
+      "display_name": "وزير الهجرة والمهجرين",
+      "email": "migration.acting@decisions.local",
+      "ministry": "وزارة الهجرة والمهجرين",
+      "role": "admin",
+      "is_active": true,
+      "created_by": 1,
+      "created_at": "2026-09-03T12:20:19.858553",
+      "updated_at": "2026-09-03T12:20:19.858553",
+      "password_changed_at": "2026-09-03T12:20:19.858553",
+      "last_login_at": null
     }
   ],
   "admin_sessions": [
@@ -367,190 +702,186 @@
       "welcome_phrase_index": 2
     },
     {
-      "id": "bcd466ac-9112-4021-ae70-c92c8296ccf9",
-      "admin_user_id": 2,
-      "token_hash": "cbbf95e718771e0e6eb7106c3c6c5e451513bf25de9d64b3e1b25cec8e05cf34",
-      "expires_at": "2026-08-30T12:48:31.740584+00:00"
+      "id": "0a7ab7c8-cf7c-4b53-906f-f80fa57f2694",
+      "admin_user_id": 1,
+      "token_hash": "6b769966bc34bf2ef0ac5e5e1381d13dd65aed8d19f73c26f7df99caf5eda031",
+      "expires_at": "2026-09-01T11:16:01.364324+00:00",
+      "welcome_phrase_index": 0
     },
     {
-      "id": "f811b921-23fe-4297-8a20-de06d50f3be7",
-      "admin_user_id": 2,
-      "token_hash": "2c80801a48deb7ae155d5c1fe541f0fd74ffca27534bee91e05930032457835f",
-      "expires_at": "2026-08-31T09:15:19.025103+00:00"
+      "id": "73740bb6-0b09-4ebb-a01d-be9b4c14f229",
+      "admin_user_id": 1,
+      "token_hash": "cd32eb1f519eb2131e2740537ac79f411dabcb23f93baee09d55b52c33cc1b7e",
+      "expires_at": "2026-09-02T07:56:03.854571+00:00",
+      "welcome_phrase_index": 0
     },
     {
-      "id": "015b50fb-fbee-44fc-912a-e03f07c2e89f",
-      "admin_user_id": 2,
-      "token_hash": "d2ea0f99a8c4e38da5d677d55d879e2e01da2635d1ffaef41079f3912fdbf7cc",
-      "expires_at": "2026-08-31T11:33:04.474285+00:00"
+      "id": "d3f94fef-922d-4201-ab56-71180d3abe1c",
+      "admin_user_id": 16,
+      "token_hash": "93d1fabcf4fa95d3fd980dca84243c699dead2183fef1e6bb5de84d44ce0f24b",
+      "expires_at": "2026-09-03T10:27:57.670115+00:00",
+      "welcome_phrase_index": 1
     },
     {
-      "id": "d87af9c2-3b23-4ed7-b4e0-078505f42ab4",
-      "admin_user_id": 2,
-      "token_hash": "b3263f465a3167f9c4552e9c60f9073e43f81eaff0752aedcda057bd70822dbb",
-      "expires_at": "2026-08-31T12:49:57.216054+00:00"
+      "id": "6835c8fc-6f64-4c9f-b992-7783c32f0080",
+      "admin_user_id": 16,
+      "token_hash": "1c4e431d6d143ce86ca35a74e4b9623edefa649b7732e5d7d867a0fb7943f7cc",
+      "expires_at": "2026-09-06T08:19:26.893283+00:00",
+      "welcome_phrase_index": 1
     },
     {
-      "id": "5813daab-fbf2-4ae6-beed-7498890f5c2d",
-      "admin_user_id": 2,
-      "token_hash": "5379c58c571f9d59a8fd5585197a83f020cb5795c0d7d2315062f097beea0ecf",
-      "expires_at": "2026-09-01T07:51:45.289381+00:00"
+      "id": "f13e4558-65af-4a5f-a8c6-7633baf31455",
+      "admin_user_id": 12,
+      "token_hash": "6c5d6c58aaea53892f2611dd0a8478ad234a3f58fb36d61fdcc216825e74d57a",
+      "expires_at": "2026-09-06T11:56:04.562957+00:00",
+      "welcome_phrase_index": 2
     },
     {
-      "id": "caf0c019-e16d-42b9-a1dd-fdc5241135ce",
-      "admin_user_id": 2,
-      "token_hash": "c494c970f383fb61feb11a0c73f5b063ce74b99599ba79ade4825333dc86151c",
-      "expires_at": "2026-09-01T08:54:00.717825+00:00"
+      "id": "bc3e13b3-adad-44e9-b3ab-797524b4250f",
+      "admin_user_id": 12,
+      "token_hash": "84eafe145a0346073087c47535de1b7ae1f0dfb86b72ea28f4834d2c53ac4327",
+      "expires_at": "2026-09-07T09:52:45.204913+00:00",
+      "welcome_phrase_index": 0
     },
     {
-      "id": "2df3b65f-bdd4-4f75-a9b4-89e5bbf1192c",
-      "admin_user_id": 2,
-      "token_hash": "3c89c51749fc2b0da6fe44262ed7ddc1461034842f4acc5dcc5404241164c038",
-      "expires_at": "2026-09-01T09:54:17.881754+00:00"
+      "id": "9035e065-ecac-4f1f-99c3-c58473eda49a",
+      "admin_user_id": 12,
+      "token_hash": "74c81dddaadeb50db8a8569fa7a5e25dad94f4bdf96e3cba1b21e78369949649",
+      "expires_at": "2026-09-07T11:02:46.510896+00:00",
+      "welcome_phrase_index": 0
     },
     {
-      "id": "32fd623d-cb67-4087-98c1-9dd6ce1f91bd",
-      "admin_user_id": 2,
-      "token_hash": "4b5cfbdd5ece6c7453a442e7b1268a31930576c01f41fced80e470c767891871",
-      "expires_at": "2026-09-01T11:33:37.089270+00:00"
+      "id": "cb510aab-064f-41b9-962d-6bb16c89465d",
+      "admin_user_id": 12,
+      "token_hash": "f786f10aa01ee629c97c26213461bb4f7f139cc38ebf49d935f2e4f245931d20",
+      "expires_at": "2026-09-07T12:04:11.563160+00:00",
+      "welcome_phrase_index": 0
     },
     {
-      "id": "6b285023-9fcb-430a-ae41-5624e0ae4110",
-      "admin_user_id": 2,
-      "token_hash": "4c6c9d29cf6c1a47714a602f26b863659baaec7948de9c621c9bb96b043b10d4",
-      "expires_at": "2026-09-02T08:27:31.262113+00:00"
+      "id": "32df00ee-4fd5-4d9e-ae4f-9c45f5c577bc",
+      "admin_user_id": 12,
+      "token_hash": "5995cc7425537a88c6f406e623afe1268c735cf53217a65aad3fc2a30d8886b3",
+      "expires_at": "2026-09-09T08:29:13.907688+00:00",
+      "welcome_phrase_index": 0
     },
     {
-      "id": "aeccf446-2429-4624-9ce9-c2e980c60216",
-      "admin_user_id": 2,
-      "token_hash": "2b1cc0025bed69f13e8bf41d333b077644def84a82088927eca37bd99aa3101c",
-      "expires_at": "2026-09-02T11:09:34.550417+00:00"
+      "id": "e3167af5-d329-43ed-b37a-c9c355f5bb72",
+      "admin_user_id": 12,
+      "token_hash": "8b67439bb4739f6c5293edf6fe93b4bd1fbde38ffd5f8dab189147298a04ca8d",
+      "expires_at": "2026-09-09T09:32:44.103827+00:00",
+      "welcome_phrase_index": 0
     },
     {
-      "id": "a72eb0b0-4062-410a-917c-bfa083efca1f",
-      "admin_user_id": 2,
-      "token_hash": "21cd8faf5132b0775d6dd842f8c5faa6010ad31b62566f6ee254e29dd3ce4b29",
-      "expires_at": "2026-09-03T08:09:23.928283+00:00"
+      "id": "239f0dc1-125b-49f0-bf66-b48aa0fe1c58",
+      "admin_user_id": 12,
+      "token_hash": "44b25c1563641a8018f318766a0a051a7a09dd1622301b489225f70d810e7836",
+      "expires_at": "2026-09-09T10:58:30.218451+00:00",
+      "welcome_phrase_index": 0
     },
     {
-      "id": "41427c11-5de7-48ec-8eb0-20d3045b79d7",
-      "admin_user_id": 2,
-      "token_hash": "6b85f8b249038414313abe2b2e36999b701a995a826308f3d170d73d8546c8c6",
-      "expires_at": "2026-09-03T09:32:43.606183+00:00"
+      "id": "42be841f-5db3-45a7-8d98-3e1f020e9f04",
+      "admin_user_id": 12,
+      "token_hash": "af8d5b6ba0a06637a7e1079aec56f0a4817487c39dd2b0e62fed4c319776fa35",
+      "expires_at": "2026-09-10T08:03:47.562548+00:00",
+      "welcome_phrase_index": 0
     },
     {
-      "id": "5005d2df-d5f0-4986-95ed-67470369e6fd",
-      "admin_user_id": 2,
-      "token_hash": "46e991d9aa0e6b61fd5e4992af819f635892e8d74e64192d72fa67ebb223fa87",
-      "expires_at": "2026-09-03T10:58:03.951501+00:00"
+      "id": "07ca5084-a519-49ce-baca-fee3a4d458a1",
+      "admin_user_id": 12,
+      "token_hash": "4de6a0530eab91ca88a4270b32a4026db36df91cc6899f037e4077c1c45f3ed6",
+      "expires_at": "2026-09-10T09:16:34.720433+00:00",
+      "welcome_phrase_index": 1
     },
     {
-      "id": "8f51f810-8af8-4585-968e-65283b820b25",
-      "admin_user_id": 2,
-      "token_hash": "276d939bf3571e829ee86e3bfef275b5e309b78c4541e820b6fa62b9739195be",
-      "expires_at": "2026-09-06T09:15:42.599158+00:00"
+      "id": "b5287e32-6808-48b2-ab66-fe14d9234e33",
+      "admin_user_id": 12,
+      "token_hash": "11ff392354d8682b707241f68b51de46862789b9cf0b8c51b841311cd2b52a62",
+      "expires_at": "2026-09-10T10:17:28.901919+00:00",
+      "welcome_phrase_index": 0
     },
     {
-      "id": "3dd59a0b-2749-4b75-8674-8662ceb7fad0",
-      "admin_user_id": 2,
-      "token_hash": "50a37f8a376a1cb3502c309b597ddc1813272e0e5cf0b8cc50785cc212d4f94b",
-      "expires_at": "2026-09-06T11:57:47.799476+00:00"
+      "id": "045a53a7-75f8-4361-8c30-086f5759ea84",
+      "admin_user_id": 12,
+      "token_hash": "1bb9c6ad42e3dabde81273819730ac826972ca2abca5cedfa0dafc7c2b068547",
+      "expires_at": "2026-09-10T11:25:51.208531+00:00",
+      "welcome_phrase_index": 0
     },
     {
-      "id": "5fe3a2de-b792-4521-90f6-da4241564954",
-      "admin_user_id": 2,
-      "token_hash": "f8af3d74d4f3ae02744e8755b4b0d352dd22abdef4431ce29a917277761e6e0b",
-      "expires_at": "2026-09-07T08:31:23.950492+00:00"
+      "id": "2e49b21a-3c02-4585-9cd3-98172cde2627",
+      "admin_user_id": 12,
+      "token_hash": "0865d7f47fa43e7dabe6ee983f72a8321cd48ec486118916194bce8b8cf2b76e",
+      "expires_at": "2026-09-13T09:46:58.642481+00:00",
+      "welcome_phrase_index": 0
     },
     {
-      "id": "0b109585-4fc1-44f5-89c5-88769a9eb7b2",
-      "admin_user_id": 2,
-      "token_hash": "164c4fa675d1b5a50d4b422cd9306ca07ba3fa3cdabce5d654ed2b053a4bf8eb",
-      "expires_at": "2026-09-07T09:38:53.900594+00:00"
+      "id": "8b12b558-d2e6-41d3-ba57-c8c947dc7195",
+      "admin_user_id": 12,
+      "token_hash": "34e022964f5b39454c3111f2c175c6b5b8dc010665eb962d2fb714ca71cda633",
+      "expires_at": "2026-09-14T09:58:11.382377+00:00",
+      "welcome_phrase_index": 0
     },
     {
-      "id": "f2460289-2467-415d-b05d-74bda7871794",
-      "admin_user_id": 2,
-      "token_hash": "88dabff9bf688d796ef660ff1c5d80d32921d7b3d5b464b37905dc2cbf3a9a01",
-      "expires_at": "2026-09-07T12:03:49.429161+00:00"
+      "id": "66e007df-5491-4203-9384-3d4574f0d30c",
+      "admin_user_id": 12,
+      "token_hash": "a0d6ccadf47dcf595a9467ba8a04741b8bf7e432824dd8ff3e3072c7889ab815",
+      "expires_at": "2026-09-14T11:07:12.124834+00:00",
+      "welcome_phrase_index": 0
     },
     {
-      "id": "199a5584-2bb3-4d7f-a410-d7e04e34d620",
-      "admin_user_id": 2,
-      "token_hash": "4206c81e507c04f9a4fe36ae342201847b33f91908b1ed0dce2232dbfbdc9c01",
-      "expires_at": "2026-09-07T12:31:04.337566+00:00"
+      "id": "41d50466-9296-46dc-8c21-c203a12917ca",
+      "admin_user_id": 12,
+      "token_hash": "ff91a55b7ea73375e9760f67775e92383d34e359f562c3d52b3f091891537e33",
+      "expires_at": "2026-09-14T12:10:56.409773+00:00",
+      "welcome_phrase_index": 0
     },
     {
-      "id": "a15e6c1f-cddb-4d53-af0a-f6e410f2567c",
-      "admin_user_id": 2,
-      "token_hash": "3f77f1b570112689e6d8b44ec78e4a1e55c479930ee6d67873d02fc41d8c952f",
-      "expires_at": "2026-09-08T12:05:10.099944+00:00"
+      "id": "2da36751-aeb4-4394-bda4-e148e4efdb87",
+      "admin_user_id": 12,
+      "token_hash": "9b213807c4c7ce00ac341bc6c02c8c12630648d2acd6ba4430e5ddd8d119b29f",
+      "expires_at": "2026-09-15T11:13:37.396653+00:00",
+      "welcome_phrase_index": 4
     },
     {
-      "id": "da765cbf-e9f5-42ca-9fc6-83d93b41d040",
-      "admin_user_id": 2,
-      "token_hash": "c8dc8d7e83fa3f305e2ee5b9afbb807200cc1a09ea008ee9e6428ef0976cafd7",
-      "expires_at": "2026-09-09T07:40:41.702976+00:00"
+      "id": "a707e260-6b03-463a-a654-d825ad875cba",
+      "admin_user_id": 12,
+      "token_hash": "25da93416aa7904b360635cedea2e752192cae86c4b24be7b0abd96421d12c6d",
+      "expires_at": "2026-09-20T10:10:11.073170+00:00",
+      "welcome_phrase_index": 0
     },
     {
-      "id": "5d9a243d-8df0-4297-8fdc-da6bb1ad7552",
-      "admin_user_id": 2,
-      "token_hash": "5643082a1db1473fdc91e1bd2a3da0ec55da3b46dbf73858576b757724594354",
-      "expires_at": "2026-09-09T11:12:37.005203+00:00"
+      "id": "57874dda-1963-4c76-948d-261678590372",
+      "admin_user_id": 12,
+      "token_hash": "15569a95f6b9bbfc80d547cd59b2714bf697a86db04848e175a96d7de5762595",
+      "expires_at": "2026-09-21T07:29:52.927895+00:00",
+      "welcome_phrase_index": 0
     },
     {
-      "id": "9e1b26f1-c239-4a3b-9d7a-9f3f78f315d3",
-      "admin_user_id": 2,
-      "token_hash": "45b89c0e6ed9685e3311164d198e63db1b64fb1f85c6365ba66f599a0a8c32eb",
-      "expires_at": "2026-09-10T07:58:37.615252+00:00"
+      "id": "fe566913-6af0-42d8-8489-b2397ff044c3",
+      "admin_user_id": 12,
+      "token_hash": "d6cdc238564c351e26fd2f7a4cca78e93900177f7a7cb391eecb1279e6656b99",
+      "expires_at": "2026-09-21T09:41:44.442216+00:00",
+      "welcome_phrase_index": 0
     },
     {
-      "id": "d903a579-e3a4-49c7-949c-c47386077362",
-      "admin_user_id": 2,
-      "token_hash": "2362bfc2f2e088f667d5da3e2db9a7e18f140bdf867db727e640d8eb4fc35e66",
-      "expires_at": "2026-09-13T11:09:44.141372+00:00"
+      "id": "344a02ac-872e-456f-be37-82a6a5c84051",
+      "admin_user_id": 12,
+      "token_hash": "ca450ab69a818f7bde9a8d6fbfb2e714f1de1e4b0593a9b15595b5ba4a47259f",
+      "expires_at": "2026-09-21T10:56:58.698323+00:00",
+      "welcome_phrase_index": 0
     },
     {
-      "id": "400357fa-ce60-42b9-a813-062a609ebcc6",
-      "admin_user_id": 2,
-      "token_hash": "c7275d28dbf9aa126c9c7fd70e008eb1f93fe1f444d4b2f1cbe0bb84dbbfcaf3",
-      "expires_at": "2026-09-14T07:16:47.121815+00:00"
+      "id": "448fbbd7-0f93-4804-b6c0-a211ae6c4278",
+      "admin_user_id": 12,
+      "token_hash": "c8a86e94a0fd131baa4aaf5f94aece5af9e595857085cd98807a68f58d390fb8",
+      "expires_at": "2026-09-21T12:03:04.335049+00:00",
+      "welcome_phrase_index": 0
     },
     {
-      "id": "fc2e1201-fffe-45f4-85b8-a347edc3fbce",
-      "admin_user_id": 2,
-      "token_hash": "0a3828a919a4ad6eb194aa88df1ba3ffd1000884903dba57165fae9335d7ca78",
-      "expires_at": "2026-09-14T10:00:54.468122+00:00"
-    },
-    {
-      "id": "fcbf09d2-9009-41f7-b60a-cbb1078c1ac4",
-      "admin_user_id": 2,
-      "token_hash": "6557514a1df0acf6c8ed0d1d6d414a3bded717aa19b17bc620d20ec4e64ef3d8",
-      "expires_at": "2026-09-15T07:34:02.283122+00:00"
-    },
-    {
-      "id": "48cb686b-1f35-4e7a-b030-84ae5cda23b9",
-      "admin_user_id": 2,
-      "token_hash": "3ae02ff430e3cf45ddf6b0edefa0077c884f81139c65035cc78e728059f7e61c",
-      "expires_at": "2026-09-15T11:38:12.202419+00:00"
-    },
-    {
-      "id": "17ade257-02fb-4d03-b785-f8b4fbd65b7d",
-      "admin_user_id": 2,
-      "token_hash": "edf4fff458435c2a9cb70888ed28c2330657b4de0880dad1111bfc29f23ec781",
-      "expires_at": "2026-09-16T07:08:27.772892+00:00"
-    },
-    {
-      "id": "f36ca679-d1b4-4c13-953d-c30e29c583ed",
-      "admin_user_id": 2,
-      "token_hash": "3645435e447b3662455931197e02a4b31afaf53c3a5686c03db4a7f6b4fd536b",
-      "expires_at": "2026-09-16T09:59:52.905499+00:00"
-    },
-    {
-      "id": "f0e8e9c5-b20c-473e-b8d5-d51b2c45b429",
-      "admin_user_id": 2,
-      "token_hash": "5122688bc23754efe79d95889632feea13c1a8e16bbb5299d000981e628697d9",
-      "expires_at": "2026-09-22T07:16:52.909382+00:00"
+      "id": "f87cf85d-dbd8-46a9-8708-f2d0fbd05075",
+      "admin_user_id": 16,
+      "token_hash": "0839abf7f46d2276788c9cc0246f15b4fb4ecbb13f23aa853fe39f4dc425f725",
+      "expires_at": "2026-09-22T08:15:39.383748+00:00",
+      "welcome_phrase_index": 6
     }
   ],
   "audit_log": [
@@ -1640,843 +1971,795 @@
     },
     {
       "id": 83,
-      "action": "admin_password_reset",
-      "actor_user_id": null,
-      "actor_username": "create_admin.py",
-      "target_type": "admin_user",
-      "target_id": "shamsmj",
-      "ip_address": null,
-      "user_agent": null,
+      "action": "login_success",
+      "actor_user_id": 1,
+      "actor_username": "ayat",
+      "target_type": null,
+      "target_id": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
       "details": {},
-      "created_at": "2026-08-30T11:36:35.350994+00:00"
+      "created_at": "2026-09-01T10:16:01.402726+00:00"
     },
     {
       "id": 84,
-      "action": "login_failed",
-      "actor_user_id": null,
-      "actor_username": null,
-      "target_type": "admin_user",
-      "target_id": "shamsmj",
+      "action": "login_success",
+      "actor_user_id": 1,
+      "actor_username": "ayat",
+      "target_type": null,
+      "target_id": null,
       "ip_address": "127.0.0.1",
-      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
       "details": {},
-      "created_at": "2026-08-30T11:38:54.801883+00:00"
+      "created_at": "2026-09-02T06:56:03.909236+00:00"
     },
     {
       "id": 85,
-      "action": "admin_password_reset",
-      "actor_user_id": null,
-      "actor_username": "create_admin.py",
-      "target_type": "admin_user",
-      "target_id": "shamsmj",
-      "ip_address": null,
-      "user_agent": null,
+      "action": "login_success",
+      "actor_user_id": 1,
+      "actor_username": "ayat",
+      "target_type": null,
+      "target_id": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
       "details": {},
-      "created_at": "2026-08-30T11:44:09.552523+00:00"
+      "created_at": "2026-09-03T08:35:21.450558+00:00"
     },
     {
       "id": 86,
-      "action": "login_failed",
-      "actor_user_id": null,
-      "actor_username": null,
+      "action": "user_created",
+      "actor_user_id": 1,
+      "actor_username": "ayat",
       "target_type": "admin_user",
-      "target_id": "shamsmohj",
+      "target_id": "2",
       "ip_address": "127.0.0.1",
-      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
       "details": {},
-      "created_at": "2026-08-30T11:44:40.863533+00:00"
+      "created_at": "2026-09-03T08:37:59.177769+00:00"
     },
     {
       "id": 87,
-      "action": "login_failed",
-      "actor_user_id": null,
-      "actor_username": null,
-      "target_type": "admin_user",
-      "target_id": "shamsmohj",
+      "action": "logout",
+      "actor_user_id": 1,
+      "actor_username": "ayat",
+      "target_type": null,
+      "target_id": null,
       "ip_address": "127.0.0.1",
-      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
       "details": {},
-      "created_at": "2026-08-30T11:44:42.485828+00:00"
+      "created_at": "2026-09-03T08:42:50.454532+00:00"
     },
     {
       "id": 88,
-      "action": "login_failed",
-      "actor_user_id": null,
-      "actor_username": null,
-      "target_type": "admin_user",
-      "target_id": "shamsmohj",
+      "action": "login_success",
+      "actor_user_id": 2,
+      "actor_username": "minister.oil",
+      "target_type": null,
+      "target_id": null,
       "ip_address": "127.0.0.1",
-      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
       "details": {},
-      "created_at": "2026-08-30T11:44:43.318650+00:00"
+      "created_at": "2026-09-03T08:42:53.953104+00:00"
     },
     {
       "id": 89,
-      "action": "login_failed",
-      "actor_user_id": null,
-      "actor_username": null,
-      "target_type": "admin_user",
-      "target_id": "shamsmohj",
+      "action": "logout",
+      "actor_user_id": 2,
+      "actor_username": "minister.oil",
+      "target_type": null,
+      "target_id": null,
       "ip_address": "127.0.0.1",
-      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
       "details": {},
-      "created_at": "2026-08-30T11:44:43.528786+00:00"
+      "created_at": "2026-09-03T09:02:32.895342+00:00"
     },
     {
       "id": 90,
-      "action": "login_failed",
-      "actor_user_id": null,
-      "actor_username": null,
-      "target_type": "admin_user",
-      "target_id": "shamsmohj",
+      "action": "login_success",
+      "actor_user_id": 1,
+      "actor_username": "ayat",
+      "target_type": null,
+      "target_id": null,
       "ip_address": "127.0.0.1",
-      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
       "details": {},
-      "created_at": "2026-08-30T11:44:43.726082+00:00"
+      "created_at": "2026-09-03T09:02:40.262267+00:00"
     },
     {
       "id": 91,
-      "action": "login_failed",
-      "actor_user_id": null,
-      "actor_username": null,
+      "action": "user_created",
+      "actor_user_id": 1,
+      "actor_username": "ayat",
       "target_type": "admin_user",
-      "target_id": "shamsmohj",
+      "target_id": "3",
       "ip_address": "127.0.0.1",
-      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
       "details": {},
-      "created_at": "2026-08-30T11:44:43.902243+00:00"
+      "created_at": "2026-09-03T09:03:59.857414+00:00"
     },
     {
       "id": 92,
-      "action": "login_failed",
-      "actor_user_id": null,
-      "actor_username": null,
+      "action": "user_created",
+      "actor_user_id": 1,
+      "actor_username": "ayat",
       "target_type": "admin_user",
-      "target_id": "shamsmohj",
+      "target_id": "4",
       "ip_address": "127.0.0.1",
-      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
       "details": {},
-      "created_at": "2026-08-30T11:44:44.089996+00:00"
+      "created_at": "2026-09-03T09:05:17.640154+00:00"
     },
     {
       "id": 93,
-      "action": "login_failed",
-      "actor_user_id": null,
-      "actor_username": null,
+      "action": "user_created",
+      "actor_user_id": 1,
+      "actor_username": "ayat",
       "target_type": "admin_user",
-      "target_id": "shamsmohj",
+      "target_id": "5",
       "ip_address": "127.0.0.1",
-      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
       "details": {},
-      "created_at": "2026-08-30T11:44:44.277361+00:00"
+      "created_at": "2026-09-03T09:05:51.736899+00:00"
     },
     {
       "id": 94,
-      "action": "login_failed",
-      "actor_user_id": null,
-      "actor_username": null,
+      "action": "user_created",
+      "actor_user_id": 1,
+      "actor_username": "ayat",
       "target_type": "admin_user",
-      "target_id": "shamsmohj",
+      "target_id": "6",
       "ip_address": "127.0.0.1",
-      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
       "details": {},
-      "created_at": "2026-08-30T11:44:44.460489+00:00"
+      "created_at": "2026-09-03T09:06:50.712025+00:00"
     },
     {
       "id": 95,
-      "action": "login_failed",
-      "actor_user_id": null,
-      "actor_username": null,
+      "action": "user_updated",
+      "actor_user_id": 1,
+      "actor_username": "ayat",
       "target_type": "admin_user",
-      "target_id": "shamsmohj",
+      "target_id": "3",
       "ip_address": "127.0.0.1",
-      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
       "details": {},
-      "created_at": "2026-08-30T11:44:44.652193+00:00"
+      "created_at": "2026-09-03T09:07:02.385774+00:00"
     },
     {
       "id": 96,
-      "action": "login_failed",
-      "actor_user_id": null,
-      "actor_username": null,
+      "action": "user_updated",
+      "actor_user_id": 1,
+      "actor_username": "ayat",
       "target_type": "admin_user",
-      "target_id": "shamsmohj",
+      "target_id": "4",
       "ip_address": "127.0.0.1",
-      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
       "details": {},
-      "created_at": "2026-08-30T11:44:44.857722+00:00"
+      "created_at": "2026-09-03T09:07:10.432023+00:00"
     },
     {
       "id": 97,
-      "action": "login_failed",
-      "actor_user_id": null,
-      "actor_username": null,
+      "action": "user_updated",
+      "actor_user_id": 1,
+      "actor_username": "ayat",
       "target_type": "admin_user",
-      "target_id": "shamsmohj",
+      "target_id": "5",
       "ip_address": "127.0.0.1",
-      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
       "details": {},
-      "created_at": "2026-08-30T11:44:45.049876+00:00"
+      "created_at": "2026-09-03T09:07:19.196445+00:00"
     },
     {
       "id": 98,
-      "action": "login_failed",
-      "actor_user_id": null,
-      "actor_username": null,
+      "action": "user_created",
+      "actor_user_id": 1,
+      "actor_username": "ayat",
       "target_type": "admin_user",
-      "target_id": "shamsmohj",
+      "target_id": "7",
       "ip_address": "127.0.0.1",
-      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
       "details": {},
-      "created_at": "2026-08-30T11:44:45.274237+00:00"
+      "created_at": "2026-09-03T09:08:29.278980+00:00"
     },
     {
       "id": 99,
-      "action": "login_failed",
-      "actor_user_id": null,
-      "actor_username": null,
+      "action": "user_created",
+      "actor_user_id": 1,
+      "actor_username": "ayat",
       "target_type": "admin_user",
-      "target_id": "shamsmohj",
+      "target_id": "8",
       "ip_address": "127.0.0.1",
-      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
       "details": {},
-      "created_at": "2026-08-30T11:44:45.471433+00:00"
+      "created_at": "2026-09-03T09:09:09.492245+00:00"
     },
     {
       "id": 100,
-      "action": "login_failed",
-      "actor_user_id": null,
-      "actor_username": null,
+      "action": "user_created",
+      "actor_user_id": 1,
+      "actor_username": "ayat",
       "target_type": "admin_user",
-      "target_id": "shamsmohj",
+      "target_id": "9",
       "ip_address": "127.0.0.1",
-      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
       "details": {},
-      "created_at": "2026-08-30T11:44:45.670061+00:00"
+      "created_at": "2026-09-03T09:09:53.961694+00:00"
     },
     {
       "id": 101,
-      "action": "login_failed",
-      "actor_user_id": null,
-      "actor_username": null,
+      "action": "user_created",
+      "actor_user_id": 1,
+      "actor_username": "ayat",
       "target_type": "admin_user",
-      "target_id": "shamsmohj",
+      "target_id": "10",
       "ip_address": "127.0.0.1",
-      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
       "details": {},
-      "created_at": "2026-08-30T11:44:45.833983+00:00"
+      "created_at": "2026-09-03T09:10:30.135609+00:00"
     },
     {
       "id": 102,
-      "action": "login_failed",
-      "actor_user_id": null,
-      "actor_username": null,
+      "action": "user_created",
+      "actor_user_id": 1,
+      "actor_username": "ayat",
       "target_type": "admin_user",
-      "target_id": "shamsmohj",
+      "target_id": "11",
       "ip_address": "127.0.0.1",
-      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
       "details": {},
-      "created_at": "2026-08-30T11:44:46.020919+00:00"
+      "created_at": "2026-09-03T09:11:14.449420+00:00"
     },
     {
       "id": 103,
-      "action": "login_failed",
-      "actor_user_id": null,
-      "actor_username": null,
+      "action": "user_created",
+      "actor_user_id": 1,
+      "actor_username": "ayat",
       "target_type": "admin_user",
-      "target_id": "shamsmohj",
+      "target_id": "12",
       "ip_address": "127.0.0.1",
-      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
       "details": {},
-      "created_at": "2026-08-30T11:44:46.214737+00:00"
+      "created_at": "2026-09-03T09:11:56.151346+00:00"
     },
     {
       "id": 104,
-      "action": "login_failed",
-      "actor_user_id": null,
-      "actor_username": null,
+      "action": "user_created",
+      "actor_user_id": 1,
+      "actor_username": "ayat",
       "target_type": "admin_user",
-      "target_id": "shamsmohj",
+      "target_id": "13",
       "ip_address": "127.0.0.1",
-      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
       "details": {},
-      "created_at": "2026-08-30T11:44:46.407318+00:00"
+      "created_at": "2026-09-03T09:12:34.081947+00:00"
     },
     {
       "id": 105,
-      "action": "login_failed",
-      "actor_user_id": null,
-      "actor_username": null,
+      "action": "user_created",
+      "actor_user_id": 1,
+      "actor_username": "ayat",
       "target_type": "admin_user",
-      "target_id": "shamsmohj",
+      "target_id": "14",
       "ip_address": "127.0.0.1",
-      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
       "details": {},
-      "created_at": "2026-08-30T11:44:46.612152+00:00"
+      "created_at": "2026-09-03T09:13:15.700601+00:00"
     },
     {
       "id": 106,
-      "action": "login_failed",
-      "actor_user_id": null,
-      "actor_username": null,
+      "action": "user_created",
+      "actor_user_id": 1,
+      "actor_username": "ayat",
       "target_type": "admin_user",
-      "target_id": "shamsmohj",
+      "target_id": "15",
       "ip_address": "127.0.0.1",
-      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
       "details": {},
-      "created_at": "2026-08-30T11:44:46.832388+00:00"
+      "created_at": "2026-09-03T09:13:49.129472+00:00"
     },
     {
       "id": 107,
-      "action": "login_failed",
-      "actor_user_id": null,
-      "actor_username": null,
+      "action": "user_created",
+      "actor_user_id": 1,
+      "actor_username": "ayat",
       "target_type": "admin_user",
-      "target_id": "shamsmohj",
+      "target_id": "16",
       "ip_address": "127.0.0.1",
-      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
       "details": {},
-      "created_at": "2026-08-30T11:45:24.181960+00:00"
+      "created_at": "2026-09-03T09:14:28.771739+00:00"
     },
     {
       "id": 108,
-      "action": "login_success",
-      "actor_user_id": 2,
-      "actor_username": "shamsmj",
-      "target_type": null,
-      "target_id": null,
+      "action": "user_created",
+      "actor_user_id": 1,
+      "actor_username": "ayat",
+      "target_type": "admin_user",
+      "target_id": "17",
       "ip_address": "127.0.0.1",
-      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
       "details": {},
-      "created_at": "2026-08-30T11:48:31.796883+00:00"
+      "created_at": "2026-09-03T09:15:01.911292+00:00"
     },
     {
       "id": 109,
-      "action": "login_success",
-      "actor_user_id": 2,
-      "actor_username": "shamsmj",
-      "target_type": null,
-      "target_id": null,
+      "action": "user_created",
+      "actor_user_id": 1,
+      "actor_username": "ayat",
+      "target_type": "admin_user",
+      "target_id": "18",
       "ip_address": "127.0.0.1",
-      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
       "details": {},
-      "created_at": "2026-08-31T08:15:19.078229+00:00"
+      "created_at": "2026-09-03T09:15:36.952369+00:00"
     },
     {
       "id": 110,
-      "action": "login_success",
-      "actor_user_id": 2,
-      "actor_username": "shamsmj",
-      "target_type": null,
-      "target_id": null,
+      "action": "user_created",
+      "actor_user_id": 1,
+      "actor_username": "ayat",
+      "target_type": "admin_user",
+      "target_id": "19",
       "ip_address": "127.0.0.1",
-      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
       "details": {},
-      "created_at": "2026-08-31T10:33:04.526608+00:00"
+      "created_at": "2026-09-03T09:16:12.585931+00:00"
     },
     {
       "id": 111,
-      "action": "login_success",
-      "actor_user_id": 2,
-      "actor_username": "shamsmj",
-      "target_type": null,
-      "target_id": null,
+      "action": "user_created",
+      "actor_user_id": 1,
+      "actor_username": "ayat",
+      "target_type": "admin_user",
+      "target_id": "20",
       "ip_address": "127.0.0.1",
-      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
       "details": {},
-      "created_at": "2026-08-31T11:49:57.281167+00:00"
+      "created_at": "2026-09-03T09:17:26.203122+00:00"
     },
     {
       "id": 112,
-      "action": "login_success",
-      "actor_user_id": 2,
-      "actor_username": "shamsmj",
-      "target_type": null,
-      "target_id": null,
+      "action": "user_created",
+      "actor_user_id": 1,
+      "actor_username": "ayat",
+      "target_type": "admin_user",
+      "target_id": "21",
       "ip_address": "127.0.0.1",
-      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
       "details": {},
-      "created_at": "2026-09-01T06:51:45.351813+00:00"
+      "created_at": "2026-09-03T09:18:09.525051+00:00"
     },
     {
       "id": 113,
-      "action": "login_success",
-      "actor_user_id": 2,
-      "actor_username": "shamsmj",
-      "target_type": null,
-      "target_id": null,
+      "action": "user_updated",
+      "actor_user_id": 1,
+      "actor_username": "ayat",
+      "target_type": "admin_user",
+      "target_id": "20",
       "ip_address": "127.0.0.1",
-      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
       "details": {},
-      "created_at": "2026-09-01T07:54:00.815200+00:00"
+      "created_at": "2026-09-03T09:18:23.364824+00:00"
     },
     {
       "id": 114,
-      "action": "login_success",
-      "actor_user_id": 2,
-      "actor_username": "shamsmj",
-      "target_type": null,
-      "target_id": null,
+      "action": "user_created",
+      "actor_user_id": 1,
+      "actor_username": "ayat",
+      "target_type": "admin_user",
+      "target_id": "22",
       "ip_address": "127.0.0.1",
-      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
       "details": {},
-      "created_at": "2026-09-01T08:54:17.935081+00:00"
+      "created_at": "2026-09-03T09:19:11.168247+00:00"
     },
     {
       "id": 115,
-      "action": "login_success",
-      "actor_user_id": 2,
-      "actor_username": "shamsmj",
-      "target_type": null,
-      "target_id": null,
+      "action": "user_created",
+      "actor_user_id": 1,
+      "actor_username": "ayat",
+      "target_type": "admin_user",
+      "target_id": "23",
       "ip_address": "127.0.0.1",
-      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
       "details": {},
-      "created_at": "2026-09-01T10:33:37.143931+00:00"
+      "created_at": "2026-09-03T09:19:46.687432+00:00"
     },
     {
       "id": 116,
-      "action": "login_success",
-      "actor_user_id": 2,
-      "actor_username": "shamsmj",
-      "target_type": null,
-      "target_id": null,
+      "action": "user_created",
+      "actor_user_id": 1,
+      "actor_username": "ayat",
+      "target_type": "admin_user",
+      "target_id": "24",
       "ip_address": "127.0.0.1",
       "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
       "details": {},
-      "created_at": "2026-09-02T07:27:31.370282+00:00"
+      "created_at": "2026-09-03T09:20:19.885662+00:00"
     },
     {
       "id": 117,
-      "action": "login_success",
-      "actor_user_id": 2,
-      "actor_username": "shamsmj",
+      "action": "logout",
+      "actor_user_id": 1,
+      "actor_username": "ayat",
       "target_type": null,
       "target_id": null,
       "ip_address": "127.0.0.1",
       "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
       "details": {},
-      "created_at": "2026-09-02T10:09:34.658491+00:00"
+      "created_at": "2026-09-03T09:27:49.147182+00:00"
     },
     {
       "id": 118,
       "action": "login_success",
-      "actor_user_id": 2,
-      "actor_username": "shamsmj",
+      "actor_user_id": 16,
+      "actor_username": "acting.construction",
       "target_type": null,
       "target_id": null,
       "ip_address": "127.0.0.1",
       "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
       "details": {},
-      "created_at": "2026-09-03T07:09:24.014112+00:00"
+      "created_at": "2026-09-03T09:27:57.706173+00:00"
     },
     {
       "id": 119,
       "action": "login_success",
-      "actor_user_id": 2,
-      "actor_username": "shamsmj",
+      "actor_user_id": 16,
+      "actor_username": "acting.construction",
       "target_type": null,
       "target_id": null,
       "ip_address": "127.0.0.1",
       "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
       "details": {},
-      "created_at": "2026-09-03T08:32:43.669935+00:00"
+      "created_at": "2026-09-06T07:19:26.932207+00:00"
     },
     {
       "id": 120,
       "action": "login_success",
-      "actor_user_id": 2,
-      "actor_username": "shamsmj",
+      "actor_user_id": 16,
+      "actor_username": "acting.construction",
       "target_type": null,
       "target_id": null,
       "ip_address": "127.0.0.1",
       "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
       "details": {},
-      "created_at": "2026-09-03T09:58:04.018233+00:00"
+      "created_at": "2026-09-06T10:48:51.176187+00:00"
     },
     {
       "id": 121,
-      "action": "login_success",
-      "actor_user_id": 2,
-      "actor_username": "shamsmj",
+      "action": "logout",
+      "actor_user_id": 16,
+      "actor_username": "acting.construction",
       "target_type": null,
       "target_id": null,
       "ip_address": "127.0.0.1",
       "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
       "details": {},
-      "created_at": "2026-09-06T08:15:42.645635+00:00"
+      "created_at": "2026-09-06T10:54:28.930979+00:00"
     },
     {
       "id": 122,
-      "action": "login_success",
-      "actor_user_id": 2,
-      "actor_username": "shamsmj",
-      "target_type": null,
-      "target_id": null,
+      "action": "login_failed",
+      "actor_user_id": null,
+      "actor_username": null,
+      "target_type": "admin_user",
+      "target_id": "Shams2000",
       "ip_address": "127.0.0.1",
       "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
       "details": {},
-      "created_at": "2026-09-06T10:57:47.898024+00:00"
+      "created_at": "2026-09-06T10:54:42.917711+00:00"
     },
     {
       "id": 123,
       "action": "login_success",
-      "actor_user_id": 2,
-      "actor_username": "shamsmj",
+      "actor_user_id": 19,
+      "actor_username": "acting.higher.education",
       "target_type": null,
       "target_id": null,
       "ip_address": "127.0.0.1",
       "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
       "details": {},
-      "created_at": "2026-09-07T07:31:24.028044+00:00"
+      "created_at": "2026-09-06T10:54:59.950166+00:00"
     },
     {
       "id": 124,
-      "action": "login_success",
-      "actor_user_id": 2,
-      "actor_username": "shamsmj",
+      "action": "logout",
+      "actor_user_id": 19,
+      "actor_username": "acting.higher.education",
       "target_type": null,
       "target_id": null,
       "ip_address": "127.0.0.1",
       "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
       "details": {},
-      "created_at": "2026-09-07T08:38:53.985784+00:00"
+      "created_at": "2026-09-06T10:55:44.919845+00:00"
     },
     {
       "id": 125,
       "action": "login_success",
-      "actor_user_id": 2,
-      "actor_username": "shamsmj",
+      "actor_user_id": 12,
+      "actor_username": "minister.health",
       "target_type": null,
       "target_id": null,
       "ip_address": "127.0.0.1",
       "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
       "details": {},
-      "created_at": "2026-09-07T11:03:49.488813+00:00"
+      "created_at": "2026-09-06T10:56:04.603724+00:00"
     },
     {
       "id": 126,
       "action": "login_success",
-      "actor_user_id": 2,
-      "actor_username": "shamsmj",
+      "actor_user_id": 12,
+      "actor_username": "minister.health",
       "target_type": null,
       "target_id": null,
       "ip_address": "127.0.0.1",
       "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
       "details": {},
-      "created_at": "2026-09-07T11:31:04.389710+00:00"
+      "created_at": "2026-09-07T08:52:45.254498+00:00"
     },
     {
       "id": 127,
-      "action": "settings_updated",
-      "actor_user_id": 1,
-      "actor_username": "admin",
-      "target_type": "settings",
+      "action": "login_success",
+      "actor_user_id": 12,
+      "actor_username": "minister.health",
+      "target_type": null,
       "target_id": null,
-      "ip_address": "testclient",
-      "user_agent": "testclient",
-      "details": {
-        "sections": [
-          "appearance"
-        ]
-      },
-      "created_at": "2026-09-08T05:00:15.412137+00:00"
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "details": {},
+      "created_at": "2026-09-07T10:02:46.563926+00:00"
     },
     {
       "id": 128,
       "action": "login_success",
-      "actor_user_id": 2,
-      "actor_username": "shamsmj",
+      "actor_user_id": 12,
+      "actor_username": "minister.health",
       "target_type": null,
       "target_id": null,
       "ip_address": "127.0.0.1",
       "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
       "details": {},
-      "created_at": "2026-09-08T11:05:10.211914+00:00"
+      "created_at": "2026-09-07T11:04:11.611940+00:00"
     },
     {
       "id": 129,
       "action": "login_success",
-      "actor_user_id": 2,
-      "actor_username": "shamsmj",
+      "actor_user_id": 12,
+      "actor_username": "minister.health",
       "target_type": null,
       "target_id": null,
       "ip_address": "127.0.0.1",
       "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
       "details": {},
-      "created_at": "2026-09-09T06:40:41.745994+00:00"
+      "created_at": "2026-09-09T07:29:13.948137+00:00"
     },
     {
       "id": 130,
       "action": "login_success",
-      "actor_user_id": 2,
-      "actor_username": "shamsmj",
+      "actor_user_id": 12,
+      "actor_username": "minister.health",
       "target_type": null,
       "target_id": null,
       "ip_address": "127.0.0.1",
       "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
       "details": {},
-      "created_at": "2026-09-09T10:12:37.059318+00:00"
+      "created_at": "2026-09-09T08:32:44.143875+00:00"
     },
     {
       "id": 131,
-      "action": "settings_updated",
-      "actor_user_id": 1,
-      "actor_username": "admin",
-      "target_type": "settings",
+      "action": "login_success",
+      "actor_user_id": 12,
+      "actor_username": "minister.health",
+      "target_type": null,
       "target_id": null,
-      "ip_address": "testclient",
-      "user_agent": "testclient",
-      "details": {
-        "sections": [
-          "appearance"
-        ]
-      },
-      "created_at": "2026-09-10T05:54:57.516500+00:00"
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "details": {},
+      "created_at": "2026-09-09T09:58:30.266595+00:00"
     },
     {
       "id": 132,
       "action": "login_success",
-      "actor_user_id": 2,
-      "actor_username": "shamsmj",
+      "actor_user_id": 12,
+      "actor_username": "minister.health",
       "target_type": null,
       "target_id": null,
       "ip_address": "127.0.0.1",
       "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
       "details": {},
-      "created_at": "2026-09-10T06:58:37.663255+00:00"
+      "created_at": "2026-09-10T07:03:47.597776+00:00"
     },
     {
       "id": 133,
       "action": "login_success",
-      "actor_user_id": 2,
-      "actor_username": "shamsmj",
+      "actor_user_id": 12,
+      "actor_username": "minister.health",
       "target_type": null,
       "target_id": null,
       "ip_address": "127.0.0.1",
       "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
       "details": {},
-      "created_at": "2026-09-13T10:00:59.898954+00:00"
+      "created_at": "2026-09-10T08:16:34.766870+00:00"
     },
     {
       "id": 134,
-      "action": "logout",
-      "actor_user_id": 2,
-      "actor_username": "shamsmj",
+      "action": "login_success",
+      "actor_user_id": 12,
+      "actor_username": "minister.health",
       "target_type": null,
       "target_id": null,
       "ip_address": "127.0.0.1",
       "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
       "details": {},
-      "created_at": "2026-09-13T10:09:41.475289+00:00"
+      "created_at": "2026-09-10T09:17:28.957305+00:00"
     },
     {
       "id": 135,
       "action": "login_success",
-      "actor_user_id": 2,
-      "actor_username": "shamsmj",
+      "actor_user_id": 12,
+      "actor_username": "minister.health",
       "target_type": null,
       "target_id": null,
       "ip_address": "127.0.0.1",
       "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
       "details": {},
-      "created_at": "2026-09-13T10:09:44.207011+00:00"
+      "created_at": "2026-09-10T10:25:51.258699+00:00"
     },
     {
       "id": 136,
       "action": "login_success",
-      "actor_user_id": 2,
-      "actor_username": "shamsmj",
+      "actor_user_id": 12,
+      "actor_username": "minister.health",
       "target_type": null,
       "target_id": null,
       "ip_address": "127.0.0.1",
       "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
       "details": {},
-      "created_at": "2026-09-14T06:16:47.180120+00:00"
+      "created_at": "2026-09-13T08:46:58.685326+00:00"
     },
     {
       "id": 137,
       "action": "login_success",
-      "actor_user_id": 2,
-      "actor_username": "shamsmj",
+      "actor_user_id": 12,
+      "actor_username": "minister.health",
       "target_type": null,
       "target_id": null,
       "ip_address": "127.0.0.1",
       "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
       "details": {},
-      "created_at": "2026-09-14T09:00:54.552250+00:00"
+      "created_at": "2026-09-14T08:58:11.417623+00:00"
     },
     {
       "id": 138,
-      "action": "settings_updated",
-      "actor_user_id": 1,
-      "actor_username": "admin",
-      "target_type": "settings",
+      "action": "login_success",
+      "actor_user_id": 12,
+      "actor_username": "minister.health",
+      "target_type": null,
       "target_id": null,
-      "ip_address": "testclient",
-      "user_agent": "testclient",
-      "details": {
-        "sections": [
-          "appearance"
-        ]
-      },
-      "created_at": "2026-09-14T09:06:55.398635+00:00"
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "details": {},
+      "created_at": "2026-09-14T10:07:12.169137+00:00"
     },
     {
       "id": 139,
       "action": "login_success",
-      "actor_user_id": 2,
-      "actor_username": "shamsmj",
+      "actor_user_id": 12,
+      "actor_username": "minister.health",
       "target_type": null,
       "target_id": null,
       "ip_address": "127.0.0.1",
       "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
       "details": {},
-      "created_at": "2026-09-15T06:34:02.404072+00:00"
+      "created_at": "2026-09-14T11:10:56.459216+00:00"
     },
     {
       "id": 140,
-      "action": "settings_updated",
-      "actor_user_id": 1,
-      "actor_username": "admin",
-      "target_type": "settings",
+      "action": "login_success",
+      "actor_user_id": 12,
+      "actor_username": "minister.health",
+      "target_type": null,
       "target_id": null,
-      "ip_address": "testclient",
-      "user_agent": "testclient",
-      "details": {
-        "sections": [
-          "appearance"
-        ]
-      },
-      "created_at": "2026-09-15T06:45:02.112892+00:00"
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "details": {},
+      "created_at": "2026-09-15T10:13:37.453417+00:00"
     },
     {
       "id": 141,
       "action": "login_success",
-      "actor_user_id": 2,
-      "actor_username": "shamsmj",
+      "actor_user_id": 12,
+      "actor_username": "minister.health",
       "target_type": null,
       "target_id": null,
       "ip_address": "127.0.0.1",
       "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
       "details": {},
-      "created_at": "2026-09-15T10:38:12.292317+00:00"
+      "created_at": "2026-09-20T09:10:11.120085+00:00"
     },
     {
       "id": 142,
       "action": "login_success",
-      "actor_user_id": 2,
-      "actor_username": "shamsmj",
+      "actor_user_id": 12,
+      "actor_username": "minister.health",
       "target_type": null,
       "target_id": null,
       "ip_address": "127.0.0.1",
-      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36",
       "details": {},
-      "created_at": "2026-09-16T06:08:27.855745+00:00"
+      "created_at": "2026-09-21T06:29:52.965870+00:00"
     },
     {
       "id": 143,
-      "action": "settings_updated",
-      "actor_user_id": 1,
-      "actor_username": "admin",
-      "target_type": "settings",
+      "action": "login_success",
+      "actor_user_id": 12,
+      "actor_username": "minister.health",
+      "target_type": null,
       "target_id": null,
-      "ip_address": "testclient",
-      "user_agent": "testclient",
-      "details": {
-        "sections": [
-          "appearance"
-        ]
-      },
-      "created_at": "2026-09-16T06:35:56.046739+00:00"
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36",
+      "details": {},
+      "created_at": "2026-09-21T08:41:44.471448+00:00"
     },
     {
       "id": 144,
-      "action": "settings_updated",
-      "actor_user_id": 1,
-      "actor_username": "admin",
-      "target_type": "settings",
+      "action": "login_success",
+      "actor_user_id": 12,
+      "actor_username": "minister.health",
+      "target_type": null,
       "target_id": null,
-      "ip_address": "testclient",
-      "user_agent": "testclient",
-      "details": {
-        "sections": [
-          "appearance"
-        ]
-      },
-      "created_at": "2026-09-16T06:39:28.127232+00:00"
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36",
+      "details": {},
+      "created_at": "2026-09-21T09:56:58.755050+00:00"
     },
     {
       "id": 145,
       "action": "login_success",
-      "actor_user_id": 2,
-      "actor_username": "shamsmj",
+      "actor_user_id": 12,
+      "actor_username": "minister.health",
       "target_type": null,
       "target_id": null,
       "ip_address": "127.0.0.1",
       "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36",
       "details": {},
-      "created_at": "2026-09-16T08:59:52.954381+00:00"
+      "created_at": "2026-09-21T11:03:04.389829+00:00"
     },
     {
       "id": 146,
-      "action": "settings_updated",
-      "actor_user_id": 1,
-      "actor_username": "admin",
-      "target_type": "settings",
-      "target_id": null,
-      "ip_address": "testclient",
-      "user_agent": "testclient",
-      "details": {
-        "sections": [
-          "appearance"
-        ]
-      },
-      "created_at": "2026-09-16T09:17:52.735257+00:00"
-    },
-    {
-      "id": 147,
-      "action": "settings_updated",
-      "actor_user_id": 1,
-      "actor_username": "admin",
-      "target_type": "settings",
-      "target_id": null,
-      "ip_address": "testclient",
-      "user_agent": "testclient",
-      "details": {
-        "sections": [
-          "appearance"
-        ]
-      },
-      "created_at": "2026-09-16T09:19:50.779959+00:00"
-    },
-    {
-      "id": 148,
-      "action": "settings_updated",
-      "actor_user_id": 1,
-      "actor_username": "admin",
-      "target_type": "settings",
-      "target_id": null,
-      "ip_address": "testclient",
-      "user_agent": "testclient",
-      "details": {
-        "sections": [
-          "appearance"
-        ]
-      },
-      "created_at": "2026-09-16T09:22:08.370170+00:00"
-    },
-    {
-      "id": 149,
       "action": "login_success",
-      "actor_user_id": 2,
-      "actor_username": "shamsmj",
+      "actor_user_id": 12,
+      "actor_username": "minister.health",
       "target_type": null,
       "target_id": null,
       "ip_address": "127.0.0.1",
       "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36",
       "details": {},
-      "created_at": "2026-09-22T06:16:52.964217+00:00"
+      "created_at": "2026-09-22T06:46:23.608158+00:00"
+    },
+    {
+      "id": 147,
+      "action": "logout",
+      "actor_user_id": 12,
+      "actor_username": "minister.health",
+      "target_type": null,
+      "target_id": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36",
+      "details": {},
+      "created_at": "2026-09-22T07:15:34.331092+00:00"
+    },
+    {
+      "id": 148,
+      "action": "login_success",
+      "actor_user_id": 16,
+      "actor_username": "acting.construction",
+      "target_type": null,
+      "target_id": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36",
+      "details": {},
+      "created_at": "2026-09-22T07:15:39.426389+00:00"
     }
   ]
 }

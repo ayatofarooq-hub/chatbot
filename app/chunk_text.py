@@ -24,6 +24,12 @@ MIN_CHUNK_SIZE = 650
 TARGET_CHUNK_SIZE = 1100
 MAX_CHUNK_SIZE = 1500
 CHUNK_OVERLAP = 120
+SUMMARY_SECTION_LABELS = ("الشرح التفصيلي", "الشرح التفصيلى")
+SUMMARY_CONTEXT_VALUES = {"summary", "ملخص", "الملخص", "الخلاصة", "الشرح", "التفصيلي", "التفصيلى"}
+SUMMARY_SECTION_PATTERN = re.compile(
+    r"^\s*(?:summary|ملخص|الملخص|الخلاصة|الشرح التفصيلي|الشرح التفصيلى)\s*[:：\-]?",
+    re.IGNORECASE,
+)
 BOUNDARY_PATTERNS = (
     re.compile(r"\n\n"),
     re.compile(r"(?<=[.!؟؛:])\s+"),
@@ -39,6 +45,17 @@ def normalize_whitespace(text: str) -> str:
     text = re.sub(r"[^\S\n]+", " ", text)
     text = "\n".join(line.strip() for line in text.splitlines())
     return re.sub(r"\n{3,}", "\n\n", text).strip()
+
+
+def strip_summary_sections(text: str) -> str:
+    """Remove generated summary/explanation lines before chunking."""
+
+    cleaned_lines = []
+    for line in str(text or "").splitlines():
+        if SUMMARY_SECTION_PATTERN.match(line) or any(label in line for label in SUMMARY_SECTION_LABELS):
+            continue
+        cleaned_lines.append(line)
+    return normalize_whitespace("\n".join(cleaned_lines))
 
 
 def choose_chunk_end(text: str, start: int) -> int:
@@ -120,6 +137,170 @@ def _flatten_metadata_values(value) -> list[str]:
     return values
 
 
+def _metadata_context_value(value: str) -> str:
+    text = strip_summary_sections(value)
+    if text.strip().lower() in SUMMARY_CONTEXT_VALUES:
+        return ""
+    return text
+
+
+def _unique_join(values: list[str], limit: int = 20) -> str:
+    """Return Chroma-safe scalar metadata from ordered extracted values."""
+
+    cleaned = []
+    for value in values:
+        text = re.sub(r"\s+", " ", str(value or "")).strip(" .،؛:")
+        if text and text not in cleaned:
+            cleaned.append(text)
+    return " | ".join(cleaned[:limit])
+
+
+def _first_value(*values) -> str:
+    for value in values:
+        if isinstance(value, list):
+            text = _unique_join(_flatten_metadata_values(value), limit=1)
+        elif isinstance(value, dict):
+            text = _unique_join(_flatten_metadata_values(value), limit=1)
+        else:
+            text = str(value or "").strip()
+        if text:
+            return text
+    return ""
+
+
+def _nested_mapping(document: dict, key: str) -> dict:
+    value = document.get(key)
+    return value if isinstance(value, dict) else {}
+
+
+def _extract_dates(text: str) -> list[str]:
+    return re.findall(r"\b[0-9٠-٩]{1,2}\s*/\s*[0-9٠-٩]{1,2}\s*/\s*[0-9٠-٩]{4}\b", text)
+
+
+def _extract_session_date(text: str) -> str:
+    """Extract the date tied specifically to a session phrase."""
+
+    normalized = re.sub(r"\s+", " ", str(text or ""))
+    patterns = (
+        r"(?:الجلسة|جلسته|جلسة)\s+.{0,140}?\s+المنعقد(?:ة)?\s+(?:في|بتاريخ)\s+([0-9٠-٩]{1,2}\s*/\s*[0-9٠-٩]{1,2}\s*/\s*[0-9٠-٩]{4})",
+        r"(?:الجلسة|جلسته|جلسة)\s+.{0,140}?\s+(?:في|بتاريخ)\s+([0-9٠-٩]{1,2}\s*/\s*[0-9٠-٩]{1,2}\s*/\s*[0-9٠-٩]{4})",
+        r"(?:عقدت|انعقدت)\s+.{0,80}?(?:الجلسة|جلسة)\s+.{0,80}?(?:في|بتاريخ)\s+([0-9٠-٩]{1,2}\s*/\s*[0-9٠-٩]{1,2}\s*/\s*[0-9٠-٩]{4})",
+    )
+    for pattern in patterns:
+        match = re.search(pattern, normalized)
+        if match:
+            return re.sub(r"\s+", "", match.group(1))
+    return ""
+
+
+def _extract_reference_numbers(text: str) -> list[str]:
+    patterns = (
+        r"المرقم\s+بالعدد\s*\(\s*([^)]+?)\s*\)",
+        r"بالعدد\s*\(\s*([^)]+?)\s*\)",
+        r"رقم\s+الكتاب\s*\(?\s*([0-9٠-٩A-Za-z/\\-]+)\s*\)?",
+    )
+    values: list[str] = []
+    for pattern in patterns:
+        values.extend(match.strip() for match in re.findall(pattern, text))
+    return values
+
+
+def _extract_recommendation_numbers(text: str) -> list[str]:
+    patterns = (
+        r"توصية\s+المجلس\s+الوزاري\s+للاقتصاد\s*\(\s*([^)]+?)\s*\)",
+        r"التوصية\s*\(\s*([0-9٠-٩]+\s*ق?)\s*\)",
+    )
+    values: list[str] = []
+    for pattern in patterns:
+        values.extend(match.strip() for match in re.findall(pattern, text))
+    return values
+
+
+def _extract_entities(text: str) -> list[str]:
+    pattern = re.compile(
+        r"\b(?:وزارة|شركة|مجلس|هيئة|دائرة|محافظة|لجنة|الأمانة العامة)\s+[\u0600-\u06ffA-Za-z0-9\s]{2,60}",
+    )
+    entities = []
+    for match in pattern.finditer(text):
+        entity = re.split(r"[،؛:.\n\r]", match.group(0), 1)[0]
+        entity = re.sub(r"\s+", " ", entity).strip()
+        if entity:
+            entities.append(entity)
+    return entities
+
+
+def _extract_amounts(text: str) -> list[str]:
+    return [
+        re.sub(r"\s+", " ", match.group(0)).strip()
+        for match in re.finditer(r"[0-9٠-٩][0-9٠-٩.,/ ]*\s*(?:دينار|دولار)", text)
+    ]
+
+
+def _extract_explicit_decision_number(document: dict, text: str) -> str:
+    """Return decision number only from explicit decision fields or phrase."""
+
+    info = _nested_mapping(document, "document")
+    metadata = _nested_mapping(document, "metadata")
+    extracted = _nested_mapping(document, "extracted_fields")
+    value = _first_value(
+        document.get("decision_number"),
+        info.get("decision_number"),
+        metadata.get("decision_number"),
+        extracted.get("decision_number"),
+        extracted.get("decision_numbers"),
+    )
+    if value and value.lower() not in {"none", "null"}:
+        return value
+    match = re.search(r"قرار\s+مجلس\s+الوزراء\s+رقم\s*\(?\s*([0-9٠-٩]+)\s*\)?", text)
+    return match.group(1).strip() if match else ""
+
+
+def _derived_metadata(document: dict, text: str) -> dict[str, str]:
+    """Extract searchable scalar metadata used by retrieval and direct answers."""
+
+    info = _nested_mapping(document, "document")
+    metadata = _nested_mapping(document, "metadata")
+    extracted = _nested_mapping(document, "extracted_fields")
+    references = document.get("references")
+    legal_entities = document.get("legal_entities")
+    values = {
+        "decision_number": _extract_explicit_decision_number(document, text),
+        "issue_date": _first_value(document.get("issue_date"), info.get("issue_date"), metadata.get("issue_date"), extracted.get("issue_date")),
+        "session_date": _first_value(
+            document.get("session_date"),
+            info.get("session_date"),
+            metadata.get("session_date"),
+            extracted.get("session_date"),
+            _extract_session_date(text),
+        ),
+        "session_number": _first_value(document.get("session_number"), info.get("session_number"), metadata.get("session_number"), extracted.get("session_number")),
+        "year": _first_value(document.get("year"), info.get("year"), metadata.get("year"), extracted.get("year")),
+        "reference_numbers": _first_value(
+            document.get("reference_numbers"),
+            metadata.get("reference_numbers"),
+            extracted.get("reference_numbers"),
+            _extract_reference_numbers(text),
+        ),
+        "recommendation_numbers": _first_value(
+            document.get("recommendation_numbers"),
+            metadata.get("recommendation_numbers"),
+            extracted.get("recommendation_numbers"),
+            _extract_recommendation_numbers(text),
+        ),
+        "dates": _first_value(document.get("dates"), metadata.get("dates"), extracted.get("dates"), _extract_dates(text)),
+        "entities": _first_value(
+            document.get("entities"),
+            metadata.get("entities"),
+            extracted.get("entities"),
+            legal_entities,
+            _extract_entities(text),
+        ),
+        "amounts": _first_value(document.get("amounts"), metadata.get("amounts"), extracted.get("amounts"), _extract_amounts(text)),
+        "references": _first_value(references),
+    }
+    return {key: value for key, value in values.items() if value and value.lower() not in {"none", "null"}}
+
+
 def _metadata_search_context(document: dict) -> str:
     values: list[str] = []
     for key in (
@@ -135,11 +316,11 @@ def _metadata_search_context(document: dict) -> str:
         "metadata",
         "extracted_fields",
     ):
-        values.extend(_flatten_metadata_values(document.get(key)))
+        values.extend(_metadata_context_value(value) for value in _flatten_metadata_values(document.get(key)))
     source = document.get("source") if isinstance(document.get("source"), dict) else {}
     info = document.get("document") if isinstance(document.get("document"), dict) else {}
-    values.extend(_flatten_metadata_values(info))
-    values.extend(_flatten_metadata_values(source.get("parser")))
+    values.extend(_metadata_context_value(value) for value in _flatten_metadata_values(info))
+    values.extend(_metadata_context_value(value) for value in _flatten_metadata_values(source.get("parser")))
     raw_context = " | ".join(dict.fromkeys(value for value in values if value))[:1200]
     normalized_context = normalized_search_blob(raw_context)
     return "\n".join(
@@ -173,12 +354,12 @@ def _normalize_document(document) -> SimpleNamespace:
             or document.get("path")
             or ""
         )
-        primary_text = source_text_from_payload(document)
+        primary_text = strip_summary_sections(source_text_from_payload(document))
         if primary_text:
             blocks.append(DocumentBlock(text=primary_text))
         else:
             for article in document.get("articles", []) or []:
-                article_text = str(article.get("text", "") or "").strip()
+                article_text = strip_summary_sections(article.get("text", "") or "")
                 if article_text:
                     blocks.append(
                         DocumentBlock(
@@ -187,14 +368,14 @@ def _normalize_document(document) -> SimpleNamespace:
                         )
                     )
         if not blocks:
-            fallback_text = (
+            fallback_text = strip_summary_sections(
                 document.get("content")
                 or document.get("embedding_text")
-                or document.get("summary")
-                or document.get("title")
+                or document.get("text")
                 or ""
             )
-            blocks.append(DocumentBlock(text=str(fallback_text)))
+            if fallback_text:
+                blocks.append(DocumentBlock(text=fallback_text))
         source_file = str(
             document.get("source_file")
             or source.get("filename")
@@ -202,6 +383,7 @@ def _normalize_document(document) -> SimpleNamespace:
             or document.get("id")
             or "document"
         )
+        metadata_text_source = "\n".join(block.text for block in blocks)
         return SimpleNamespace(
             source_file=source_file,
             source_type="json",
@@ -213,13 +395,56 @@ def _normalize_document(document) -> SimpleNamespace:
             document_type=str(document.get("document_type") or document_info.get("type") or ""),
             search_context=_metadata_search_context(document),
             metadata={
-                k: v
-                for k, v in document.items()
-                if k not in {"title", "articles", "summary", "content", "embedding_text", "long_text", "body"}
-                and _has_value(v)
+                **_derived_metadata(document, metadata_text_source),
+                **{
+                    k: v
+                    for k, v in document.items()
+                    if k not in {"title", "articles", "summary", "content", "embedding_text", "long_text", "body"}
+                    and _has_value(v)
+                },
             },
         )
     return document
+
+
+DIRECT_CHUNK_METADATA_KEYS = {
+    "decision_number",
+    "issue_date",
+    "session_date",
+    "session_number",
+    "year",
+    "reference_numbers",
+    "recommendation_numbers",
+    "dates",
+    "entities",
+    "amounts",
+}
+
+
+def _direct_chunk_metadata(metadata: dict) -> dict[str, str]:
+    """Expose high-value document metadata without the document_ prefix."""
+
+    return {
+        key: str(metadata[key])
+        for key in DIRECT_CHUNK_METADATA_KEYS
+        if metadata.get(key) not in (None, "", [], {})
+        and isinstance(metadata.get(key), (str, int, float, bool))
+    }
+
+
+def _document_chunk_metadata(metadata: dict) -> dict[str, str | int | float | bool]:
+    """Keep chunk JSON metadata scalar and free of generated summaries."""
+
+    cleaned = {}
+    for key, value in metadata.items():
+        if value in (None, "", [], {}) or not isinstance(value, (str, int, float, bool)):
+            continue
+        if isinstance(value, str):
+            value = _metadata_context_value(value)
+            if not value:
+                continue
+        cleaned[f"document_{key}"] = value
+    return cleaned
 
 
 def build_chunks_from_document(document: LoadedDocument | dict) -> list[dict]:
@@ -257,9 +482,12 @@ def build_chunks_from_document(document: LoadedDocument | dict) -> list[dict]:
         if block.block_type == "table":
             context_lines.append("[جدول]")
 
+        block_text = strip_summary_sections(block.text)
+        if not block_text:
+            continue
         prefix = "\n".join(context_lines)
         available_size = max(MIN_CHUNK_SIZE, MAX_CHUNK_SIZE - len(prefix) - 2)
-        block_parts = split_text(block.text) if len(block.text) > available_size else [block.text]
+        block_parts = split_text(block_text) if len(block_text) > available_size else [block_text]
 
         for part in block_parts:
             text = "\n\n".join(value for value in (prefix, part) if value)
@@ -292,7 +520,8 @@ def build_chunks_from_document(document: LoadedDocument | dict) -> list[dict]:
                 "text": text,
                 "embedding_text": _embedding_text(text, search_context),
             }
-            chunk.update({f"document_{key}": value for key, value in doc.metadata.items() if value})
+            chunk.update(_direct_chunk_metadata(doc.metadata))
+            chunk.update(_document_chunk_metadata(doc.metadata))
             chunks.append(chunk)
 
     total_chunks = len(chunks)

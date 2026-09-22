@@ -37,7 +37,7 @@ except ImportError:
 
 
 COLLECTION_NAME = "iraqi_legal_documents"
-EMBEDDING_BATCH_SIZE = 16
+EMBEDDING_BATCH_SIZE = 1
 CHROMA_BATCH_SIZE = 100
 REQUIRED_FIELDS = {
     "id",

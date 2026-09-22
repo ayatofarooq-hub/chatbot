@@ -219,6 +219,126 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(filtered["metadatas"][0][0]["document_id"], "doc-2")
         self.assertEqual(filtered["relevance_scores"], [[0.6]])
 
+    def test_source_hint_applies_only_to_follow_up_questions(self):
+        results = {
+            "documents": [["previous doc text", "new legal text"]],
+            "metadatas": [[
+                {"chunk_id": "previous", "source_file": "previous.docx", "document_id": "doc-1"},
+                {"chunk_id": "new", "source_file": "new-law.docx", "document_id": "doc-2"},
+            ]],
+            "distances": [[0.1, 0.2]],
+            "relevance_scores": [[0.9, 0.8]],
+            "intent_scores": [[0.3, 0.7]],
+        }
+        hint = {"sources": [{"filename": "previous.docx"}]}
+
+        follow_up = api_module.filter_results_by_source_hint(
+            results,
+            hint,
+            "ما تاريخ هذا الكتاب؟",
+        )
+        new_topic = api_module.filter_results_by_source_hint(
+            results,
+            hint,
+            "ما عقوبة جريمة السرقة؟",
+        )
+
+        self.assertEqual(follow_up["documents"], [["previous doc text"]])
+        self.assertEqual(follow_up["intent_scores"], [[0.3]])
+        self.assertEqual(new_topic["documents"], results["documents"])
+
+    def test_question_document_filter_keeps_named_word_source(self):
+        results = {
+            "documents": [["defense chunk", "foreign chunk", "defense second chunk"]],
+            "metadatas": [[
+                {
+                    "chunk_id": "defense-1",
+                    "source_file": "الدفاع قرار استثناء عقد تصليح طائرات.docx",
+                    "document_id": "الدفاع قرار استثناء عقد تصليح طائرات.docx",
+                },
+                {
+                    "chunk_id": "foreign-1",
+                    "source_file": "الخارجية قرار الجرحى الفلسطينين.docx",
+                    "document_id": "الخارجية قرار الجرحى الفلسطينين.docx",
+                },
+                {
+                    "chunk_id": "defense-2",
+                    "source_file": "الدفاع قرار استثناء عقد تصليح طائرات.docx",
+                    "document_id": "الدفاع قرار استثناء عقد تصليح طائرات.docx",
+                },
+            ]],
+            "distances": [[0.1, 0.2, 0.3]],
+            "relevance_scores": [[0.9, 0.8, 0.7]],
+        }
+
+        filtered = api_module.filter_results_by_question_document(
+            results,
+            "ما مضمون ملف الدفاع الخاص بعقد تصليح الطائرات؟",
+        )
+
+        self.assertEqual(filtered["documents"], [["defense chunk", "defense second chunk"]])
+        self.assertEqual(filtered["relevance_scores"], [[0.9, 0.7]])
+        self.assertEqual(
+            filtered["document_filter"]["source"],
+            "الدفاع قرار استثناء عقد تصليح طائرات.docx",
+        )
+
+    def test_question_document_filter_ignores_generic_questions(self):
+        results = {
+            "documents": [["first chunk", "second chunk"]],
+            "metadatas": [[
+                {"chunk_id": "first", "source_file": "الدفاع قرار استثناء عقد تصليح طائرات.docx"},
+                {"chunk_id": "second", "source_file": "الخارجية قرار الجرحى الفلسطينين.docx"},
+            ]],
+        }
+
+        filtered = api_module.filter_results_by_question_document(
+            results,
+            "ما رقم القرار؟",
+        )
+
+        self.assertEqual(filtered["documents"], results["documents"])
+
+    def test_results_for_question_document_loads_all_named_word_chunks(self):
+        records = [
+            {
+                "id": "defense-2",
+                "source_file": "الدفاع قرار استثناء عقد تصليح طائرات.docx",
+                "document_id": "الدفاع قرار استثناء عقد تصليح طائرات.docx",
+                "chunk_index": 1,
+                "text": "second defense chunk",
+            },
+            {
+                "id": "foreign-1",
+                "source_file": "الخارجية قرار الجرحى الفلسطينين.docx",
+                "document_id": "الخارجية قرار الجرحى الفلسطينين.docx",
+                "chunk_index": 0,
+                "text": "foreign chunk",
+            },
+            {
+                "id": "defense-1",
+                "source_file": "الدفاع قرار استثناء عقد تصليح طائرات.docx",
+                "document_id": "الدفاع قرار استثناء عقد تصليح طائرات.docx",
+                "chunk_index": 0,
+                "text": "first defense chunk",
+            },
+        ]
+
+        results = api_module.results_for_question_document(
+            "اشرح ملف الدفاع عقد تصليح الطائرات",
+            records,
+        )
+
+        self.assertEqual(
+            results["documents"],
+            [["first defense chunk", "second defense chunk"]],
+        )
+        self.assertEqual(results["metadatas"][0][0]["chunk_id"], "defense-1")
+        self.assertEqual(
+            results["document_filter"]["source"],
+            "الدفاع قرار استثناء عقد تصليح طائرات.docx",
+        )
+
     @patch("app.auth.admin_for_token", return_value={"id": 1, "username": "admin"})
     @patch("app.api.legal_rag_answer_from_results")
     @patch("app.api.search")

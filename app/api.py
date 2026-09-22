@@ -3,6 +3,7 @@
 from datetime import datetime
 from html import escape
 from io import BytesIO
+import json
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 import asyncio
@@ -33,7 +34,7 @@ try:
     from .config import PROJECT_ROOT
     from .json_storage import read_json, write_json
     from .rag_answer import CITATION_PATTERN, generate_answer, get_quick_response
-    from .search_index import search
+    from .search_index import needs_multiple_documents, search
     from .text_encoding import repair_json_text
     from .speech_to_text import inspect_audio, transcribe_audio
     from .local_tts import (
@@ -73,7 +74,7 @@ except ImportError:
     from config import PROJECT_ROOT
     from json_storage import read_json, write_json
     from rag_answer import CITATION_PATTERN, generate_answer, get_quick_response
-    from search_index import search
+    from search_index import needs_multiple_documents, search
     from text_encoding import repair_json_text
     from speech_to_text import inspect_audio, transcribe_audio
     from local_tts import (
@@ -100,6 +101,7 @@ except ImportError:
 
 FRONTEND_FOLDER = Path(__file__).resolve().parent.parent / "frontend"
 CHAT_HISTORY_FILE = PROJECT_ROOT / "data" / "chat_history.json"
+CHUNKS_FILE = PROJECT_ROOT / "data" / "chunks.jsonl"
 
 # Windows can inherit a registry mapping that labels JavaScript as text/plain.
 # Browsers reject ES modules served with that MIME type, leaving a blank page.
@@ -225,18 +227,70 @@ def source_hint_values(source_hint: object) -> set[str]:
     for item in candidates:
         if not isinstance(item, dict):
             continue
-        for key in ("document_id", "filename", "document_name", "source_file"):
+        for key in (
+            "document_id",
+            "filename",
+            "document_name",
+            "document",
+            "source",
+            "source_file",
+            "source_filename",
+            "json_path",
+            "original_json_path",
+        ):
             value = repair_json_text(item.get(key) or "").strip()
             if value:
                 values.add(value)
     return values
 
 
-def filter_results_by_source_hint(results: dict, source_hint: object) -> dict:
+def looks_like_follow_up_question(question: str) -> bool:
+    """Return whether a question should prefer the previous answer source."""
+
+    text = repair_json_text(question or "").strip()
+    if not text:
+        return False
+    normalized = re.sub(r"\s+", " ", text)
+    tokens = normalized.split()
+    follow_up_markers = (
+        "هذا",
+        "هذه",
+        "ذلك",
+        "المذكور",
+        "اعلاه",
+        "أعلاه",
+        "نفس",
+        "القرار",
+        "الوثيقة",
+        "المستند",
+        "الكتاب",
+        "ايضا",
+        "أيضا",
+        "كذلك",
+    )
+    if any(marker in normalized for marker in follow_up_markers):
+        return True
+    if re.match(r"^\s*و(?:ما|متى|كم|من|هل|ماهو|ما\s+هو)\b", normalized):
+        return True
+    new_topic_markers = (
+        "قانون رقم",
+        "قرار رقم",
+        "تعليمات رقم",
+        "نظام رقم",
+        "عقوبة",
+        "جريمة",
+        "قانون ",
+    )
+    if any(marker in normalized for marker in new_topic_markers):
+        return False
+    return len(tokens) <= 8 and bool(re.search(r"\b(?:رقم|تاريخ|مبلغ|سعر|جهة|كتاب)\b", normalized))
+
+
+def filter_results_by_source_hint(results: dict, source_hint: object, question: str = "") -> dict:
     """Keep retrieval hits from the same previous Word/doc source when possible."""
 
     hints = source_hint_values(source_hint)
-    if not hints:
+    if not hints or (question and not looks_like_follow_up_question(question)):
         return results
 
     documents = results.get("documents", [[]])[0]
@@ -253,6 +307,10 @@ def filter_results_by_source_hint(results: dict, source_hint: object) -> dict:
             repair_json_text(metadata.get("source_file") or "").strip(),
             repair_json_text(metadata.get("filename") or "").strip(),
             repair_json_text(metadata.get("source_filename") or "").strip(),
+            repair_json_text(metadata.get("document") or "").strip(),
+            repair_json_text(metadata.get("source") or "").strip(),
+            repair_json_text(metadata.get("json_path") or "").strip(),
+            repair_json_text(metadata.get("original_json_path") or "").strip(),
         }
         metadata_values.discard("")
         if hints & metadata_values:
@@ -262,12 +320,306 @@ def filter_results_by_source_hint(results: dict, source_hint: object) -> dict:
         return results
 
     filtered = {**results}
-    for key in ("documents", "metadatas", "distances", "relevance_scores", "bm25_scores"):
+    for key in ("documents", "metadatas", "distances", "relevance_scores", "bm25_scores", "signal_scores", "intent_scores"):
         values = results.get(key, [[]])
         row = values[0] if values and isinstance(values[0], list) else []
         if row:
             filtered[key] = [[row[index] for index in keep_indexes if index < len(row)]]
     return filtered
+
+
+DOCUMENT_MATCH_STOP_WORDS = {
+    "ال",
+    "في",
+    "من",
+    "عن",
+    "على",
+    "الى",
+    "إلى",
+    "او",
+    "أو",
+    "و",
+    "ما",
+    "ماهو",
+    "ماهي",
+    "هل",
+    "رقم",
+    "تاريخ",
+    "قرار",
+    "كتاب",
+    "وزارة",
+    "مجلس",
+    "الوزراء",
+    "مكتب",
+    "الوزير",
+    "docx",
+    "json",
+}
+
+
+def normalize_document_match_text(value: object) -> str:
+    """Normalize Arabic/filename text for matching a question to one Word source."""
+
+    text = repair_json_text(str(value or "")).lower()
+    text = Path(text).stem
+    replacements = str.maketrans(
+        {
+            "أ": "ا",
+            "إ": "ا",
+            "آ": "ا",
+            "ى": "ي",
+            "ة": "ه",
+            "ؤ": "و",
+            "ئ": "ي",
+            "ـ": "",
+        }
+    )
+    text = text.translate(replacements)
+    text = re.sub(r"[^\w\u0600-\u06ff]+", " ", text)
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def document_match_tokens(value: object) -> set[str]:
+    """Return meaningful tokens used to identify an intended source document."""
+
+    normalized = normalize_document_match_text(value)
+    tokens = set(re.findall(r"[\u0600-\u06ffA-Za-z0-9]{2,}", normalized))
+    stop_words = {normalize_document_match_text(word) for word in DOCUMENT_MATCH_STOP_WORDS}
+    return {token for token in tokens if token not in stop_words}
+
+
+def document_key_from_metadata(metadata: dict) -> str:
+    """Return a stable document key for grouping chunks from the same Word file."""
+
+    for key in (
+        "document_id",
+        "source_file",
+        "source_filename",
+        "filename",
+        "json_path",
+        "original_json_path",
+    ):
+        value = repair_json_text(metadata.get(key) or "").strip()
+        if value:
+            return value
+    return ""
+
+
+def metadata_document_match_values(metadata: dict) -> list[str]:
+    """Return source labels that may be mentioned by the user in a question."""
+
+    values = []
+    for key in (
+        "source_file",
+        "source_filename",
+        "filename",
+        "document_id",
+        "document_title",
+        "title",
+        "json_path",
+        "original_json_path",
+    ):
+        value = repair_json_text(metadata.get(key) or "").strip()
+        if value:
+            values.append(value)
+            if key in {"source_file", "source_filename", "filename", "json_path", "original_json_path"}:
+                values.append(Path(value).stem)
+    return list(dict.fromkeys(values))
+
+
+def best_document_match_score(question: str, question_tokens: set[str], metadata: dict) -> int:
+    """Score how strongly one result's document identity appears in the question."""
+
+    if not question_tokens:
+        return 0
+    best_score = 0
+    normalized_question = normalize_document_match_text(question)
+    for value in metadata_document_match_values(metadata):
+        tokens = document_match_tokens(value)
+        if not tokens:
+            continue
+        overlap = question_tokens & tokens
+        score = len(overlap)
+        normalized_value = normalize_document_match_text(value)
+        if normalized_value and normalized_value in normalized_question:
+            score += 3
+        best_score = max(best_score, score)
+    return best_score
+
+
+def filter_results_by_question_document(results: dict, question: str) -> dict:
+    """If the question names a Word source, keep only chunks from that source."""
+
+    documents = results.get("documents", [[]])[0]
+    metadatas = results.get("metadatas", [[]])[0]
+    if not documents or not metadatas:
+        return results
+
+    question_tokens = document_match_tokens(question)
+    if not question_tokens:
+        return results
+
+    scores_by_document: dict[str, int] = {}
+    for metadata in metadatas:
+        if not isinstance(metadata, dict):
+            continue
+        key = document_key_from_metadata(metadata)
+        if not key:
+            continue
+        score = best_document_match_score(question, question_tokens, metadata)
+        if score:
+            scores_by_document[key] = max(scores_by_document.get(key, 0), score)
+
+    if not scores_by_document:
+        return results
+
+    ranked = sorted(scores_by_document.items(), key=lambda item: item[1], reverse=True)
+    best_key, best_score = ranked[0]
+    second_score = ranked[1][1] if len(ranked) > 1 else 0
+    if best_score < 1 or (second_score and best_score == second_score):
+        return results
+
+    keep_indexes = [
+        index
+        for index, metadata in enumerate(metadatas)
+        if isinstance(metadata, dict) and document_key_from_metadata(metadata) == best_key
+    ]
+    if not keep_indexes:
+        return results
+
+    filtered = {**results}
+    filtered["document_filter"] = {"source": best_key, "score": best_score}
+    for key in ("documents", "metadatas", "distances", "relevance_scores", "bm25_scores", "signal_scores", "intent_scores"):
+        values = results.get(key, [[]])
+        row = values[0] if values and isinstance(values[0], list) else []
+        if row:
+            filtered[key] = [[row[index] for index in keep_indexes if index < len(row)]]
+    return filtered
+
+
+def filter_results_to_top_document(results: dict, question: str) -> dict:
+    """For ordinary questions, keep the answer grounded in one best document."""
+
+    if needs_multiple_documents(question):
+        return results
+
+    documents = results.get("documents", [[]])[0]
+    metadatas = results.get("metadatas", [[]])[0]
+    if not documents or not metadatas:
+        return results
+
+    best_key = ""
+    for metadata in metadatas:
+        if isinstance(metadata, dict):
+            best_key = document_key_from_metadata(metadata)
+            if best_key:
+                break
+    if not best_key:
+        return results
+
+    keep_indexes = [
+        index
+        for index, metadata in enumerate(metadatas)
+        if isinstance(metadata, dict) and document_key_from_metadata(metadata) == best_key
+    ]
+    if not keep_indexes:
+        return results
+
+    filtered = {**results}
+    filtered["document_filter"] = {"source": best_key, "mode": "top_document"}
+    for key in ("documents", "metadatas", "distances", "relevance_scores", "bm25_scores", "signal_scores", "intent_scores"):
+        values = results.get(key, [[]])
+        row = values[0] if values and isinstance(values[0], list) else []
+        if row:
+            filtered[key] = [[row[index] for index in keep_indexes if index < len(row)]]
+    return filtered
+
+
+def chunk_metadata_from_record(record: dict) -> dict:
+    """Return API/search-compatible metadata from one saved chunk record."""
+
+    metadata = {
+        key: value
+        for key, value in record.items()
+        if key not in {"text", "embedding_text"}
+        and isinstance(value, (str, int, float, bool))
+    }
+    metadata["chunk_id"] = str(record.get("chunk_id") or record.get("id") or "")
+    return metadata
+
+
+def load_saved_chunk_records(chunks_file: Path = CHUNKS_FILE) -> list[dict]:
+    """Load generated chunks so named Word files can be answered directly."""
+
+    if not chunks_file.exists():
+        return []
+    records = []
+    try:
+        with chunks_file.open("r", encoding="utf-8") as input_file:
+            for line in input_file:
+                if not line.strip():
+                    continue
+                try:
+                    record = repair_json_text(json.loads(line))
+                except json.JSONDecodeError:
+                    continue
+                if isinstance(record, dict) and str(record.get("text") or "").strip():
+                    records.append(record)
+    except OSError:
+        return []
+    return records
+
+
+def results_for_question_document(question: str, records: list[dict] | None = None) -> dict:
+    """Return all chunks for a Word document explicitly named by the question."""
+
+    records = records if records is not None else load_saved_chunk_records()
+    if not records:
+        return {"documents": [[]], "metadatas": [[]], "distances": [[]]}
+
+    question_tokens = document_match_tokens(question)
+    if not question_tokens:
+        return {"documents": [[]], "metadatas": [[]], "distances": [[]]}
+
+    scored: dict[str, dict] = {}
+    for record in records:
+        metadata = chunk_metadata_from_record(record)
+        key = document_key_from_metadata(metadata)
+        if not key:
+            continue
+        score = best_document_match_score(question, question_tokens, metadata)
+        if not score:
+            continue
+        entry = scored.setdefault(key, {"score": 0, "records": []})
+        entry["score"] = max(entry["score"], score)
+        entry["records"].append(record)
+
+    if not scored:
+        return {"documents": [[]], "metadatas": [[]], "distances": [[]]}
+
+    ranked = sorted(scored.items(), key=lambda item: item[1]["score"], reverse=True)
+    best_key, best_entry = ranked[0]
+    second_score = ranked[1][1]["score"] if len(ranked) > 1 else 0
+    if best_entry["score"] < 1 or (second_score and best_entry["score"] == second_score):
+        return {"documents": [[]], "metadatas": [[]], "distances": [[]]}
+
+    selected = sorted(
+        best_entry["records"],
+        key=lambda item: int(item.get("chunk_index") or 0),
+    )
+    documents = [str(record.get("text") or "") for record in selected]
+    metadatas = [chunk_metadata_from_record(record) for record in selected]
+    return {
+        "_question": question,
+        "document_filter": {"source": best_key, "score": best_entry["score"]},
+        "documents": [documents],
+        "metadatas": [metadatas],
+        "distances": [[0.0 for _ in selected]],
+        "relevance_scores": [[1.0 for _ in selected]],
+        "bm25_scores": [[1.0 for _ in selected]],
+        "signal_scores": [[1.0 for _ in selected]],
+        "intent_scores": [[1.0 for _ in selected]],
+    }
 
 
 def sources_from_grounded_answer(grounded: dict, results: dict) -> list[dict]:
@@ -437,7 +789,12 @@ def answer_question(
             "snippets": exact_answer["snippets"] if include_snippets else [],
         }
 
-    results = filter_results_by_source_hint(search(question), source_hint)
+    results = results_for_question_document(question)
+    if not results.get("documents", [[]])[0]:
+        results = search(question)
+        results = filter_results_by_question_document(results, question)
+    results = filter_results_by_source_hint(results, source_hint, question)
+    results = filter_results_to_top_document(results, question)
     registry = load_registry()
     validated_results, _ = filter_results_to_registered(
         results,

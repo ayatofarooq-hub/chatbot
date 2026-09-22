@@ -40,9 +40,9 @@ except ImportError:
 
 
 RESULT_COUNT = 5
-CANDIDATE_COUNT = 20
-LEXICAL_CANDIDATE_COUNT = 40
-METADATA_CANDIDATE_COUNT = 40
+CANDIDATE_COUNT = 30
+LEXICAL_CANDIDATE_COUNT = 80
+METADATA_CANDIDATE_COUNT = 80
 AGGREGATE_RESULT_COUNT = 10
 TEXT_PREVIEW_LENGTH = 500
 STOP_WORDS = {
@@ -76,6 +76,22 @@ DATE_PATTERN = re.compile(r"\b\d{1,2}\s*/\s*\d{1,2}\s*/\s*\d{4}\b")
 BOOK_NUMBER_PATTERN = re.compile(r"\b\d{1,5}\s*/\s*\d{1,5}(?:\s*/\s*\d{2,4})?\b")
 NUMBER_PATTERN = re.compile(r"\b\d{1,6}(?:\.\d{3})*(?:\.\d+)?\b")
 YEAR_PATTERN = re.compile(r"\b(?:19|20)\d{2}\b")
+SUMMARY_ONLY_LABEL_PATTERN = re.compile(
+    r"^\s*(?:summary|ملخص|الملخص|الخلاصة|الشرح التفصيلي|الشرح التفصيلى)\s*[:：\-]?",
+    re.IGNORECASE | re.MULTILINE,
+)
+SUMMARY_ONLY_MARKERS = ("الشرح التفصيلي", "الشرح التفصيلى", "summary")
+ORIGINAL_SOURCE_MARKERS = (
+    "قرر مجلس الوزراء",
+    "قــرر مجلس الوزراء",
+    "قــرّر مجلس الوزراء",
+    "المنعقدة في",
+    "المرقم بالعدد",
+    "بناءً على",
+    "بناء على",
+    "استناداً إلى",
+    "استنادا إلى",
+)
 STRONG_ARABIC_PHRASE_PATTERNS = (
     re.compile(r"(?:وزارة|وزاره)\s+[\u0600-\u06ff ]{2,40}"),
     re.compile(r"شركة\s+[\u0600-\u06ff0-9 ]{2,50}"),
@@ -84,6 +100,75 @@ STRONG_ARABIC_PHRASE_PATTERNS = (
     re.compile(r"زيت\s+[\u0600-\u06ff ]{2,25}"),
     re.compile(r"مجلس\s+الوزراء(?:\s+العراقي)?"),
 )
+QUERY_INTENT_TERMS = {
+    "source_book": (
+        "كتاب",
+        "اعتمد",
+        "استند",
+        "استناد",
+        "بناء",
+        "المرقم بالعدد",
+        "المؤرخ في",
+        "رقم كتاب",
+        "تاريخ كتاب",
+    ),
+    "amount": (
+        "مبلغ",
+        "بمبلغ",
+        "مقداره",
+        "دينار",
+        "دولار",
+        "سعر",
+        "كلفة",
+        "تكلفة",
+        "اصبح",
+        "بدلا من",
+    ),
+    "date": (
+        "تاريخ",
+        "متى",
+        "صدر",
+        "صدور",
+        "المؤرخ",
+        "جلسة",
+        "انعقاد",
+    ),
+    "decision_number": (
+        "رقم القرار",
+        "قرار مجلس الوزراء",
+        "رقم قرار",
+        "قرر مجلس الوزراء",
+    ),
+    "responsibility": (
+        "جهة",
+        "مسؤول",
+        "مسؤولة",
+        "تتحمل",
+        "تنفذ",
+        "تنفيذ",
+        "وزارة",
+        "شركة",
+        "لجنة",
+    ),
+    "summary": (
+        "مضمون",
+        "محتوى",
+        "ملخص",
+        "خلاصة",
+        "ما الذي قرر",
+        "ماذا قرر",
+        "الموافقة",
+    ),
+}
+
+QUERY_INTENT_EXPANSIONS = {
+    "source_book": "كتاب المرقم بالعدد المؤرخ في بناء على استنادا الى استنادا إلى اعتمد عليه",
+    "amount": "مبلغ بمبلغ مقداره مقدار دينار دولار سعر كلفة تكلفة اصبح بدلا من",
+    "date": "تاريخ المؤرخ في صدر صدور جلسة انعقاد تاريخ صدور القرار تاريخ انعقاد الجلسة",
+    "decision_number": "رقم القرار رقم قرار مجلس الوزراء قرر مجلس الوزراء decision_number",
+    "responsibility": "الجهة المسؤولة تتحمل تنفيذ تنفذ وزارة شركة لجنة الالتزامات الاجراءات",
+    "summary": "مضمون محتوى ملخص خلاصة قرر مجلس الوزراء الموافقة اولا ثانيا",
+}
 
 
 def get_question() -> str:
@@ -113,6 +198,56 @@ def normalize_for_search(text: str) -> str:
     """Normalize Arabic variants for ranking without changing indexed text."""
 
     return normalize_arabic_for_search(text)
+
+
+def is_summary_only_chunk_text(text: str) -> bool:
+    """Detect chunks that are generated explanations rather than source text."""
+
+    raw_text = str(text or "").strip()
+    if not raw_text:
+        return False
+    normalized = normalize_for_search(raw_text)
+    has_summary_marker = any(marker in raw_text for marker in SUMMARY_ONLY_MARKERS) or "summary" in normalized
+    if not has_summary_marker:
+        return False
+    if any(marker in raw_text for marker in ORIGINAL_SOURCE_MARKERS):
+        return False
+    nonempty_lines = [line.strip() for line in raw_text.splitlines() if line.strip()]
+    content_lines = [
+        line
+        for line in nonempty_lines
+        if not SUMMARY_ONLY_LABEL_PATTERN.match(line)
+        and not line.startswith("العنوان:")
+        and not line.lower().startswith("title:")
+    ]
+    return not content_lines or len(raw_text) < 1500
+
+
+def detect_query_intents(question: str) -> set[str]:
+    """Return legal-question intents that should influence retrieval ranking."""
+
+    normalized = normalize_for_search(question)
+    intents: set[str] = set()
+    for intent, terms in QUERY_INTENT_TERMS.items():
+        if any(normalize_for_search(term) in normalized for term in terms):
+            intents.add(intent)
+    if re.search(r"\b(?:كم|كام|شلون|كيف).{0,30}(?:سعر|مبلغ|كلفة|تكلفة|دينار|دولار)\b", normalized):
+        intents.add("amount")
+    if re.search(r"\b(?:شنو|ما|ماهو|ما هو|اي|أي).{0,35}كتاب\b", normalized):
+        intents.add("source_book")
+    return intents
+
+
+def expand_question_for_retrieval(question: str) -> str:
+    """Add legal-domain synonyms so short or dialectal questions retrieve better."""
+
+    parts = [question, normalize_for_search(question)]
+    for intent in sorted(detect_query_intents(question)):
+        parts.append(QUERY_INTENT_EXPANSIONS[intent])
+    signals = extract_strong_signals(question)
+    if signals:
+        parts.append(" ".join(signals))
+    return "\n".join(dict.fromkeys(part for part in parts if str(part).strip()))
 
 
 def tokenize_for_search(text: str) -> set[str]:
@@ -152,7 +287,7 @@ def extract_strong_signals(question: str) -> list[str]:
 def strong_signal_score(question: str, candidate_text: str) -> float:
     """Score exact identifiers more heavily than ordinary keyword overlap."""
 
-    signals = extract_strong_signals(question)
+    signals = extract_strong_signals(expand_question_for_retrieval(question))
     if not signals:
         return 0.0
 
@@ -169,6 +304,40 @@ def strong_signal_score(question: str, candidate_text: str) -> float:
         elif signal_tokens and signal_tokens <= tokenize_for_search(candidate):
             matched += weight * 0.8
     return matched / total if total else 0.0
+
+
+def query_intent_score(question: str, candidate_text: str, metadata: dict | None = None) -> float:
+    """Score whether a candidate contains the fields implied by the question."""
+
+    intents = detect_query_intents(question)
+    if not intents:
+        return 0.0
+
+    metadata = metadata or {}
+    haystack = normalize_for_search(
+        "\n".join(
+            [
+                candidate_text,
+                metadata_search_text(metadata),
+                " ".join(str(value) for value in metadata.values() if isinstance(value, (str, int, float, bool))),
+            ]
+        )
+    )
+    matched = 0
+    for intent in intents:
+        expansion_tokens = tokenize_for_search(QUERY_INTENT_EXPANSIONS[intent])
+        if expansion_tokens and expansion_tokens & tokenize_for_search(haystack):
+            matched += 1
+            continue
+        if intent == "source_book" and re.search(r"كتاب.{0,80}المرقم.{0,50}المؤرخ", haystack):
+            matched += 1
+        elif intent == "amount" and re.search(r"\b[0-9][0-9.,/ ]*\s*(?:دينار|دولار)\b", haystack):
+            matched += 1
+        elif intent == "date" and re.search(r"\b[0-9]{1,2}\s*/\s*[0-9]{1,2}\s*/\s*[0-9]{4}\b", haystack):
+            matched += 1
+        elif intent == "decision_number" and str(metadata.get("decision_number") or "").strip():
+            matched += 1
+    return matched / len(intents) if intents else 0.0
 
 
 def bm25_scores(question: str, documents: list[str]) -> list[float]:
@@ -284,7 +453,7 @@ def load_chunk_records(file_path: Path = CHUNKS_FILE) -> list[dict]:
                 legacy_text = legacy_record_text(record)
                 if legacy_text:
                     record["text"] = legacy_text
-            if record.get("text"):
+            if record.get("text") and not is_summary_only_chunk_text(str(record.get("text") or "")):
                 records.append(record)
     return records
 
@@ -333,7 +502,8 @@ def _candidate_results(scored_records: list[tuple[float, dict]], layer: str) -> 
 def metadata_filter_candidates(question: str, records: list[dict], limit: int = METADATA_CANDIDATE_COUNT) -> dict:
     """Layer 1: select chunks whose structured metadata matches strong signals."""
 
-    signals = extract_strong_signals(question)
+    expanded_question = expand_question_for_retrieval(question)
+    signals = extract_strong_signals(expanded_question)
     if not signals:
         return {"documents": [[]], "metadatas": [[]], "distances": [[]]}
 
@@ -341,7 +511,10 @@ def metadata_filter_candidates(question: str, records: list[dict], limit: int = 
     for record in records:
         metadata = _record_metadata(record)
         haystack = metadata_search_text(metadata)
-        score = strong_signal_score(" ".join(signals), haystack)
+        score = (
+            0.75 * strong_signal_score(" ".join(signals), haystack)
+            + 0.25 * query_intent_score(question, haystack, metadata)
+        )
         if score > 0:
             scored.append((score, record))
     scored.sort(key=lambda item: item[0], reverse=True)
@@ -354,16 +527,24 @@ def lexical_search_candidates(question: str, records: list[dict], limit: int = L
     if not records:
         return {"documents": [[]], "metadatas": [[]], "distances": [[]]}
 
+    expanded_question = expand_question_for_retrieval(question)
     texts = [
         candidate_search_text(str(record.get("text") or ""), _record_metadata(record))
         for record in records
     ]
-    bm25_values = bm25_scores(question, texts)
+    bm25_values = bm25_scores(expanded_question, texts)
     scored = []
     for index, record in enumerate(records):
-        lexical_score = lexical_relevance(question, texts[index])
+        metadata = _record_metadata(record)
+        lexical_score = lexical_relevance(expanded_question, texts[index])
         signal_score = strong_signal_score(question, texts[index])
-        score = (0.55 * bm25_values[index]) + (0.25 * lexical_score) + (0.20 * signal_score)
+        intent_score = query_intent_score(question, texts[index], metadata)
+        score = (
+            (0.45 * bm25_values[index])
+            + (0.25 * lexical_score)
+            + (0.20 * signal_score)
+            + (0.10 * intent_score)
+        )
         if score > 0:
             scored.append((score, record))
     scored.sort(key=lambda item: item[0], reverse=True)
@@ -446,26 +627,30 @@ def rerank_results(results: dict, result_count: int = RESULT_COUNT) -> dict:
     metadatas = results.get("metadatas", [[]])[0]
     distances = results.get("distances", [[]])[0]
     question = results.get("_question", "")
+    expanded_question = expand_question_for_retrieval(question)
     normalized_question = normalize_for_search(question)
     candidate_texts = [
         candidate_search_text(str(document or ""), metadata if isinstance(metadata, dict) else {})
         for document, metadata in zip(documents, metadatas)
     ]
-    bm25_score_values = bm25_scores(question, candidate_texts)
+    bm25_score_values = bm25_scores(expanded_question, candidate_texts)
 
     ranked = []
     for index, (document, metadata) in enumerate(zip(documents, metadatas)):
+        if is_summary_only_chunk_text(str(document or "")):
+            continue
         metadata = metadata if isinstance(metadata, dict) else {}
         candidate_text = candidate_search_text(str(document or ""), metadata)
         distance = distances[index] if index < len(distances) else float("inf")
         semantic_score = 1.0 / (1.0 + max(float(distance), 0.0))
-        lexical_score = lexical_relevance(question, candidate_text)
+        lexical_score = lexical_relevance(expanded_question, candidate_text)
         bm25_score = (
             bm25_score_values[index]
             if index < len(bm25_score_values)
             else 0.0
         )
         signal_score = strong_signal_score(question, candidate_text)
+        intent_score = query_intent_score(question, candidate_text, metadata)
         layers = set(str(metadata.get("retrieval_layers") or metadata.get("retrieval_layer") or "").split("|"))
         layer_bonus = 0.0
         if "metadata" in layers:
@@ -492,15 +677,17 @@ def rerank_results(results: dict, result_count: int = RESULT_COUNT) -> dict:
                 "metadata": metadata,
                 "distance": distance,
                 "score": (
-                    (0.30 * semantic_score)
-                    + (0.30 * bm25_score)
-                    + (0.20 * lexical_score)
+                    (0.25 * semantic_score)
+                    + (0.28 * bm25_score)
+                    + (0.19 * lexical_score)
                     + (0.20 * signal_score)
+                    + (0.08 * intent_score)
                     + layer_bonus
                     - structure_penalty
                 ),
                 "bm25_score": bm25_score,
                 "signal_score": signal_score,
+                "intent_score": intent_score,
                 "tokens": tokenize_for_search(candidate_text),
             }
         )
@@ -521,6 +708,7 @@ def rerank_results(results: dict, result_count: int = RESULT_COUNT) -> dict:
             "relevance_scores": [[item["score"] for item in selected]],
             "bm25_scores": [[item["bm25_score"] for item in selected]],
             "signal_scores": [[item["signal_score"] for item in selected]],
+            "intent_scores": [[item["intent_score"] for item in selected]],
         }
 
     selected = []
@@ -558,6 +746,7 @@ def rerank_results(results: dict, result_count: int = RESULT_COUNT) -> dict:
         "relevance_scores": [[item["score"] for item in selected]],
         "bm25_scores": [[item["bm25_score"] for item in selected]],
         "signal_scores": [[item["signal_score"] for item in selected]],
+        "intent_scores": [[item["intent_score"] for item in selected]],
     }
 
 
@@ -589,8 +778,9 @@ def search(question: str) -> dict:
         timeout=current["model"]["request_timeout"],
     )
     normalized_question = normalize_for_search(question)
+    expanded_question = expand_question_for_retrieval(question)
     embedding_query = "\n".join(
-        dict.fromkeys(value for value in (question, normalized_question) if value)
+        dict.fromkeys(value for value in (question, normalized_question, expanded_question) if value)
     )
     embedding_response = active_client.embed(
         model=current["model"]["embedding_model"],

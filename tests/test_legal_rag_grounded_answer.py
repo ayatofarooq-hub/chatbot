@@ -2,6 +2,8 @@ from legal_rag.grounded_answer import (
     INSUFFICIENT_CONTEXT,
     MISSING_DECISION_NUMBER_ANSWER,
     NO_USABLE_LEGAL_SOURCE_TEXT,
+    RELATED_TOPICS_HEADING,
+    SUMMARY_HEADING,
     answer_from_results,
     build_document_answer_context,
     build_source_context,
@@ -93,10 +95,12 @@ FUEL_PRICE_RESULTS = {
 
 
 def answer_body(answer: str) -> str:
-    return answer.split("\n\nمواضيع مقترحة من نفس النص:", 1)[0]
+    body = answer.split(f"\n\n{RELATED_TOPICS_HEADING}", 1)[0]
+    return body.split(f"\n\n{SUMMARY_HEADING}", 1)[0]
 
 
 def assert_interactive_related_topics(answer: str):
+    assert SUMMARY_HEADING in answer
     assert "مواضيع مقترحة من نفس النص:" in answer
     assert "هل تريد" in answer or "أستطيع مساعدتك" in answer
 
@@ -504,6 +508,42 @@ def test_specific_question_keeps_model_context_on_relevant_text(monkeypatch):
 
     assert result["answer"].startswith("مبلغ العقد هو")
     assert result["full_text_sources"][0]["original_long_text"] == "FULL LONG TEXT FOR WHOLE DECISION"
+
+
+def test_related_topics_are_built_from_word_long_text(monkeypatch):
+    monkeypatch.setattr(
+        "legal_rag.grounded_answer.load_registry",
+        lambda: {"by_chunk_id": {"short-topic": {"chunk_id": "short-topic"}}},
+    )
+    monkeypatch.setattr(
+        "legal_rag.grounded_answer.load_full_text_index",
+        lambda: {"fuel-topic.docx": FUEL_PRICE_LONG_TEXT},
+    )
+    results = {
+        "documents": [["short retrieved text without the amount"]],
+        "metadatas": [[
+            {
+                "chunk_id": "short-topic",
+                "source_file": "fuel-topic.docx",
+                "document_type": "Ù‚Ø±Ø§Ø± Ù…Ø¬Ù„Ø³ Ø§Ù„ÙˆØ²Ø±Ø§Ø¡",
+            }
+        ]],
+        "distances": [[0.1]],
+        "relevance_scores": [[0.9]],
+    }
+
+    result = answer_from_results(
+        "Ù…Ø§ Ø®Ù„Ø§ØµØ© Ø§Ù„Ù‚Ø±Ø§Ø±ØŸ",
+        results,
+        qwen_caller=lambda _question, context: (
+            "Ø®Ù„Ø§ØµØ© Ø§Ù„Ù‚Ø±Ø§Ø± Ù‡ÙŠ ØªØ¹Ø¯ÙŠÙ„ Ø£Ø³Ø¹Ø§Ø± Ø§Ù„Ù…Ù†ØªØ¬Ø§Øª Ø§Ù„Ù†ÙØ·ÙŠØ©."
+            if FUEL_PRICE_LONG_TEXT in context
+            else "wrong"
+        ),
+    )
+
+    topics = result["answer"].split(RELATED_TOPICS_HEADING, 1)[1]
+    assert "150.000" in topics
 
 
 def test_missing_decision_number_is_not_inferred_from_reference_number(monkeypatch):
