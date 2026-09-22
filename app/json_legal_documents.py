@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from collections.abc import Iterable, Mapping
 from typing import Any
 
@@ -21,8 +22,25 @@ def _text(value: Any) -> str:
     return "" if value is None else repair_mojibake(str(value)).strip()
 
 
+SUMMARY_SECTION_LABELS = ("الشرح التفصيلي", "الشرح التفصيلى")
+SUMMARY_SECTION_PATTERN = re.compile(
+    r"^\s*(?:summary|ملخص|الملخص|الخلاصة|الشرح التفصيلي|الشرح التفصيلى)\s*[:：\-]?",
+    re.IGNORECASE,
+)
+
+
+def _without_summary_sections(text: str) -> str:
+    lines = [
+        line
+        for line in str(text or "").splitlines()
+        if not SUMMARY_SECTION_PATTERN.match(line)
+        and not any(label in line for label in SUMMARY_SECTION_LABELS)
+    ]
+    return _text("\n".join(lines))
+
+
 def _primary_document_text(document: Mapping[str, Any]) -> str:
-    return _text(source_text_from_payload(dict(document)))
+    return _without_summary_sections(source_text_from_payload(dict(document)))
 
 
 def document_to_loaded_document(document: Mapping[str, Any]) -> LoadedDocument:
@@ -38,7 +56,7 @@ def document_to_loaded_document(document: Mapping[str, Any]) -> LoadedDocument:
         blocks.append(DocumentBlock(text=primary_text))
     else:
         for article in document.get("articles", []) or []:
-            article_text = _text(article.get("text"))
+            article_text = _without_summary_sections(article.get("text"))
             if article_text:
                 blocks.append(
                     DocumentBlock(
@@ -47,10 +65,6 @@ def document_to_loaded_document(document: Mapping[str, Any]) -> LoadedDocument:
                         article_reference=_text(article.get("article_number")),
                     )
                 )
-    if not blocks:
-        summary = _text(document.get("summary"))
-        blocks.append(DocumentBlock(text=summary or title))
-
     metadata = {
         key: value
         for key, value in {
