@@ -1,5 +1,5 @@
 import { createUploadManager } from "./components/upload/useUploadManager.js?v=20260712-upload-settings";
-import { createSettingsModule } from "./components/settings/SettingsPage.js?v=20260916-mujib-language";
+import { createSettingsModule } from "./components/settings/SettingsPage.js?v=20260922-arabic-only-v1";
 
 const storageKey = "iraqi-legal-assistant-conversations";
 const storageBackupKey = "iraqi-legal-assistant-conversations-backup";
@@ -20,7 +20,6 @@ const elements = {
   aiSpeechVolume: document.querySelector("#ai-speech-volume"),
   aiSpeechRateValue: document.querySelector("#ai-speech-rate-value"),
   aiSpeechVolumeValue: document.querySelector("#ai-speech-volume-value"),
-  assistantLanguage: document.querySelector("#assistant-language"),
   assistantNav: document.querySelector("#assistant-nav-button"),
   assistantView: document.querySelector("#assistant-view"),
   capacityRoot: document.querySelector("#file-capacity"),
@@ -121,7 +120,7 @@ const minimumRecordingMs = 2_000;
 const microphoneStorageKey = "jalssa-selected-microphone";
 const aiVoiceStorageKey = "jalssa-ai-arabic-voice-enabled";
 const assistantLanguageStorageKey = "jalssa-assistant-language";
-let assistantLanguage = ["ku", "ckb"].includes(localStorage.getItem(assistantLanguageStorageKey)) ? "ku" : "ar";
+let assistantLanguage = "ar";
 let pending = false;
 let aiVoiceEnabled = localStorage.getItem(aiVoiceStorageKey) !== "false";
 let aiSpeechSequence = 0;
@@ -139,45 +138,33 @@ let lastSpokenAnswer = "";
 let selectedPriority = "Ø¹Ø§Ù„ÙŠØ©";
 const initialPromptKey = "iraqi-legal-assistant-initial-prompt";
 
-function applyAssistantLanguage(language, { announce = false } = {}) {
-  assistantLanguage = ["ku", "ckb"].includes(language) ? "ku" : "ar";
+function applyAssistantLanguage() {
+  assistantLanguage = "ar";
   localStorage.setItem(assistantLanguageStorageKey, assistantLanguage);
   document.documentElement.lang = assistantLanguage;
   document.documentElement.dir = "rtl";
   document.documentElement.dataset.language = assistantLanguage;
-  if (elements.assistantLanguage) elements.assistantLanguage.value = assistantLanguage;
-
-  const kurdish = assistantLanguage === "ku";
   const greeting = document.querySelector("#mujib-greeting");
-  if (greeting) greeting.textContent = kurdish ? "Mûcîb · Bi xêr hatî" : "مُجيب · أهلاً وسهلاً";
+  if (greeting) greeting.textContent = "مُجيب · أهلاً وسهلاً";
   if (elements.landingWelcomeTitle) {
-    elements.landingWelcomeTitle.textContent = kurdish
-      ? "Bi xêr hatî alîkarê qanûnî"
-      : "أهلاً بك في المساعد القانوني";
+    elements.landingWelcomeTitle.textContent = "أهلاً بك في المساعد القانوني";
   }
   if (elements.landingWelcomeSubtitle) {
-    elements.landingWelcomeSubtitle.textContent = kurdish
-      ? "Pirsek qanûnî binivîse; Mûcîb bersivê ji çavkaniyên qanûnî yên berdest amade dike."
-      : "ابدأ بسؤال قانوني، وسننقلك مباشرة إلى صفحة المحادثة الحالية مع إرسال السؤال تلقائياً دون تغيير منطق المحادثة أو مصادر الإجابة.";
+    elements.landingWelcomeSubtitle.textContent = "ابدأ بسؤال قانوني، وسننقلك مباشرة إلى صفحة المحادثة الحالية مع إرسال السؤال تلقائياً دون تغيير منطق المحادثة أو مصادر الإجابة.";
   }
   if (elements.landingInput) {
-    elements.landingInput.placeholder = kurdish
-      ? "Îro ez dikarim çawa alîkariya te bikim?"
-      : "كيف يمكنني مساعدتك اليوم؟";
+    elements.landingInput.placeholder = "كيف يمكنني مساعدتك اليوم؟";
   }
   if (elements.welcomeTitle) {
-    elements.welcomeTitle.textContent = kurdish
-      ? "Bi xêr hatî alîkarê qanûnî"
-      : "مرحباً بك في المساعد القانوني";
+    elements.welcomeTitle.textContent = "مرحباً بك في المساعد القانوني";
   }
 
   if (aiSpeechActive) stopAiSpeech({ resumeRotation: false });
   const languageStatus = localTtsLanguages[assistantLanguage];
   localTtsAvailable = languageStatus ? Boolean(languageStatus.available) : localTtsAvailable;
   if (elements.aiVoiceToggle) elements.aiVoiceToggle.disabled = localTtsAvailable === false;
-  setAiCharacterState("idle", kurdish ? "Amade ye ku alîkariya te bike" : "مُجيب · جاهز للمساعدة");
+  setAiCharacterState("idle", "مُجيب · جاهز للمساعدة");
   window.dispatchEvent(new CustomEvent("assistant:language-change", { detail: { language: assistantLanguage } }));
-  if (announce) showToast(kurdish ? "Kurdî (Kurmancî) hat hilbijartin." : "تم اختيار اللغة العربية.");
 }
 
 const cp1252Bytes = new Map([
@@ -237,22 +224,11 @@ const aiCharacterLabels = {
   error: "تعذر إكمال الطلب",
 };
 
-const aiCharacterLabelsKurdish = {
-  idle: "ئامادەی یارمەتیدانم",
-  greeting: "بەخێربێیت",
-  listening: "گوێت لێ دەگرم",
-  thinking: "سەرچاوە یاساییەکان دەبینمەوە",
-  talking: "ئێستا وەڵامەکە ڕوون دەکەمەوە",
-  success: "وەڵامەکە تەواو بوو",
-  error: "داواکارییەکە تەواو نەبوو",
-};
-
 function setAiCharacterState(state = "idle", label = "") {
   if (!elements.aiCharacter) return;
   elements.aiCharacter.dataset.state = state;
   if (elements.aiCharacterStatus) {
-    const labels = assistantLanguage === "ku" ? aiCharacterLabelsKurdish : aiCharacterLabels;
-    const status = label || labels[state] || labels.idle;
+    const status = label || aiCharacterLabels[state] || aiCharacterLabels.idle;
     elements.aiCharacterStatus.textContent = status.includes("مُجيب") ? status : `مُجيب · ${status}`;
   }
 }
@@ -421,11 +397,8 @@ async function initializeAiCharacter() {
       stopAiSpeech();
       return;
     }
-    const greeting = assistantLanguage === "ku"
-      ? "Dengê Kurdî hate çalakirin."
-      : "تم تشغيل صوت المساعد العربي.";
     setAiCharacterState("greeting");
-    speakArabicAnswer(greeting);
+    speakArabicAnswer("تم تشغيل صوت المساعد العربي.");
   });
   elements.aiSpeechStop?.addEventListener("click", () => stopAiSpeech());
   elements.aiSpeechReplay?.addEventListener("click", () => {
@@ -1674,10 +1647,6 @@ document.addEventListener("click", () => {
 elements.landingVoiceButton?.addEventListener("click", async (event) => {
   event.preventDefault();
   await toggleRecording(elements.landingVoiceButton, elements.landingInput);
-});
-
-elements.assistantLanguage?.addEventListener("change", (event) => {
-  applyAssistantLanguage(event.currentTarget.value, { announce: true });
 });
 
 elements.priorityOptions?.addEventListener("click", (event) => {

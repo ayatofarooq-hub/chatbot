@@ -46,7 +46,7 @@ if (character && flipbook) {
   const delays = {
     idle: 225,
     listening: 220,
-    thinking: 235,
+    thinking: 235, 
     talking: 160,
     greeting: 175,
     success: 185,

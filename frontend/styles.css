@@ -636,24 +636,6 @@ body.chat-sidebar-enabled.chat-sidebar-collapsed .chat-sidebar-scroll {
   transition: transform 160ms ease, background 160ms ease, color 160ms ease;
 }
 
-.assistant-language {
-  position: absolute;
-  right: 86px;
-}
-
-.assistant-language select {
-  min-width: 92px;
-  height: 40px;
-  padding: 0 12px;
-  color: var(--green);
-  background: var(--green-soft);
-  border: 1px solid rgba(20, 90, 56, 0.24);
-  border-radius: 14px;
-  font: inherit;
-  font-weight: 700;
-  cursor: pointer;
-}
-
 .theme-toggle:hover {
   transform: translateY(-1px);
   color: #fff;
@@ -2763,17 +2745,6 @@ body.authenticated .profile i {
     width: 36px;
     height: 36px;
     font-size: 19px;
-  }
-
-  .assistant-language {
-    right: 58px;
-  }
-
-  .assistant-language select {
-    min-width: 78px;
-    height: 36px;
-    padding-inline: 8px;
-    font-size: 13px;
   }
 
   .header-title {

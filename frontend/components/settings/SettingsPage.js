@@ -130,7 +130,7 @@ export function createSettingsModule({ root, modalRoot, showToast, onAuthenticat
   }
 
   function applyAppearance() {
-    applyLanguage(localStorage.getItem("jalssa-assistant-language") || state.appearance.language || "ar");
+    applyLanguage("ar");
     // The automatic clock schedule and its manual toggle own the active theme.
     document.documentElement.dataset.scale = state.appearance.interface_scale;
     document.documentElement.dataset.primary = state.appearance.primary_color;
