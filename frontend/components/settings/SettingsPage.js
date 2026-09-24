@@ -1,4 +1,5 @@
 import { applyLanguage, t } from "./i18n.js?v=20260916-kurdish";
+import { httpErrorMessage } from "../../http-errors.js?v=20260923-http-errors-v1";
 
 const labels = {
   authFields: [
@@ -104,7 +105,7 @@ async function api(path, options = {}) {
   const response = await fetch(path, { credentials: "same-origin", ...options });
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) {
-    const problem = new Error(messageFor(payload.error?.detail || "Request failed"));
+    const problem = new Error(httpErrorMessage(response.status, payload, messageFor("Request failed")));
     problem.status = response.status;
     throw problem;
   }
@@ -557,7 +558,6 @@ export function createSettingsModule({ root, modalRoot, showToast, onAuthenticat
     section.innerHTML = `
       <section class="settings-card fine-card">
         <div class="fine-card-title"><span class="settings-card-icon" aria-hidden="true">&#9881;</span><h2>الضبط الدقيق</h2></div>
-        <div class="fine-row"><span>النموذج الأساسي</span><select data-ft-model></select></div>
         <div class="fine-row"><span>حد التحقق</span><div class="range-control"><input data-ft-validation type="range" min="0" max="1" step="0.01"><strong data-ft-validation-label></strong></div></div>
       </section>
       <section class="settings-card fine-card">
@@ -583,15 +583,6 @@ export function createSettingsModule({ root, modalRoot, showToast, onAuthenticat
         </div>
       </section>
       `;
-
-    const modelSelect = section.querySelector("[data-ft-model]");
-    [state.model.chat_model, "qwen2.5:3b", "qwen2.5:7b"].filter(Boolean).forEach((model) => {
-      if (![...modelSelect.options].some((option) => option.value === model)) {
-        modelSelect.add(new Option(model, model));
-      }
-    });
-    modelSelect.value = state.model.chat_model;
-    modelSelect.onchange = () => { state.model.chat_model = modelSelect.value; markDirty(); };
 
     const validation = section.querySelector("[data-ft-validation]");
     const validationLabel = section.querySelector("[data-ft-validation-label]");
@@ -628,6 +619,68 @@ export function createSettingsModule({ root, modalRoot, showToast, onAuthenticat
     grid.append(section);
   }
 
+  function renderModelSettings(grid) {
+    const options = state.capabilities?.model_options || [
+      "qwen2.5:1.5b",
+      "qwen2.5:3b",
+      "qwen2.5:7b",
+    ];
+    const optionLabels = {
+      "qwen2.5:1.5b": "Qwen 2.5 · 1.5B — خفيف",
+      "qwen2.5:3b": "Qwen 2.5 · 3B — متوازن",
+      "qwen2.5:7b": "Qwen 2.5 · 7B — أعلى جودة",
+    };
+    const profile = state.hardware || {};
+    const section = document.createElement("section");
+    section.className = "settings-card full-width model-settings-card";
+    section.innerHTML = `
+      <div class="model-settings-header">
+        <div class="fine-card-title">
+          <span class="settings-card-icon" aria-hidden="true">&#9881;</span>
+          <div><h2>موديل الذكاء الاصطناعي</h2><p>اختر الموديل يدويًا أو دع النظام يحدده حسب ذاكرة كرت الشاشة عند التشغيل.</p></div>
+        </div>
+        <span class="hardware-status ${profile.gpu_detected ? "detected" : "fallback"}">
+          ${profile.gpu_detected ? "تم اكتشاف GPU" : "وضع الجهاز الخفيف"}
+        </span>
+      </div>
+      <div class="model-settings-layout">
+        <label class="settings-field model-select-field">
+          <span>الموديل المستخدم</span>
+          <select data-chat-model></select>
+        </label>
+        <label class="model-auto-choice">
+          <input data-auto-model type="checkbox">
+          <span><strong>اختيار تلقائي عند التشغيل</strong><small>يختار Python الموديل المناسب وفق ذاكرة GPU المتاحة.</small></span>
+        </label>
+      </div>
+      <div class="hardware-summary">
+        <strong>${escapeHtml(profile.gpu_name || "لم يتم اكتشاف كرت شاشة بذاكرة مخصصة")}</strong>
+        <span>${escapeHtml(profile.reason_ar || "سيُستخدم الموديل الأخف لضمان استقرار النظام.")}</span>
+        <span>الاختيار المقترح: <b>${escapeHtml(profile.recommended_model || "qwen2.5:1.5b")}</b></span>
+      </div>`;
+
+    const modelSelect = section.querySelector("[data-chat-model]");
+    options.forEach((model) => modelSelect.add(new Option(optionLabels[model] || model, model)));
+    modelSelect.value = state.model.chat_model;
+    const autoModel = section.querySelector("[data-auto-model]");
+    autoModel.checked = state.model.auto_select_model !== false;
+    modelSelect.disabled = autoModel.checked;
+    modelSelect.onchange = () => {
+      state.model.chat_model = modelSelect.value;
+      markDirty();
+    };
+    autoModel.onchange = () => {
+      state.model.auto_select_model = autoModel.checked;
+      modelSelect.disabled = autoModel.checked;
+      if (autoModel.checked && profile.recommended_model) {
+        state.model.chat_model = profile.recommended_model;
+        modelSelect.value = profile.recommended_model;
+      }
+      markDirty();
+    };
+    grid.append(section);
+  }
+
   function render() {
     const language = "ar";
     root.innerHTML = `
@@ -638,6 +691,7 @@ export function createSettingsModule({ root, modalRoot, showToast, onAuthenticat
       <div class="unsaved-banner" ${dirty ? "" : "hidden"}>لديك تغييرات غير محفوظة</div>
       <div class="settings-grid"></div>`;
     const grid = root.querySelector(".settings-grid");
+    renderModelSettings(grid);
     renderSecurity(grid);
     renderUploadSettings(grid);
     renderUsers(grid);
@@ -649,7 +703,10 @@ export function createSettingsModule({ root, modalRoot, showToast, onAuthenticat
         const body = {
           authentication: state.authentication,
           upload: state.upload,
-          model: { chat_model: state.model.chat_model },
+          model: {
+            chat_model: state.model.chat_model,
+            auto_select_model: state.model.auto_select_model !== false,
+          },
           fine_tuning: state.fine_tuning,
         };
         state = await api("/api/settings", json("PUT", body));

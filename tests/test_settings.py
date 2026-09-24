@@ -56,6 +56,18 @@ class SettingsValidationTests(unittest.TestCase):
             validate_settings({"upload": {"max_file_size_mb": 30}})
         self.assertIn("upload.max_file_size_mb", context.exception.errors)
 
+    def test_accepts_only_the_three_supported_chat_models(self):
+        for model in ("qwen2.5:1.5b", "qwen2.5:3b", "qwen2.5:7b"):
+            result = validate_settings({"model": {"chat_model": model}})
+            self.assertEqual(result["model"]["chat_model"], model)
+
+        with self.assertRaises(SettingsValidationError):
+            validate_settings({"model": {"chat_model": "unknown:latest"}})
+
+    def test_accepts_automatic_model_selection(self):
+        result = validate_settings({"model": {"auto_select_model": True}})
+        self.assertTrue(result["model"]["auto_select_model"])
+
 
 class SettingsApiTests(unittest.TestCase):
     def setUp(self):
@@ -76,6 +88,10 @@ class SettingsApiTests(unittest.TestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertNotIn("password", response.text.lower())
+        self.assertEqual(
+            response.json()["capabilities"]["model_options"],
+            ["qwen2.5:1.5b", "qwen2.5:3b", "qwen2.5:7b"],
+        )
 
     @patch("app.settings_api.update_settings")
     @patch("app.settings_api.admin_for_token", return_value={"id": 1, "username": "admin", "permissions": ["manage_settings"]})

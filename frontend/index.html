@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#145a38">
   <title>المساعد القانوني العراقي</title>
   <script src="/assets/theme-schedule.js?v=20260907-scheduled-theme-v1"></script>
-  <link rel="stylesheet" href="/assets/styles.css?v=20260922-arabic-only-v1">
+  <link rel="stylesheet" href="/assets/styles.css?v=20260923-night-palette-v3">
 </head>
 <body class="auth-gate-pending">
   <div class="app-shell">
@@ -40,16 +40,6 @@
             </svg>
           </span>
           <span>قرار جديد</span>
-          <span class="nav-arrow" aria-hidden="true">›</span>
-        </button>
-        <button class="nav-item" id="review-nav-button" type="button">
-          <span class="nav-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" focusable="false">
-              <path d="M6.75 4.75h10.5A2.25 2.25 0 0 1 19.5 7v9.75a2.25 2.25 0 0 1-2.25 2.25H8.25L4.5 20v-13A2.25 2.25 0 0 1 6.75 4.75Z"/>
-              <path d="M8.25 9.25h7.5M8.25 12.25h4.5"/>
-            </svg>
-          </span>
-          <span>مراجعة الوثائق</span>
           <span class="nav-arrow" aria-hidden="true">›</span>
         </button>
         <button class="nav-item" id="settings-nav-button" type="button">
@@ -104,20 +94,26 @@
         <div class="landing-orb landing-orb-two" aria-hidden="true"></div>
 
         <div class="landing-hero">
-          <div class="landing-effendi-welcome" aria-label="مُجيب يرحب بك">
-            <span class="landing-effendi-greeting" id="mujib-greeting">مُجيب · أهلاً وسهلاً</span>
-            <div class="landing-effendi-flipbook" id="landing-effendi" role="img" aria-label="شخصية مُجيب الكارتونية"></div>
+          <div class="landing-intro" dir="rtl">
+            <div class="landing-intro-copy">
+              <div class="landing-badge">مساعد قانوني عراقي محلي</div>
+              <h1 id="landing-welcome-title">أهلاً بك في المساعد القانوني</h1>
+              <p id="landing-welcome-subtitle">
+                ابدأ بسؤال قانوني، وسننقلك مباشرة إلى صفحة المحادثة الحالية مع إرسال السؤال تلقائياً
+                دون تغيير منطق المحادثة أو مصادر الإجابة.
+              </p>
+            </div>
           </div>
-          <div class="landing-badge">مساعد قانوني عراقي محلي</div>
-          <h1 id="landing-welcome-title">أهلاً بك في المساعد القانوني</h1>
-          <p id="landing-welcome-subtitle">
-            ابدأ بسؤال قانوني، وسننقلك مباشرة إلى صفحة المحادثة الحالية مع إرسال السؤال تلقائياً
-            دون تغيير منطق المحادثة أو مصادر الإجابة.
-          </p>
 
           <form class="landing-prompt" id="landing-form">
             <label class="visually-hidden" for="landing-input">اكتب سؤالك القانوني</label>
-            <textarea id="landing-input" rows="3" placeholder="كيف يمكنني مساعدتك اليوم؟"></textarea>
+            <div class="landing-prompt-body">
+              <textarea id="landing-input" rows="3" placeholder="كيف يمكنني مساعدتك اليوم؟"></textarea>
+              <div class="landing-effendi-welcome" aria-label="مُجيب يرحب بك">
+                <span class="landing-effendi-greeting" id="mujib-greeting">وياك مُجيب، تفضل بشنو أكدر أساعدك!</span>
+                <div class="landing-effendi-flipbook" id="landing-effendi" role="img" aria-label="شخصية مُجيب الكارتونية"></div>
+              </div>
+            </div>
             <div class="landing-prompt-actions">
               <button class="landing-attach" type="button" disabled aria-label="إرفاق ملف">＋</button>
               <button class="landing-voice" id="landing-voice-button" type="button" aria-label="بدء الإدخال الصوتي" title="إدخال صوتي">
@@ -126,7 +122,7 @@
                   <path d="M5.75 11.25a6.25 6.25 0 0 0 12.5 0M12 17.5v3.25M9.25 20.75h5.5"/>
                 </svg>
               </button>
-              <div class="landing-model" aria-hidden="true">النموذج المحلي · Ollama</div>
+              <span class="landing-actions-spacer" aria-hidden="true"></span>
               <button class="landing-send" id="landing-send" type="submit" aria-label="إرسال السؤال">←</button>
               <div class="landing-recording-controls" id="landing-recording-controls" hidden>
                 <span class="recording-dot" aria-hidden="true"></span>
@@ -348,7 +344,7 @@
 
   <div class="toast" id="toast" role="alert"></div>
   <div id="modal-root"></div>
-  <script type="module" src="/assets/app.js?v=20260922-arabic-only-v1"></script>
+  <script type="module" src="/assets/app.js?v=20260923-hide-review-nav-v1"></script>
   <script type="module" src="/assets/effendi-flipbook.js?v=mujib-kurmanji-v16"></script>
 </body>
 </html>

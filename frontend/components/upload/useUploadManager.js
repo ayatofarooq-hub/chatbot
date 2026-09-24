@@ -7,7 +7,7 @@ import {
   fetchUploadSettings,
   removeUploadedFile,
   uploadFile,
-} from "./uploadService.js?v=20260712-upload-settings";
+} from "./uploadService.js?v=20260923-http-errors-v1";
 import { DEFAULT_UPLOAD_CONFIG, normalizeUploadConfig } from "./uploadConfig.js?v=20260712-upload-settings";
 import { UploadStatus } from "./uploadTypes.js?v=20260706-real-uploads";
 import { validateFiles } from "./uploadValidation.js?v=20260712-upload-settings";

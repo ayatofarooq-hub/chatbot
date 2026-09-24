@@ -1,6 +1,7 @@
 """HTTP API for testing the legal chatbot with clients such as Postman."""
 
 from datetime import datetime
+from contextlib import asynccontextmanager
 from html import escape
 from io import BytesIO
 import json
@@ -41,6 +42,7 @@ try:
         LocalTtsUnavailable, SYNTHESIS_TIMEOUT_SECONDS,
         synthesize_arabic, synthesize_kurmanji, voice_status,
     )
+    from .model_selection import initialize_hardware_profile
     from .uploaded_documents import (
         create_uploaded_document,
         delete_uploaded_document,
@@ -81,6 +83,7 @@ except ImportError:
         LocalTtsUnavailable, SYNTHESIS_TIMEOUT_SECONDS,
         synthesize_arabic, synthesize_kurmanji, voice_status,
     )
+    from model_selection import initialize_hardware_profile
     from uploaded_documents import (
         create_uploaded_document,
         delete_uploaded_document,
@@ -1445,8 +1448,15 @@ async def export_chat(request: Request) -> Response:
     )
 
 
+@asynccontextmanager
+async def lifespan(_app):
+    await run_in_threadpool(initialize_hardware_profile)
+    yield
+
+
 app = Starlette(
     debug=False,
+    lifespan=lifespan,
     routes=[
         Route("/", frontend, methods=["GET"]),
         Route("/favicon.ico", favicon, methods=["GET"]),

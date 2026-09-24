@@ -29,6 +29,22 @@ class ApiTests(unittest.TestCase):
         self.assertIn('id="ai-character-fallback"', response.text)
         self.assertIn("effendi-flipbook.js", response.text)
         self.assertIn("شخصية مُجيب الكارتونية بكامل الجسم", response.text)
+        self.assertIn('class="landing-intro" dir="rtl"', response.text)
+        self.assertLess(
+            response.text.index('class="landing-intro-copy"'),
+            response.text.index('class="landing-effendi-welcome"'),
+        )
+        self.assertLess(
+            response.text.index('class="landing-prompt-body"'),
+            response.text.index('class="landing-effendi-welcome"'),
+        )
+        self.assertLess(
+            response.text.index('class="landing-effendi-welcome"'),
+            response.text.index('class="landing-prompt-actions"'),
+        )
+        self.assertIn("وياك مُجيب، تفضل بشنو أكدر أساعدك!", response.text)
+        self.assertNotIn("النموذج المحلي · Ollama", response.text)
+        self.assertNotIn('id="review-nav-button"', response.text)
         self.assertNotIn('id="assistant-language"', response.text)
         self.assertNotIn("Kurdî (Kurmancî)", response.text)
         self.assertIn('id="ai-audio-settings"', response.text)
@@ -43,12 +59,60 @@ class ApiTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertIn("--green", response.text)
+        self.assertIn("--landing-content-width: min(840px, 100%)", response.text)
+        self.assertIn("width: var(--landing-content-width)", response.text)
+        self.assertIn(".landing-prompt-body", response.text)
+        self.assertIn("body.chat-sidebar-enabled.chat-sidebar-collapsed .application", response.text)
+        self.assertIn(".model-settings-card", response.text)
+        self.assertIn("--night-page: #101a17", response.text)
+        self.assertIn("--night-sidebar-left: #172520", response.text)
+        self.assertIn("--night-sidebar-right: #143d30", response.text)
+        self.assertIn("--night-card: #1c2b25", response.text)
+        self.assertIn("--night-border: #34483d", response.text)
+        self.assertIn("--night-text: #f2f4ef", response.text)
+        self.assertIn("--night-text-muted: #b5c3b9", response.text)
+        self.assertIn("--night-interactive: #21704e", response.text)
+        self.assertIn("--night-gold: #d4ad32", response.text)
+        self.assertIn('[data-theme="dark"] .landing-suggestions button', response.text)
+        self.assertIn("body.chat-sidebar-enabled .chat-history-sidebar", response.text)
+        self.assertIn('[data-theme="dark"] .settings-login-input', response.text)
+        self.assertIn('[data-theme="dark"] .upload-dropzone', response.text)
+        self.assertIn('[data-theme="dark"] .priority-options button.selected', response.text)
+        self.assertIn('[data-theme="dark"] .stat-card', response.text)
 
         script_response = self.client.get("/assets/app.js")
         self.assertEqual(script_response.status_code, 200)
         self.assertIn('fetch("/ask"', script_response.text)
         self.assertIn('fetch("/api/tts"', script_response.text)
+        self.assertIn("httpErrorMessage(response.status", script_response.text)
+        self.assertIn("وياك مُجيب، تفضل بشنو أكدر أساعدك!", script_response.text)
+        self.assertIn("20260923-model-selection-v1", script_response.text)
+        new_chat_start = script_response.text.index("function startNewConversation()")
+        new_chat_end = script_response.text.index("\n}", new_chat_start)
+        new_chat_handler = script_response.text[new_chat_start:new_chat_end]
+        self.assertIn('showView("landing")', new_chat_handler)
+        self.assertNotIn('showView("assistant")', new_chat_handler)
+        self.assertIn("20260923-hide-review-nav-v1", self.client.get("/").text)
         self.assertIn('id="ai-speech-stop"', self.client.get("/").text)
+
+        error_messages_response = self.client.get("/assets/http-errors.js")
+        self.assertEqual(error_messages_response.status_code, 200)
+        expected_http_errors = {
+            400: "الطلب غير صحيح. يُرجى مراجعة البيانات المدخلة.",
+            401: "يُرجى تسجيل الدخول للمتابعة.",
+            403: "ليس لديك صلاحية لتنفيذ هذا الإجراء.",
+            404: "العنصر المطلوب غير موجود.",
+            408: "انتهت مهلة الطلب. يُرجى المحاولة مرة أخرى.",
+            409: "تعذّر إكمال العملية بسبب تعارض في البيانات.",
+            422: "بعض البيانات المدخلة غير صحيحة. يُرجى مراجعتها.",
+            429: "أُرسلت طلبات كثيرة. يُرجى الانتظار قليلًا.",
+            500: "حدث خطأ غير متوقع. يُرجى المحاولة لاحقًا.",
+            502: "الخدمة غير متاحة مؤقتًا. يُرجى المحاولة لاحقًا.",
+            503: "الخدمة غير متاحة حاليًا. يُرجى المحاولة لاحقًا.",
+            504: "تأخرت استجابة الخادم. يُرجى المحاولة مرة أخرى.",
+        }
+        for status_code, message in expected_http_errors.items():
+            self.assertIn(f'{status_code}: "{message}"', error_messages_response.text)
 
     def test_chat_history_is_persisted_on_server(self):
         payload = {

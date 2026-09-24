@@ -1,5 +1,6 @@
-import { createUploadManager } from "./components/upload/useUploadManager.js?v=20260712-upload-settings";
-import { createSettingsModule } from "./components/settings/SettingsPage.js?v=20260922-arabic-only-v1";
+import { createUploadManager } from "./components/upload/useUploadManager.js?v=20260923-http-errors-v1";
+import { createSettingsModule } from "./components/settings/SettingsPage.js?v=20260923-model-selection-v1";
+import { httpErrorMessage } from "./http-errors.js?v=20260923-http-errors-v1";
 
 const storageKey = "iraqi-legal-assistant-conversations";
 const storageBackupKey = "iraqi-legal-assistant-conversations-backup";
@@ -145,7 +146,7 @@ function applyAssistantLanguage() {
   document.documentElement.dir = "rtl";
   document.documentElement.dataset.language = assistantLanguage;
   const greeting = document.querySelector("#mujib-greeting");
-  if (greeting) greeting.textContent = "مُجيب · أهلاً وسهلاً";
+  if (greeting) greeting.textContent = "وياك مُجيب، تفضل بشنو أكدر أساعدك!";
   if (elements.landingWelcomeTitle) {
     elements.landingWelcomeTitle.textContent = "أهلاً بك في المساعد القانوني";
   }
@@ -296,7 +297,7 @@ async function playLocalSpeechChunk(text, sequence) {
   });
   if (!response.ok) {
     const payload = await response.json().catch(() => ({}));
-    throw new Error(payload.detail || `Local TTS failed (${response.status}).`);
+    throw new Error(httpErrorMessage(response.status, payload, "تعذّر تشغيل الصوت المحلي."));
   }
   const blob = await response.blob();
   if (sequence !== aiSpeechSequence || !aiVoiceEnabled) return;
@@ -742,11 +743,14 @@ function createConversation(initialTitle = "") {
 
 function startNewConversation() {
   activeConversationId = null;
+  sessionStorage.removeItem(initialPromptKey);
+  elements.landingInput.value = "";
+  elements.landingInput.style.height = "";
+  history.replaceState(null, "", window.location.pathname);
   saveConversations();
   render();
   closeChatSidebarOnMobile();
-  showView("assistant");
-  elements.input.focus();
+  showView("landing");
 }
 
 function showView(viewName) {
@@ -762,7 +766,7 @@ function showView(viewName) {
   elements.settingsView.hidden = !showSettings;
   elements.assistantNav.classList.toggle("active", showAssistant || showLanding);
   elements.decisionNav.classList.toggle("active", showDecision);
-  elements.reviewNav.classList.toggle("active", showReview);
+  elements.reviewNav?.classList.toggle("active", showReview);
   elements.settingsNav.classList.toggle("active", showSettings);
   elements.nav.classList.remove("open");
   document.body.classList.toggle("decision-mode", showDecision);
@@ -1217,13 +1221,13 @@ async function submitQuestion(question) {
         response_language: assistantLanguage,
       }),
     });
-    const payload = await response.json();
+    const payload = await response.json().catch(() => ({}));
     if (response.status === 401) {
       await refreshSession();
       showView("settings");
-      throw new Error("Ø§Ù†ØªÙ‡Øª Ø¬Ù„Ø³Ø© Ø§Ù„Ø¯Ø®ÙˆÙ„. ÙŠØ±Ø¬Ù‰ ØªØ³Ø¬ÙŠÙ„ Ø§Ù„Ø¯Ø®ÙˆÙ„ Ø«Ù… Ø¥Ø¹Ø§Ø¯Ø© Ø¥Ø±Ø³Ø§Ù„ Ø§Ù„Ø³Ø¤Ø§Ù„.");
+      throw new Error(httpErrorMessage(response.status, payload));
     }
-    if (!response.ok) throw new Error(payload.detail || "ØªØ¹Ø°Ø± Ø¥Ù†Ø´Ø§Ø¡ Ø§Ù„Ø¥Ø¬Ø§Ø¨Ø©.");
+    if (!response.ok) throw new Error(httpErrorMessage(response.status, payload, "تعذّر إنشاء الإجابة."));
 
     conversation.messages.push({
       role: "assistant",
@@ -1388,8 +1392,8 @@ async function transcribeRecording(blob) {
 
   try {
     const response = await fetch("/transcribe", { method: "POST", body: formData });
-    const payload = await response.json();
-    if (!response.ok) throw new Error(payload.detail || "ØªØ¹Ø°Ø± ØªØ­ÙˆÙŠÙ„ Ø§Ù„ØµÙˆØª Ø¥Ù„Ù‰ Ù†Øµ.");
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(httpErrorMessage(response.status, payload, "تعذّر تحويل الصوت إلى نص."));
     const separator = recordingInput.value.trim() ? " " : "";
     recordingInput.value = `${recordingInput.value.trimEnd()}${separator}${payload.text}`;
   } catch (error) {
@@ -1695,7 +1699,7 @@ async function exportConversation(format = "pdf") {
 
     if (!response.ok) {
       const payload = await response.json().catch(() => ({}));
-      throw new Error(payload.detail || "ÙØ´Ù„ ØªØµØ¯ÙŠØ± Ø§Ù„Ù…Ø­Ø§Ø¯Ø«Ø©.");
+      throw new Error(httpErrorMessage(response.status, payload, "فشل تصدير المحادثة."));
     }
 
     const blob = await response.blob();

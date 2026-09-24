@@ -5,10 +5,13 @@ from __future__ import annotations
 import re
 from copy import deepcopy
 
+from .model_selection import MODEL_OPTIONS
+
 
 DEFAULTS = {
     "model": {
-        "chat_model": "qwen2.5:3b", "embedding_model": "bge-m3",
+        "chat_model": "qwen2.5:3b", "auto_select_model": True,
+        "embedding_model": "bge-m3",
         "ollama_base_url": "http://127.0.0.1:11434", "request_timeout": 600,
         "keep_alive": "10m", "max_answer_tokens": 700, "temperature": 0.0,
         "top_p": 0.9, "context_length": 4096,
@@ -64,6 +67,7 @@ RANGES = {
     ("fine_tuning", "validation_threshold"): (0, 1),
 }
 ENUMS = {
+    ("model", "chat_model"): set(MODEL_OPTIONS),
     ("retrieval", "ocr_language"): {"ara", "eng", "ara+eng"},
     ("authentication", "session_timeout_minutes"): {15, 30, 60, 240, None},
     ("appearance", "language"): {"ar", "en", "ckb", "ku"},
