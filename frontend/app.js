@@ -7,6 +7,7 @@ const storageBackupKey = "iraqi-legal-assistant-conversations-backup";
 const activeConversationStorageKey = "iraqi-legal-assistant-active-conversation";
 const chatHistoryEndpoint = "/api/chat-history";
 const decisionDraftKey = "iraqi-legal-assistant-decision-draft";
+const evidencePanelStorageKey = "iraqi-legal-assistant-evidence-panel-collapsed";
 
 const elements = {
   aiCharacter: document.querySelector("#ai-character"),
@@ -46,6 +47,9 @@ const elements = {
   settingsView: document.querySelector("#settings-view"),
   dropzoneRoot: document.querySelector("#upload-dropzone-root"),
   errorsRoot: document.querySelector("#upload-errors"),
+  evidenceCollapsedCount: document.querySelector("#evidence-collapsed-count"),
+  evidencePanel: document.querySelector("#evidence-panel"),
+  evidencePanelToggle: document.querySelector("#evidence-panel-toggle"),
   exportButton: document.querySelector("#export-button"),
   exportDropdown: document.querySelector("#export-dropdown"),
   form: document.querySelector("#question-form"),
@@ -102,6 +106,7 @@ const stopRecordingIconMarkup = `
 
 let conversations = loadConversations();
 let activeConversationId = loadActiveConversationId(conversations);
+let evidencePanelCollapsed = localStorage.getItem(evidencePanelStorageKey) !== "false";
 let mediaRecorder = null;
 let microphoneStream = null;
 let recordingChunks = [];
@@ -129,6 +134,7 @@ let aiSpeechActive = false;
 let aiSpeechAudio = null;
 let aiSpeechObjectUrl = null;
 let aiSpeechAbortController = null;
+let conversationNavigationSequence = 0;
 let localTtsAvailable = null;
 let localTtsLanguages = {};
 let aiSpeechRate = Number(localStorage.getItem("jalssa-ai-speech-rate")) || 1;
@@ -282,6 +288,20 @@ function stopAiSpeech({ resumeRotation = true } = {}) {
   if (resumeRotation) {
     setAiCharacterState("idle", aiVoiceEnabled ? "جاهز للمساعدة" : "الصوت متوقف");
   }
+}
+
+function latestAssistantAnswer(conversation) {
+  const messages = Array.isArray(conversation?.messages) ? conversation.messages : [];
+  const message = [...messages]
+    .reverse()
+    .find(({ role, content }) => role === "assistant" && typeof content === "string" && content.trim());
+  return message?.content || "";
+}
+
+function stopSpeechForConversationChange(nextConversation = null) {
+  conversationNavigationSequence += 1;
+  stopAiSpeech();
+  lastSpokenAnswer = latestAssistantAnswer(nextConversation);
 }
 
 async function playLocalSpeechChunk(text, sequence) {
@@ -742,6 +762,7 @@ function createConversation(initialTitle = "") {
 }
 
 function startNewConversation() {
+  stopSpeechForConversationChange();
   activeConversationId = null;
   sessionStorage.removeItem(initialPromptKey);
   elements.landingInput.value = "";
@@ -759,6 +780,10 @@ function showView(viewName) {
   const showDecision = viewName === "decision";
   const showReview = viewName === "review";
   const showSettings = viewName === "settings";
+  if (!showAssistant && !showLanding) {
+    conversationNavigationSequence += 1;
+    stopAiSpeech();
+  }
   elements.landingView.hidden = !showLanding;
   elements.assistantView.hidden = !showAssistant;
   elements.decisionView.hidden = !showDecision;
@@ -834,6 +859,28 @@ function closeOrCollapseChatSidebar() {
   }
 }
 
+function applyEvidencePanelState({ persist = false } = {}) {
+  elements.assistantView?.classList.toggle("evidence-collapsed", evidencePanelCollapsed);
+  elements.evidencePanel?.classList.toggle("collapsed", evidencePanelCollapsed);
+  if (elements.evidencePanelToggle) {
+    const expanded = !evidencePanelCollapsed;
+    const label = expanded ? "طي لوحة القرارات والوثائق" : "فتح لوحة القرارات والوثائق";
+    elements.evidencePanelToggle.setAttribute("aria-expanded", String(expanded));
+    elements.evidencePanelToggle.setAttribute("aria-label", label);
+    elements.evidencePanelToggle.title = label;
+    const icon = elements.evidencePanelToggle.querySelector(".evidence-toggle-chevron");
+    if (icon) icon.textContent = expanded ? "›" : "‹";
+  }
+  if (persist) {
+    localStorage.setItem(evidencePanelStorageKey, String(evidencePanelCollapsed));
+  }
+}
+
+function toggleEvidencePanel() {
+  evidencePanelCollapsed = !evidencePanelCollapsed;
+  applyEvidencePanelState({ persist: true });
+}
+
 function transferPromptToChat(question) {
   const cleanQuestion = normalizeWhitespace(question);
   if (!cleanQuestion || pending) return;
@@ -868,6 +915,11 @@ function activeConversation() {
 }
 
 function selectConversation(id) {
+  const nextConversation = conversations.find((conversation) => conversation.id === id);
+  if (!nextConversation) return;
+  if (id !== activeConversationId) {
+    stopSpeechForConversationChange(nextConversation);
+  }
   activeConversationId = id;
   saveConversations();
   render();
@@ -876,6 +928,7 @@ function selectConversation(id) {
 }
 
 function removeAllConversations() {
+  stopSpeechForConversationChange();
   conversations = [];
   activeConversationId = null;
   saveConversations({ allowEmpty: true });
@@ -1053,6 +1106,9 @@ function renderEvidence() {
 
   const referenceTotal = legalSources.length || evidence.snippets.length;
   elements.referenceCount.textContent = repairMojibake(`${referenceTotal} Ù…Ø±Ø§Ø¬Ø¹`);
+  if (elements.evidenceCollapsedCount) {
+    elements.evidenceCollapsedCount.textContent = String(referenceTotal);
+  }
   elements.sourceList.replaceChildren();
 
   if (legalSources.length) {
@@ -1188,6 +1244,8 @@ async function submitQuestion(question) {
   const cleanQuestion = question.trim();
   let conversation = activeConversation();
   if (!conversation) conversation = createConversation(cleanQuestion);
+  const submissionConversationId = conversation.id;
+  const submissionNavigationSequence = conversationNavigationSequence;
   if (!conversation.messages.length) conversation.title = truncate(cleanQuestion, 40);
   conversation.timestamp = conversation.timestamp || conversation.createdAt || new Date().toISOString();
   conversation.messages.push({ role: "user", content: cleanQuestion, time: formatTime() });
@@ -1244,7 +1302,12 @@ async function submitQuestion(question) {
       citations: (payload.citations || []).map(repairConversationText),
     };
     saveConversations();
-    speakArabicAnswer(payload.answer);
+    if (
+      activeConversationId === submissionConversationId
+      && conversationNavigationSequence === submissionNavigationSequence
+    ) {
+      speakArabicAnswer(payload.answer);
+    }
   } catch (error) {
     conversation.messages.push({
       role: "assistant error",
@@ -1621,6 +1684,7 @@ elements.historySearch?.addEventListener("input", renderHistory);
 elements.mobileMenu?.addEventListener("click", toggleChatSidebar);
 elements.chatSidebarClose?.addEventListener("click", closeOrCollapseChatSidebar);
 elements.chatSidebarBackdrop?.addEventListener("click", closeChatSidebarOnMobile);
+elements.evidencePanelToggle?.addEventListener("click", toggleEvidencePanel);
 window.addEventListener("resize", () => {
   if (!isOverlaySidebar()) {
     document.body.classList.remove("chat-sidebar-open");
@@ -1726,6 +1790,7 @@ async function exportConversation(format = "pdf") {
 }
 
 loadDecisionDraft();
+applyEvidencePanelState();
 render();
 repairTextTree();
 applyAssistantLanguage(assistantLanguage);

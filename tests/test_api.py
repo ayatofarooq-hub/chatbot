@@ -92,7 +92,10 @@ class ApiTests(unittest.TestCase):
         new_chat_handler = script_response.text[new_chat_start:new_chat_end]
         self.assertIn('showView("landing")', new_chat_handler)
         self.assertNotIn('showView("assistant")', new_chat_handler)
-        self.assertIn("20260923-hide-review-nav-v1", self.client.get("/").text)
+        frontend_html = self.client.get("/").text
+        self.assertIn("20260928-evidence-panel-v2", frontend_html)
+        self.assertIn('id="evidence-panel-toggle"', frontend_html)
+        self.assertIn('id="evidence-panel-content"', frontend_html)
         self.assertIn('id="ai-speech-stop"', self.client.get("/").text)
 
         error_messages_response = self.client.get("/assets/http-errors.js")

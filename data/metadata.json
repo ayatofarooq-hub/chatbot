@@ -939,6 +939,13 @@
       "token_hash": "cd11310572d43881408d645111edf7f2ad629a89046a72e5c066745f66a91fef",
       "expires_at": "2026-09-22T12:23:06.483928+00:00",
       "welcome_phrase_index": 0
+    },
+    {
+      "id": "7174bb0d-a260-41e7-88ef-ff0786c55e01",
+      "admin_user_id": 25,
+      "token_hash": "9fbf0e5430d03d98e8dda673fffe9e53a43df8926d9805f57d1f90a41ff6791f",
+      "expires_at": "2026-09-28T09:06:22.987919+00:00",
+      "welcome_phrase_index": 6
     }
   ],
   "audit_log": [
@@ -3261,6 +3268,18 @@
         ]
       },
       "created_at": "2026-09-27T08:36:29.386607+00:00"
+    },
+    {
+      "id": 184,
+      "action": "login_success",
+      "actor_user_id": 25,
+      "actor_username": "ShamsMJ",
+      "target_type": null,
+      "target_id": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36",
+      "details": {},
+      "created_at": "2026-09-28T08:06:23.069183+00:00"
     }
   ]
 }

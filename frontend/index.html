@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#145a38">
   <title>المساعد القانوني العراقي</title>
   <script src="/assets/theme-schedule.js?v=20260907-scheduled-theme-v1"></script>
-  <link rel="stylesheet" href="/assets/styles.css?v=20260923-night-palette-v3">
+  <link rel="stylesheet" href="/assets/styles.css?v=20260928-evidence-panel-v2">
 </head>
 <body class="auth-gate-pending">
   <div class="app-shell">
@@ -263,28 +263,60 @@
           </p>
         </section>
 
-        <aside class="evidence-panel panel">
+        <aside class="evidence-panel panel" id="evidence-panel">
           <div class="panel-header">
-            <strong>قرارات ووثائق ذات صلة</strong>
-            <span class="reference-count" id="reference-count">0 مراجع</span>
+            <div class="evidence-panel-title">
+              <span class="evidence-heading-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <path d="M7 3.75h7.3L18.5 8v12.25H7z"/>
+                  <path d="M14 3.75V8h4.5M9.5 12h6M9.5 15.5h6"/>
+                </svg>
+              </span>
+              <span class="evidence-heading-copy">
+                <strong>قرارات ووثائق ذات صلة</strong>
+                <small>المصادر القانونية والتحقق</small>
+              </span>
+              <span class="reference-count" id="reference-count">0 مراجع</span>
+            </div>
+            <button
+              class="evidence-panel-toggle"
+              id="evidence-panel-toggle"
+              type="button"
+              aria-controls="evidence-panel-content"
+              aria-expanded="false"
+              aria-label="فتح لوحة القرارات والوثائق"
+              title="فتح لوحة القرارات والوثائق"
+            >
+              <span class="evidence-toggle-chevron" aria-hidden="true">‹</span>
+              <span class="evidence-toggle-symbol" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <path d="M7 3.75h7.3L18.5 8v12.25H7z"/>
+                  <path d="M14 3.75V8h4.5M9.5 12h6M9.5 15.5h6"/>
+                </svg>
+              </span>
+              <span class="evidence-toggle-label">المراجع</span>
+              <span class="evidence-toggle-count" id="evidence-collapsed-count">0</span>
+            </button>
           </div>
-          <div class="section-label">الوثائق الرسمية</div>
-          <div class="source-list" id="source-list">
-            <div class="empty-panel">ستظهر المراجع المسترجعة هنا بعد طرح السؤال.</div>
+          <div class="evidence-panel-content" id="evidence-panel-content">
+            <div class="section-label">الوثائق الرسمية</div>
+            <div class="source-list" id="source-list">
+              <div class="empty-panel">ستظهر المراجع المسترجعة هنا بعد طرح السؤال.</div>
+            </div>
+            <div class="section-label">التحليل السياقي المرتبط</div>
+            <section class="insight-card" id="insight-card">
+              <div class="insight-title"><span aria-hidden="true">✓</span> رؤى التحقق الآلي</div>
+              <ul id="insight-list">
+                <li>ستظهر نتائج التحقق والاستشهادات هنا بعد إنشاء الإجابة.</li>
+              </ul>
+            </section>
+            <div class="section-label">أدوات إضافية</div>
+            <button class="upload-card" type="button" disabled>
+              <span aria-hidden="true">⇩</span>
+              <strong>تحميل الوثائق</strong>
+              <small>تتم إدارة الوثائق حالياً عبر API</small>
+            </button>
           </div>
-          <div class="section-label">التحليل السياقي المرتبط</div>
-          <section class="insight-card" id="insight-card">
-            <div class="insight-title"><span aria-hidden="true">✓</span> رؤى التحقق الآلي</div>
-            <ul id="insight-list">
-              <li>ستظهر نتائج التحقق والاستشهادات هنا بعد إنشاء الإجابة.</li>
-            </ul>
-          </section>
-          <div class="section-label">أدوات إضافية</div>
-          <button class="upload-card" type="button" disabled>
-            <span aria-hidden="true">⇩</span>
-            <strong>تحميل الوثائق</strong>
-            <small>تتم إدارة الوثائق حالياً عبر API</small>
-          </button>
         </aside>
       </div>
 
@@ -344,7 +376,7 @@
 
   <div class="toast" id="toast" role="alert"></div>
   <div id="modal-root"></div>
-  <script type="module" src="/assets/app.js?v=20260923-hide-review-nav-v1"></script>
+  <script type="module" src="/assets/app.js?v=20260928-evidence-panel-v2"></script>
   <script type="module" src="/assets/effendi-flipbook.js?v=mujib-kurmanji-v16"></script>
 </body>
 </html>
