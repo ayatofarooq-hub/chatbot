@@ -247,73 +247,6 @@ class AnswerFlowTests(unittest.TestCase):
         self.assertIn("ثانيًا : تخويل", answer)
         self.assertNotIn("الأمين العام", answer)
 
-    def test_exact_law_lookup_returns_full_requested_section_only(self):
-        question = (
-            "١٤. قانون الأسلحة رقم "
-            "(٥١) لسنة ٢٠١٧"
-        )
-
-        result = answer_exact_law(question)
-
-        self.assertIsNotNone(result)
-        answer = result["answer"]
-        self.assertIn("قانون الأسلحة", answer)
-        self.assertIn("الأسباب الموجبة", answer)
-        self.assertNotIn("المادة (٢٧)", answer)
-        self.assertNotIn("قانون مجلس القضاء الأعلى", answer)
-
-    def test_exact_law_lookup_includes_group_source(self):
-        result = answer_exact_law("قانون هيئة الحشد الشعبي رقم (٤٠) لسنة ٢٠١٦")
-
-        self.assertIsNotNone(result)
-        expected_source = (
-            "تفكيك القوانين من (١١) إلى (٢٠) - "
-            "التشريعات القضائية والأمنية والاستثمارية"
-        )
-        self.assertTrue(answer_body(result["answer"]).endswith(f"المصدر: {expected_source}"))
-        self.assertIn("مواضيع مقترحة من نفس النص:", result["answer"])
-        self.assertEqual(result["citations"][0]["source_file"], expected_source)
-        self.assertIn("قانون هيئة الحشد الشعبي", result["answer"])
-        self.assertNotIn("قانون الأسلحة رقم", result["answer"])
-
-    def test_exact_law_lookup_prefers_detailed_uploaded_law_section(self):
-        result = answer_exact_law("قانون حماية الأطباء رقم (١١) لسنة ٢٠١٣")
-
-        self.assertIsNotNone(result)
-        answer = result["answer"]
-        self.assertIn("قانون حمايه الاطباء", answer)
-        self.assertNotIn("المادة (١)", answer)
-        self.assertNotIn("المادة (٣)", answer)
-        self.assertNotIn("المادة (٥)", answer)
-        self.assertNotIn("المادة (٦) - تجريم السنن العشائرية", answer)
-        self.assertNotIn("قانون هيئة الحشد الشعبي رقم", answer)
-        self.assertEqual(answer.count("تفكيك القوانين من"), 1)
-        self.assertTrue(
-            answer_body(answer).endswith(
-                "المصدر: تفكيك القوانين من (١١) إلى (٢٠) - "
-                "التشريعات القضائية والأمنية والاستثمارية"
-            )
-        )
-        self.assertIn("مواضيع مقترحة من نفس النص:", answer)
-
-    def test_exact_law_lookup_keeps_answer_limited_to_requested_law(self):
-        result = answer_exact_law("قانون هيئة الحشد الشعبي رقم (٤٠) لسنة ٢٠١٦")
-
-        self.assertIsNotNone(result)
-        answer = result["answer"]
-        self.assertIn("قانون هيئة الحشد الشعبي", answer)
-        self.assertIn("الأسباب الموجبة", answer)
-        self.assertNotIn("المادة (١) - الفقرة ١", answer)
-        self.assertNotIn("المادة (١) - الفقرة ٢", answer)
-        self.assertNotIn("المادة (١) - الفقرة ٣", answer)
-        self.assertNotIn("المادة (٢)", answer)
-        self.assertNotIn("نصوص ذات صلة بهذا القانون", answer)
-        self.assertNotIn("إقرار الهيكل القانوني الثابت لهيئة الحشد الشعبي", answer)
-        self.assertNotIn("قانون الأسلحة رقم", answer)
-        self.assertNotIn("قانون مكافحة الجرائم المعلوماتية", answer)
-        self.assertNotIn("قانون الاستثمار العراقي", answer)
-        self.assertNotIn("قانون مكافحة الأمية", answer)
-
     def test_incomplete_question_returns_without_calling_model(self):
         self.assertIn("سؤال قانوني مكتمل", get_quick_response("ص"))
 
@@ -798,6 +731,110 @@ class AnswerFlowTests(unittest.TestCase):
         self.assertEqual(message["content"], "testable answer")
         self.assertEqual(message["warnings"], ["citation warning"])
         self.assertEqual(message["snippets"][0]["source_file"], "law.pdf")
+
+
+class ExactLawLookupTests(unittest.TestCase):
+    """Exercise lookup against synthetic inputs, never the installed legal corpus."""
+
+    def setUp(self):
+        sections = [
+            "11. قانون حماية الأطباء رقم (11) لسنة 2013\n"
+            "الأسباب الموجبة: نص تجريبي لا يمثل تشريعا.\n"
+            "الهيكل التنظيمي: بيانات اختبار.\n"
+            "أبرز المواد:\nالمادة (١) - فقرة تجريبية.\n"
+            "المادة (٣) - فقرة تجريبية.\nالمادة (٥) - فقرة تجريبية.",
+            "12. قانون هيئة الحشد الشعبي رقم (40) لسنة 2016\n"
+            "الأسباب الموجبة: نص تجريبي لا يمثل تشريعا.\n"
+            "الهيكل التنظيمي: بيانات اختبار.\n"
+            "أبرز المواد:\nالمادة (١) - الفقرة ١: بيانات اختبار.\n"
+            "المادة (٢) - بيانات اختبار.\n"
+            "نصوص ذات صلة بهذا القانون: بيانات اختبار.",
+            "14. قانون الأسلحة رقم (51) لسنة 2017\n"
+            "الأسباب الموجبة: نص تجريبي لا يمثل تشريعا.\n"
+            "الهيكل التنظيمي: بيانات اختبار.\n"
+            "أبرز المواد:\nالمادة (٢٧) - بيانات اختبار.",
+        ]
+        documents = [
+            {"id": "test-group", "title": SECTION_HEADING,
+             "document_type": "law", "content": "\n\n".join([sections[0].splitlines()[0], *sections[1:]])},
+            {"id": "test-doctors-detail", "title": "قانون حمايه الاطباء",
+             "document_type": "law", "content": sections[0].replace("حماية الأطباء", "حمايه الاطباء")},
+        ]
+        repository = patch("app.legal_lookup.JsonRepository")
+        mock_repository = repository.start()
+        self.addCleanup(repository.stop)
+        mock_repository.return_value.list_documents.return_value = documents
+        chunks = patch("app.legal_lookup.load_chunk_records", return_value=[])
+        chunks.start()
+        self.addCleanup(chunks.stop)
+
+    def test_exact_law_lookup_returns_full_requested_section_only(self):
+        question = (
+            "١٤. قانون الأسلحة رقم "
+            "(٥١) لسنة ٢٠١٧"
+        )
+
+        result = answer_exact_law(question)
+
+        self.assertIsNotNone(result)
+        answer = answer_body(result["answer"])
+        self.assertIn("قانون الأسلحة", answer)
+        self.assertIn("الأسباب الموجبة", answer)
+        self.assertNotIn("المادة (٢٧)", answer)
+        self.assertNotIn("قانون مجلس القضاء الأعلى", answer)
+
+    def test_exact_law_lookup_includes_group_source(self):
+        result = answer_exact_law("قانون هيئة الحشد الشعبي رقم (٤٠) لسنة ٢٠١٦")
+
+        self.assertIsNotNone(result)
+        expected_source = (
+            "تفكيك القوانين من (١١) إلى (٢٠) - "
+            "التشريعات القضائية والأمنية والاستثمارية"
+        )
+        self.assertTrue(answer_body(result["answer"]).endswith(f"المصدر: {expected_source}"))
+        self.assertIn("مواضيع مقترحة من نفس النص:", result["answer"])
+        self.assertEqual(result["citations"][0]["source_file"], expected_source)
+        self.assertIn("قانون هيئة الحشد الشعبي", result["answer"])
+        self.assertNotIn("قانون الأسلحة رقم", result["answer"])
+
+    def test_exact_law_lookup_prefers_detailed_uploaded_law_section(self):
+        result = answer_exact_law("قانون حماية الأطباء رقم (١١) لسنة ٢٠١٣")
+
+        self.assertIsNotNone(result)
+        answer = result["answer"]
+        summary = answer_body(answer)
+        self.assertIn("قانون حمايه الاطباء", answer)
+        self.assertNotIn("المادة (١)", summary)
+        self.assertNotIn("المادة (٣)", summary)
+        self.assertNotIn("المادة (٥)", summary)
+        self.assertNotIn("المادة (٦) - تجريم السنن العشائرية", summary)
+        self.assertNotIn("قانون هيئة الحشد الشعبي رقم", answer)
+        self.assertEqual(answer.count("تفكيك القوانين من"), 1)
+        self.assertTrue(
+            answer_body(answer).endswith(
+                "المصدر: تفكيك القوانين من (١١) إلى (٢٠) - "
+                "التشريعات القضائية والأمنية والاستثمارية"
+            )
+        )
+        self.assertIn("مواضيع مقترحة من نفس النص:", answer)
+
+    def test_exact_law_lookup_keeps_answer_limited_to_requested_law(self):
+        result = answer_exact_law("قانون هيئة الحشد الشعبي رقم (٤٠) لسنة ٢٠١٦")
+
+        self.assertIsNotNone(result)
+        answer = result["answer"]
+        self.assertIn("قانون هيئة الحشد الشعبي", answer)
+        self.assertIn("الأسباب الموجبة", answer)
+        self.assertNotIn("المادة (١) - الفقرة ١", answer)
+        self.assertNotIn("المادة (١) - الفقرة ٢", answer)
+        self.assertNotIn("المادة (١) - الفقرة ٣", answer)
+        self.assertNotIn("المادة (٢)", answer)
+        self.assertNotIn("نصوص ذات صلة بهذا القانون", answer)
+        self.assertNotIn("إقرار الهيكل القانوني الثابت لهيئة الحشد الشعبي", answer)
+        self.assertNotIn("قانون الأسلحة رقم", answer)
+        self.assertNotIn("قانون مكافحة الجرائم المعلوماتية", answer)
+        self.assertNotIn("قانون الاستثمار العراقي", answer)
+        self.assertNotIn("قانون مكافحة الأمية", answer)
 
 
 if __name__ == "__main__":

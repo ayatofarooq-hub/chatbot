@@ -71,6 +71,9 @@ class SettingsValidationTests(unittest.TestCase):
 
 class SettingsApiTests(unittest.TestCase):
     def setUp(self):
+        audit_patcher = patch("app.settings_api.audit")
+        audit_patcher.start()
+        self.addCleanup(audit_patcher.stop)
         self.client = TestClient(app)
 
     @patch("app.settings_api.admin_for_token", return_value=None)
