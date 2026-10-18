@@ -28,12 +28,6 @@ from app.utils import validate_document_json
 
 
 class MainOfflineTests(unittest.TestCase):
-    def setUp(self):
-        # Keep pipeline tests from appending sample events to the real log.
-        handlers = patch.object(app_main.logger, "handlers", [])
-        handlers.start()
-        self.addCleanup(handlers.stop)
-
     def test_main_writes_docx_json_without_crashing(self):
         with (
             patch.object(app_main, "create_data_directories") as create_data_directories,

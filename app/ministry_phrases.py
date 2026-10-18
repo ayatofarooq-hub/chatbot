@@ -69,7 +69,7 @@ MINISTRY_PHRASES: tuple[MinistryPhrases, ...] = (
     ),
     MinistryPhrases(
         "وزارة الكهرباء",
-        ("وزارة الكهرباء", "الكهرباء", "electricity", "power", "moelc"),
+        ("وزارة الكهرباء", "الكهرباء", "electricity", "power"),
         (
             "العراق يستاهل ضوّه",
             "نورنا… مو أمنية",
@@ -95,7 +95,7 @@ MINISTRY_PHRASES: tuple[MinistryPhrases, ...] = (
     ),
     MinistryPhrases(
         "وزارة التربية",
-        ("وزارة التربية", "التربية", "education", "moedu"),
+        ("وزارة التربية", "التربية", "education"),
         (
             "العراق يبدأ من الصف",
             "جيل اليوم… وطن باچر",
@@ -121,7 +121,7 @@ MINISTRY_PHRASES: tuple[MinistryPhrases, ...] = (
     ),
     MinistryPhrases(
         "وزارة الزراعة",
-        ("وزارة الزراعة", "الزراعة", "agriculture", "moa"),
+        ("وزارة الزراعة", "الزراعة", "agriculture"),
         (
             "أرضنا… خيرنا",
             "العراق يأكل من أرضه",
@@ -134,7 +134,7 @@ MINISTRY_PHRASES: tuple[MinistryPhrases, ...] = (
     ),
     MinistryPhrases(
         "وزارة الموارد المائية",
-        ("وزارة الموارد المائية", "الموارد المائية", "water resources", "water", "mowr"),
+        ("وزارة الموارد المائية", "الموارد المائية", "water resources", "water"),
         (
             "دجلة والفرات… نبض العراق",
             "مَيّنا… حياة وطنّا",
@@ -147,7 +147,7 @@ MINISTRY_PHRASES: tuple[MinistryPhrases, ...] = (
     ),
     MinistryPhrases(
         "وزارة النقل",
-        ("وزارة النقل", "النقل", "transport", "transportation", "motrans"),
+        ("وزارة النقل", "النقل", "transport", "transportation"),
         (
             "العراق يمشي… إذا الطريق مشى",
             "الطريق مو بس إسفلت",
@@ -160,7 +160,7 @@ MINISTRY_PHRASES: tuple[MinistryPhrases, ...] = (
     ),
     MinistryPhrases(
         "وزارة الاتصالات",
-        ("وزارة الاتصالات", "الاتصالات", "communications", "telecom", "moc"),
+        ("وزارة الاتصالات", "الاتصالات", "communications", "telecom"),
         (
             "العراق مو خارج التغطية",
             "نبقى متصلين",
@@ -173,7 +173,7 @@ MINISTRY_PHRASES: tuple[MinistryPhrases, ...] = (
     ),
     MinistryPhrases(
         "وزارة الإعمار والإسكان والبلديات العامة",
-        ("وزارة الإعمار والإسكان", "وزارة الإعمار والإسكان والبلديات العامة", "الاعمار والاسكان", "الإعمار", "الاسكان", "construction", "housing", "moch"),
+        ("وزارة الإعمار والإسكان", "وزارة الإعمار والإسكان والبلديات العامة", "الاعمار والاسكان", "الإعمار", "الاسكان", "construction", "housing"),
         (
             "العراق بسواعد البنّائين",
             "حجر اليوم… وطن باچر",
@@ -186,7 +186,7 @@ MINISTRY_PHRASES: tuple[MinistryPhrases, ...] = (
     ),
     MinistryPhrases(
         "وزارة الصناعة والمعادن",
-        ("وزارة الصناعة والمعادن", "الصناعة والمعادن", "الصناعة", "industry", "minerals", "mim"),
+        ("وزارة الصناعة والمعادن", "الصناعة والمعادن", "الصناعة", "industry", "minerals"),
         (
             "العراق يصنع العراق",
             "صناعتنا… عزّنا",
@@ -212,7 +212,7 @@ MINISTRY_PHRASES: tuple[MinistryPhrases, ...] = (
     ),
     MinistryPhrases(
         "وزارة الثقافة والسياحة والآثار",
-        ("وزارة الثقافة والسياحة والآثار", "الثقافة والسياحة والاثار", "الثقافة", "السياحة", "الآثار", "culture", "tourism", "antiquities", "mocul"),
+        ("وزارة الثقافة والسياحة والآثار", "الثقافة والسياحة والاثار", "الثقافة", "السياحة", "الآثار", "culture", "tourism", "antiquities"),
         (
             "حضارة العراق… تحچي للعالم",
             "أثرنا… هوية وطن",
@@ -225,7 +225,7 @@ MINISTRY_PHRASES: tuple[MinistryPhrases, ...] = (
     ),
     MinistryPhrases(
         "وزارة العمل والشؤون الاجتماعية",
-        ("وزارة العمل والشؤون الاجتماعية", "العمل والشؤون الاجتماعية", "العمل", "labour", "labor", "social affairs", "molsa"),
+        ("وزارة العمل والشؤون الاجتماعية", "العمل والشؤون الاجتماعية", "العمل", "labour", "labor", "social affairs"),
         (
             "كرامة الناس… أول الشغل",
             "فرصة عمل… حياة أفضل",
@@ -238,7 +238,7 @@ MINISTRY_PHRASES: tuple[MinistryPhrases, ...] = (
     ),
     MinistryPhrases(
         "وزارة الهجرة والمهجرين",
-        ("وزارة الهجرة والمهجرين", "الهجرة والمهجرين", "الهجرة", "migration", "displacement", "momd"),
+        ("وزارة الهجرة والمهجرين", "الهجرة والمهجرين", "الهجرة", "migration", "displacement"),
         (
             "كل عراقي… إله مكان بوطنه",
             "العودة… بداية جديدة",
@@ -251,7 +251,7 @@ MINISTRY_PHRASES: tuple[MinistryPhrases, ...] = (
     ),
     MinistryPhrases(
         "وزارة الشباب والرياضة",
-        ("وزارة الشباب والرياضة", "الشباب والرياضة", "الشباب", "youth", "sports", "moys"),
+        ("وزارة الشباب والرياضة", "الشباب والرياضة", "الشباب", "youth", "sports"),
         (
             "شباب العراق… طاقة وطن",
             "الملعب يصنع حلم",
@@ -264,7 +264,7 @@ MINISTRY_PHRASES: tuple[MinistryPhrases, ...] = (
     ),
     MinistryPhrases(
         "وزارة البيئة",
-        ("وزارة البيئة", "البيئة", "environment", "moen"),
+        ("وزارة البيئة", "البيئة", "environment"),
         (
             "عراق أنظف… حياة أحسن",
             "بيئتنا… أمانة للأجيال",
@@ -303,7 +303,7 @@ MINISTRY_PHRASES: tuple[MinistryPhrases, ...] = (
     ),
     MinistryPhrases(
         "وزارة التجارة",
-        ("وزارة التجارة", "التجارة", "trade", "commerce", "mot"),
+        ("وزارة التجارة", "التجارة", "trade", "commerce"),
         (
             "السوق بخير… الناس بخير",
             "السوق للمواطن",
@@ -316,7 +316,7 @@ MINISTRY_PHRASES: tuple[MinistryPhrases, ...] = (
     ),
     MinistryPhrases(
         "وزارة التخطيط",
-        ("وزارة التخطيط", "التخطيط", "planning", "mop"),
+        ("وزارة التخطيط", "التخطيط", "planning"),
         (
             "نخطط اليوم… حتى ننجز باچر",
             "الرقم الصحيح… قرار صحيح",
@@ -347,23 +347,14 @@ def _admin_search_text(admin: dict | None) -> str:
     )
 
 
-def _matching_ministry(text: object) -> MinistryPhrases | None:
-    haystack = f" {_normalize(text).strip()} "
-    matches = []
-    for ministry in MINISTRY_PHRASES:
-        for alias in ministry.aliases:
-            normalized = _normalize(alias).strip()
-            if normalized and f" {normalized} " in haystack:
-                matches.append((len(normalized), ministry))
-    return max(matches, key=lambda match: match[0])[1] if matches else None
-
-
 def ministry_for_admin(admin: dict | None) -> MinistryPhrases | None:
-    if not admin:
+    haystack = _admin_search_text(admin)
+    if not haystack:
         return None
-    # The declared ministry wins over hints in usernames or display names.
-    # Match whole aliases so MOFA/MOF and MOHESR/MOH remain distinct.
-    return _matching_ministry(admin.get("ministry")) or _matching_ministry(_admin_search_text(admin))
+    for ministry in MINISTRY_PHRASES:
+        if any(_normalize(alias).strip() in haystack for alias in ministry.aliases):
+            return ministry
+    return None
 
 
 def welcome_phrase_for_admin(admin: dict | None) -> dict | None:

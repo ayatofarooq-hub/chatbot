@@ -155,14 +155,6 @@ class JsonRepository:
         return documents
 
     def find_by_id(self, document_id: str) -> dict[str, Any] | None:
-        # Uploads are written here even though retrieval scans parser outputs.
-        # Read our own records without adding pending uploads to that corpus.
-        if Path(document_id).name == document_id and "\\" not in document_id:
-            path = self._document_root / f"{document_id}.json"
-            if path.is_file():
-                document = self._load_json(path)
-                if document.get("id") == document_id:
-                    return document
         for document in self.list_documents():
             if document.get("id") == document_id:
                 return document

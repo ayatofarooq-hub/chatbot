@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import re
-
 from app.iraqi_government.models import DocumentType
 
 
@@ -23,9 +21,6 @@ def detect_document_type(text: str, filename: str = "") -> DocumentType:
 
     haystack = f"{filename}\n{text[:3000]}".lower()
     for document_type, keywords in TYPE_KEYWORDS:
-        if any(
-            re.search(r"(?<!\w)" + re.escape(keyword.lower()) + r"(?!\w)", haystack)
-            for keyword in keywords
-        ):
+        if any(keyword.lower() in haystack for keyword in keywords):
             return document_type
     return "unknown"

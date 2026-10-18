@@ -81,7 +81,7 @@
     },
     {
       "id": 2,
-      "username": "MOO",
+      "username": "minister.oil",
       "password_hash": "$2b$12$B.j3c2Ub6vth4Gl0ns01geJJy/T7xI1AX5OV1Q9ID/x6ZD97zxOUu",
       "display_name": "وزير النفط",
       "email": "oil.minister@decisions.local",
@@ -96,7 +96,7 @@
     },
     {
       "id": 3,
-      "username": "MOELC",
+      "username": "minister.electricity",
       "password_hash": "$2b$12$VaWQWeKMXhee4YzM.WbJu.D6dTeDKV2BCZWAaaiEwbhrMaBKF81GO",
       "display_name": "وزير الكهرباء",
       "email": "electricity.minister@decisions.local",
@@ -111,7 +111,7 @@
     },
     {
       "id": 4,
-      "username": "MOA",
+      "username": "minister.agriculture",
       "password_hash": "$2b$12$0KNBaydpZfhG4yDJ6mUI0O7IhZr2Jh43o/V.rygsVr5SWKCq2DElu",
       "display_name": "وزير الزراعة",
       "email": "agriculture.minister@decisions.local",
@@ -126,7 +126,7 @@
     },
     {
       "id": 5,
-      "username": "MIM",
+      "username": "minister.industry",
       "password_hash": "$2b$12$YxPEppkFemfET4z61y2QQOYLuMeKrVu79gDVdFwLgTyGJ9d.507g2",
       "display_name": "وزير الصناعة والمعادن",
       "email": "industry.minister@decisions.local",
@@ -141,7 +141,7 @@
     },
     {
       "id": 6,
-      "username": "MOEDU",
+      "username": "minister.education",
       "password_hash": "$2b$12$ZRmz244H0kgfkhy.bAZixewt.Hf1nHcWODz6eFCLfhnZnTfu7Qtby",
       "display_name": "وزير التربية",
       "email": "education.minister@decisions.local",
@@ -156,7 +156,7 @@
     },
     {
       "id": 7,
-      "username": "MOWR",
+      "username": "minister.water",
       "password_hash": "$2b$12$hGORiQWvshCU1gpmMs7xFuPqcT6qyGBj14VhdpPEXwJRrfB8MoFpS",
       "display_name": "وزير الموارد المائية",
       "email": "water.minister@decisions.local",
@@ -171,7 +171,7 @@
     },
     {
       "id": 8,
-      "username": "MOTRANS",
+      "username": "minister.transport",
       "password_hash": "$2b$12$5eCfexRBoKJJrJNlKLcjWe1NTYLmi.7RLgeoEWbvuqnQxzxQ2TNom",
       "display_name": "وزير النقل",
       "email": "transport.minister@decisions.local",
@@ -186,7 +186,7 @@
     },
     {
       "id": 9,
-      "username": "MOFA",
+      "username": "minister.foreign",
       "password_hash": "$2b$12$ASDGIKmEFVB.FJGYgM88TudLp4zk7qOuJIIH.8vrhcIEJjbrBK6Ge",
       "display_name": "وزير الخارجية",
       "email": "foreign.minister@decisions.local",
@@ -201,7 +201,7 @@
     },
     {
       "id": 10,
-      "username": "MOF",
+      "username": "minister.finance",
       "password_hash": "$2b$12$1aVURwkQWD3rH2GCvKNgUO3s1M/1kWAXbWD0vd3KfDrjZqYR9Plhe",
       "display_name": "وزير المالية",
       "email": "finance.minister@decisions.local",
@@ -216,7 +216,7 @@
     },
     {
       "id": 11,
-      "username": "MOC",
+      "username": "minister.communications",
       "password_hash": "$2b$12$0yKkPuX5qRC9IbgYjC9i7.tzn549MUl9EXz.mqCxLCNV8EHVnR1pG",
       "display_name": "وزير الاتصالات",
       "email": "communications.minister@decisions.local",
@@ -231,7 +231,7 @@
     },
     {
       "id": 12,
-      "username": "MOH",
+      "username": "minister.health",
       "password_hash": "$2b$12$4LuX7zyCpfjZ89.THL5mZOeQcY.lXecmAc4t0eziqKf8h.RbMHLBa",
       "display_name": "وزير الصحة",
       "email": "health.minister@decisions.local",
@@ -246,7 +246,7 @@
     },
     {
       "id": 13,
-      "username": "MOEN",
+      "username": "minister.environment",
       "password_hash": "$2b$12$hLKWBn7tupbHQSRhX/8ZjOzd/G4R5R/Mco/rTIPKs1G0Yxi2BrovW",
       "display_name": "وزير البيئة",
       "email": "environment.minister@decisions.local",
@@ -261,7 +261,7 @@
     },
     {
       "id": 14,
-      "username": "MOJ",
+      "username": "minister.justice",
       "password_hash": "$2b$12$3c.7GJd6QavZjhFn8P0YquiQRyiE.ErGERHuC6ZqMjJNVHeqWR4Ta",
       "display_name": "وزير العدل",
       "email": "justice.minister@decisions.local",
@@ -276,7 +276,7 @@
     },
     {
       "id": 15,
-      "username": "MOT",
+      "username": "minister.trade",
       "password_hash": "$2b$12$avY02Pdk4O4UeG/bjAK8BeeAmSHpdgZgMu5vzXENrFRjruDlO04hG",
       "display_name": "وزير التجارة",
       "email": "trade.minister@decisions.local",
@@ -291,7 +291,7 @@
     },
     {
       "id": 16,
-      "username": "MOCH",
+      "username": "acting.construction",
       "password_hash": "$2b$12$RlPhVoi34C9k53zCe2hQj.H8s0uS8nI/ZdWpWWw23LW9A1DqpfulO",
       "display_name": "وزير الإعمار والإسكان والبلديات العامة",
       "email": "construction.acting@decisions.local",
@@ -306,7 +306,7 @@
     },
     {
       "id": 17,
-      "username": "MOP",
+      "username": "acting.planning",
       "password_hash": "$2b$12$slDUpVO3prBDFRnzcvOnxOddonZDtA2ZgOMWDVjonO/38h4nbXuE6",
       "display_name": "وزير التخطيط",
       "email": "planning.acting@decisions.local",
@@ -321,7 +321,7 @@
     },
     {
       "id": 18,
-      "username": "MOI",
+      "username": "acting.interior",
       "password_hash": "$2b$12$TICV6ztoS6sjZhq2zAMdZ.DYFWQV2zn/Ou.GbD9n0fV1IMxZ7LT2.",
       "display_name": "وزير الداخلية",
       "email": "interior.acting@decisions.local",
@@ -336,7 +336,7 @@
     },
     {
       "id": 19,
-      "username": "MOHESR",
+      "username": "acting.higher.education",
       "password_hash": "$2b$12$ajTScg.a9plNjUzZZjjoneW71pCe1h/i/AA6bxsP9wkz59Ko1ptW2",
       "display_name": "وزير التعليم العالي والبحث العلمي",
       "email": "highered.acting@decisions.local",
@@ -351,7 +351,7 @@
     },
     {
       "id": 20,
-      "username": "MOYS",
+      "username": "acting.youth",
       "password_hash": "$2b$12$Vt7JRTXjyQ7UuRKoqGgTOuazo9vWH61sNlYpGNRa/QOM96CxBX0q6",
       "display_name": "وزير الشباب والرياضة",
       "email": "youth.acting@decisions.local",
@@ -366,7 +366,7 @@
     },
     {
       "id": 21,
-      "username": "MOD",
+      "username": "acting.defense",
       "password_hash": "$2b$12$YBmk67cQpxwbvlDW60MrROl9RSYt5g7.Y0N8efE/kG5A9zhQQ2Yzi",
       "display_name": "وزير الدفاع",
       "email": "defense.acting@decisions.local",
@@ -381,7 +381,7 @@
     },
     {
       "id": 22,
-      "username": "MOLSA",
+      "username": "acting.labor",
       "password_hash": "$2b$12$gRdrcpn2I8LF735pU3PDNuCtFZbTni9A02N.72AVhmSXSRdectAnC",
       "display_name": "وزير العمل والشؤون الاجتماعية",
       "email": "labor.acting@decisions.local",
@@ -396,7 +396,7 @@
     },
     {
       "id": 23,
-      "username": "MOCUL",
+      "username": "acting.culture",
       "password_hash": "$2b$12$/GUj24U256de2NplGEUDqu8rSHk/6qZElrplnCBtGeM6.aSDEV/G.",
       "display_name": "وزير الثقافة والسياحة والآثار",
       "email": "culture.acting@decisions.local",
@@ -411,7 +411,7 @@
     },
     {
       "id": 24,
-      "username": "MOMD",
+      "username": "acting.migration",
       "password_hash": "$2b$12$.2GHiiS6lMi3CC8VafyC.eLXfP2a2nxCjx38fPrky7yULFb2pmrG2",
       "display_name": "وزير الهجرة والمهجرين",
       "email": "migration.acting@decisions.local",
