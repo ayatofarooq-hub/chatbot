@@ -663,7 +663,7 @@ export function createSettingsModule({ root, modalRoot, showToast, onAuthenticat
     options.forEach((model) => modelSelect.add(new Option(optionLabels[model] || model, model)));
     modelSelect.value = state.model.chat_model;
     const autoModel = section.querySelector("[data-auto-model]");
-    autoModel.checked = state.model.auto_select_model !== false;
+    autoModel.checked = state.model.auto_select_model === true;
     modelSelect.disabled = autoModel.checked;
     modelSelect.onchange = () => {
       state.model.chat_model = modelSelect.value;
@@ -705,7 +705,7 @@ export function createSettingsModule({ root, modalRoot, showToast, onAuthenticat
           upload: state.upload,
           model: {
             chat_model: state.model.chat_model,
-            auto_select_model: state.model.auto_select_model !== false,
+            auto_select_model: state.model.auto_select_model === true,
           },
           fine_tuning: state.fine_tuning,
         };

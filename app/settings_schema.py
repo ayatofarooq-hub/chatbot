@@ -10,7 +10,7 @@ from .model_selection import MODEL_OPTIONS
 
 DEFAULTS = {
     "model": {
-        "chat_model": "qwen2.5:3b", "auto_select_model": True,
+        "chat_model": "qwen2.5:3b", "auto_select_model": False,
         "embedding_model": "bge-m3",
         "ollama_base_url": "http://127.0.0.1:11434", "request_timeout": 600,
         "keep_alive": "10m", "max_answer_tokens": 700, "temperature": 0.0,

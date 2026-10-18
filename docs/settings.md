@@ -29,11 +29,16 @@ application settings never mutates Chroma directly.
 ### Automatic local model selection
 
 The supported chat models are `qwen2.5:1.5b`, `qwen2.5:3b`, and
-`qwen2.5:7b`. With `model.auto_select_model` enabled, application startup
+`qwen2.5:7b`. Automatic selection is disabled by default so existing installations
+keep their saved chat model (3B by default). GPU detection supplies a recommendation;
+it changes the active model only after the user explicitly enables
+`model.auto_select_model`. With that option enabled, application startup
 checks dedicated GPU memory using `nvidia-smi` first and Windows video-controller
 information as a fallback. It selects 1.5B below 4 GB (and for CPU-only
-systems), 3B from 4 GB, and 7B from 8 GB. Disable automatic selection in the
-settings page to keep a manual model choice.
+systems), 3B from 4 GB, and 7B from 8 GB. A smaller model may change legal answer
+accuracy and wording. Disable automatic selection in the settings page to keep a
+manual model choice. Missing `auto_select_model` values are treated as disabled
+both by the runtime and the settings UI/API.
 
 JSON export/import contains application settings only. It does not contain
 administrator password hashes, sessions, legal records, or Chroma data.

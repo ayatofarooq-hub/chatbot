@@ -37,7 +37,7 @@ def settings_response_payload(settings: dict | None = None) -> dict:
     payload = deepcopy(settings) if settings is not None else get_settings()
     profile = hardware_profile()
     model = payload.setdefault("model", {})
-    if model.get("auto_select_model", True):
+    if model.get("auto_select_model", False):
         model["chat_model"] = profile["recommended_model"]
     payload["hardware"] = profile
     payload.setdefault("capabilities", {})["model_options"] = list(MODEL_OPTIONS)

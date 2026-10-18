@@ -16,6 +16,6 @@ def runtime_settings() -> dict:
         settings = get_settings()
     except Exception:
         settings = deepcopy(DEFAULTS)
-    if settings["model"].get("auto_select_model", True):
+    if settings["model"].get("auto_select_model", False):
         settings["model"]["chat_model"] = hardware_profile()["recommended_model"]
     return settings

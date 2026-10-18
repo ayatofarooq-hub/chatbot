@@ -5,9 +5,30 @@ from unittest.mock import patch
 
 from app.model_selection import detect_hardware_profile, recommend_model
 from app.runtime_settings import runtime_settings
+from app.settings_api import settings_response_payload
+from app.settings_schema import DEFAULTS
 
 
 class ModelSelectionTests(unittest.TestCase):
+    @patch("app.runtime_settings.hardware_profile")
+    @patch("app.runtime_settings.get_settings")
+    def test_legacy_settings_keep_saved_model_without_opt_in(self, mock_get, mock_hardware):
+        mock_get.return_value = {"model": {"chat_model": "qwen2.5:3b"}}
+        mock_hardware.return_value = {"recommended_model": "qwen2.5:1.5b"}
+
+        self.assertEqual(runtime_settings()["model"]["chat_model"], "qwen2.5:3b")
+        mock_hardware.assert_not_called()
+        self.assertFalse(DEFAULTS["model"]["auto_select_model"])
+
+    @patch("app.settings_api.hardware_profile")
+    def test_settings_response_does_not_replace_legacy_saved_model(self, mock_hardware):
+        mock_hardware.return_value = {"recommended_model": "qwen2.5:1.5b"}
+
+        payload = settings_response_payload({"model": {"chat_model": "qwen2.5:3b"}})
+
+        self.assertEqual(payload["model"]["chat_model"], "qwen2.5:3b")
+        self.assertEqual(payload["hardware"]["recommended_model"], "qwen2.5:1.5b")
+
     def test_recommends_model_by_available_vram(self):
         self.assertEqual(recommend_model(None), "qwen2.5:1.5b")
         self.assertEqual(recommend_model(2048), "qwen2.5:1.5b")
