@@ -48,3 +48,22 @@ On startup, the app:
 4. Opens `http://127.0.0.1:8000/` in WebView2 once the backend is healthy.
 
 Backend logs are written under the configured `LogDirectory` value, defaulting to `logs` next to the built executable.
+
+## Build the updated Windows package
+
+From the repository root:
+
+```powershell
+powershell -NoProfile -File scripts\build_desktop.ps1
+```
+
+This publishes a self-contained Windows x64 shell, includes the current backend
+configuration and installation/username guides, records the shared backend
+revision in `backend-version.json`, and refreshes
+`LegalChatbotDesktop/dist/LegalChatbotDesktop-win-x64.zip`.
+
+The package uses the current Python backend and frontend from the configured
+`BackendWorkingDirectory`; it does not embed an independent backend snapshot.
+The 3B model-selection fix and institutional usernames therefore apply to both
+the browser and desktop app. Follow `INSTALL_ON_OTHER_PC.md` when updating a
+separate PC, including its own backend checkout and username migration.

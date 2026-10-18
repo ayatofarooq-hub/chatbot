@@ -26,6 +26,10 @@ build/
 dist/
 *.egg-info/
 
+# Generated Windows desktop build output (historical tracked files remain tracked)
+LegalChatbotDesktop/bin/
+LegalChatbotDesktop/obj/
+
 # Editor and operating-system files
 .idea/
 .vscode/
