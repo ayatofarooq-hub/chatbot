@@ -1,5 +1,7 @@
 from app.ministry_phrases import ministry_for_admin, welcome_phrase_for_admin
 
+import pytest
+
 
 def test_welcome_phrase_matches_arabic_ministry_display_name():
     admin = {"display_name": "وزارة المالية", "username": "minister"}
@@ -31,3 +33,20 @@ def test_welcome_phrase_matches_english_username_alias():
 
 def test_welcome_phrase_is_empty_for_unknown_account():
     assert welcome_phrase_for_admin({"display_name": "Legal reviewer", "username": "reviewer"}) is None
+
+
+@pytest.mark.parametrize("username,ministry", [
+    ("MOFA", "وزارة الخارجية"),
+    ("MOF", "وزارة المالية"),
+    ("MOHESR", "وزارة التعليم العالي والبحث العلمي"),
+    ("MOH", "وزارة الصحة"),
+    ("MOC", "وزارة الاتصالات"),
+    ("MOCUL", "وزارة الثقافة والسياحة والآثار"),
+])
+def test_institutional_usernames_match_their_own_ministry(username, ministry):
+    assert ministry_for_admin({"username": username}).name == ministry
+
+
+def test_explicit_ministry_overrides_conflicting_username():
+    admin = {"ministry": "وزارة الخارجية", "username": "MOF"}
+    assert ministry_for_admin(admin).name == "وزارة الخارجية"
