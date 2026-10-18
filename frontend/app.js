@@ -1,11 +1,13 @@
-import { createUploadManager } from "./components/upload/useUploadManager.js?v=20260712-upload-settings";
-import { createSettingsModule } from "./components/settings/SettingsPage.js?v=20260922-arabic-only-v1";
+import { createUploadManager } from "./components/upload/useUploadManager.js?v=20260923-http-errors-v1";
+import { createSettingsModule } from "./components/settings/SettingsPage.js?v=20260923-model-selection-v1";
+import { httpErrorMessage } from "./http-errors.js?v=20260923-http-errors-v1";
 
 const storageKey = "iraqi-legal-assistant-conversations";
 const storageBackupKey = "iraqi-legal-assistant-conversations-backup";
 const activeConversationStorageKey = "iraqi-legal-assistant-active-conversation";
 const chatHistoryEndpoint = "/api/chat-history";
 const decisionDraftKey = "iraqi-legal-assistant-decision-draft";
+const evidencePanelStorageKey = "iraqi-legal-assistant-evidence-panel-collapsed";
 
 const elements = {
   aiCharacter: document.querySelector("#ai-character"),
@@ -45,6 +47,9 @@ const elements = {
   settingsView: document.querySelector("#settings-view"),
   dropzoneRoot: document.querySelector("#upload-dropzone-root"),
   errorsRoot: document.querySelector("#upload-errors"),
+  evidenceCollapsedCount: document.querySelector("#evidence-collapsed-count"),
+  evidencePanel: document.querySelector("#evidence-panel"),
+  evidencePanelToggle: document.querySelector("#evidence-panel-toggle"),
   exportButton: document.querySelector("#export-button"),
   exportDropdown: document.querySelector("#export-dropdown"),
   form: document.querySelector("#question-form"),
@@ -101,6 +106,7 @@ const stopRecordingIconMarkup = `
 
 let conversations = loadConversations();
 let activeConversationId = loadActiveConversationId(conversations);
+let evidencePanelCollapsed = localStorage.getItem(evidencePanelStorageKey) !== "false";
 let mediaRecorder = null;
 let microphoneStream = null;
 let recordingChunks = [];
@@ -128,6 +134,7 @@ let aiSpeechActive = false;
 let aiSpeechAudio = null;
 let aiSpeechObjectUrl = null;
 let aiSpeechAbortController = null;
+let conversationNavigationSequence = 0;
 let localTtsAvailable = null;
 let localTtsLanguages = {};
 let aiSpeechRate = Number(localStorage.getItem("jalssa-ai-speech-rate")) || 1;
@@ -145,7 +152,7 @@ function applyAssistantLanguage() {
   document.documentElement.dir = "rtl";
   document.documentElement.dataset.language = assistantLanguage;
   const greeting = document.querySelector("#mujib-greeting");
-  if (greeting) greeting.textContent = "مُجيب · أهلاً وسهلاً";
+  if (greeting) greeting.textContent = "وياك مُجيب، تفضل بشنو أكدر أساعدك!";
   if (elements.landingWelcomeTitle) {
     elements.landingWelcomeTitle.textContent = "أهلاً بك في المساعد القانوني";
   }
@@ -283,6 +290,20 @@ function stopAiSpeech({ resumeRotation = true } = {}) {
   }
 }
 
+function latestAssistantAnswer(conversation) {
+  const messages = Array.isArray(conversation?.messages) ? conversation.messages : [];
+  const message = [...messages]
+    .reverse()
+    .find(({ role, content }) => role === "assistant" && typeof content === "string" && content.trim());
+  return message?.content || "";
+}
+
+function stopSpeechForConversationChange(nextConversation = null) {
+  conversationNavigationSequence += 1;
+  stopAiSpeech();
+  lastSpokenAnswer = latestAssistantAnswer(nextConversation);
+}
+
 async function playLocalSpeechChunk(text, sequence) {
   // Keep the avatar in its preparation pose while Piper generates the WAV.
   // The talking animation must begin only after the browser starts playback.
@@ -296,7 +317,7 @@ async function playLocalSpeechChunk(text, sequence) {
   });
   if (!response.ok) {
     const payload = await response.json().catch(() => ({}));
-    throw new Error(payload.detail || `Local TTS failed (${response.status}).`);
+    throw new Error(httpErrorMessage(response.status, payload, "تعذّر تشغيل الصوت المحلي."));
   }
   const blob = await response.blob();
   if (sequence !== aiSpeechSequence || !aiVoiceEnabled) return;
@@ -750,12 +771,16 @@ function createConversation(initialTitle = "") {
 }
 
 function startNewConversation() {
+  stopSpeechForConversationChange();
   activeConversationId = null;
+  sessionStorage.removeItem(initialPromptKey);
+  elements.landingInput.value = "";
+  elements.landingInput.style.height = "";
+  history.replaceState(null, "", window.location.pathname);
   saveConversations();
   render();
   closeChatSidebarOnMobile();
-  showView("assistant");
-  elements.input.focus();
+  showView("landing");
 }
 
 function showView(viewName) {
@@ -764,6 +789,10 @@ function showView(viewName) {
   const showDecision = viewName === "decision";
   const showReview = viewName === "review";
   const showSettings = viewName === "settings";
+  if (!showAssistant && !showLanding) {
+    conversationNavigationSequence += 1;
+    stopAiSpeech();
+  }
   elements.landingView.hidden = !showLanding;
   elements.assistantView.hidden = !showAssistant;
   elements.decisionView.hidden = !showDecision;
@@ -771,7 +800,7 @@ function showView(viewName) {
   elements.settingsView.hidden = !showSettings;
   elements.assistantNav.classList.toggle("active", showAssistant || showLanding);
   elements.decisionNav.classList.toggle("active", showDecision);
-  elements.reviewNav.classList.toggle("active", showReview);
+  elements.reviewNav?.classList.toggle("active", showReview);
   elements.settingsNav.classList.toggle("active", showSettings);
   elements.nav.classList.remove("open");
   document.body.classList.toggle("decision-mode", showDecision);
@@ -839,6 +868,28 @@ function closeOrCollapseChatSidebar() {
   }
 }
 
+function applyEvidencePanelState({ persist = false } = {}) {
+  elements.assistantView?.classList.toggle("evidence-collapsed", evidencePanelCollapsed);
+  elements.evidencePanel?.classList.toggle("collapsed", evidencePanelCollapsed);
+  if (elements.evidencePanelToggle) {
+    const expanded = !evidencePanelCollapsed;
+    const label = expanded ? "طي لوحة القرارات والوثائق" : "فتح لوحة القرارات والوثائق";
+    elements.evidencePanelToggle.setAttribute("aria-expanded", String(expanded));
+    elements.evidencePanelToggle.setAttribute("aria-label", label);
+    elements.evidencePanelToggle.title = label;
+    const icon = elements.evidencePanelToggle.querySelector(".evidence-toggle-chevron");
+    if (icon) icon.textContent = expanded ? "›" : "‹";
+  }
+  if (persist) {
+    localStorage.setItem(evidencePanelStorageKey, String(evidencePanelCollapsed));
+  }
+}
+
+function toggleEvidencePanel() {
+  evidencePanelCollapsed = !evidencePanelCollapsed;
+  applyEvidencePanelState({ persist: true });
+}
+
 function transferPromptToChat(question) {
   const cleanQuestion = normalizeWhitespace(question);
   if (!cleanQuestion || pending) return;
@@ -873,6 +924,11 @@ function activeConversation() {
 }
 
 function selectConversation(id) {
+  const nextConversation = conversations.find((conversation) => conversation.id === id);
+  if (!nextConversation) return;
+  if (id !== activeConversationId) {
+    stopSpeechForConversationChange(nextConversation);
+  }
   activeConversationId = id;
   saveConversations();
   render();
@@ -881,6 +937,7 @@ function selectConversation(id) {
 }
 
 function removeAllConversations() {
+  stopSpeechForConversationChange();
   conversations = [];
   activeConversationId = null;
   saveConversations({ allowEmpty: true });
@@ -1058,6 +1115,9 @@ function renderEvidence() {
 
   const referenceTotal = legalSources.length || evidence.snippets.length;
   elements.referenceCount.textContent = repairMojibake(`${referenceTotal} Ù…Ø±Ø§Ø¬Ø¹`);
+  if (elements.evidenceCollapsedCount) {
+    elements.evidenceCollapsedCount.textContent = String(referenceTotal);
+  }
   elements.sourceList.replaceChildren();
 
   if (legalSources.length) {
@@ -1197,6 +1257,8 @@ async function submitQuestion(question) {
   const cleanQuestion = question.trim();
   let conversation = activeConversation();
   if (!conversation) conversation = createConversation(cleanQuestion);
+  const submissionConversationId = conversation.id;
+  const submissionNavigationSequence = conversationNavigationSequence;
   if (!conversation.messages.length) conversation.title = truncate(cleanQuestion, 40);
   conversation.timestamp = conversation.timestamp || conversation.createdAt || new Date().toISOString();
   conversation.messages.push({ role: "user", content: cleanQuestion, time: formatTime() });
@@ -1232,13 +1294,13 @@ async function submitQuestion(question) {
         conversation_title: conversation.title,
       }),
     });
-    const payload = await response.json();
+    const payload = await response.json().catch(() => ({}));
     if (response.status === 401) {
       await refreshSession();
       showView("settings");
-      throw new Error("Ø§Ù†ØªÙ‡Øª Ø¬Ù„Ø³Ø© Ø§Ù„Ø¯Ø®ÙˆÙ„. ÙŠØ±Ø¬Ù‰ ØªØ³Ø¬ÙŠÙ„ Ø§Ù„Ø¯Ø®ÙˆÙ„ Ø«Ù… Ø¥Ø¹Ø§Ø¯Ø© Ø¥Ø±Ø³Ø§Ù„ Ø§Ù„Ø³Ø¤Ø§Ù„.");
+      throw new Error(httpErrorMessage(response.status, payload));
     }
-    if (!response.ok) throw new Error(payload.detail || "ØªØ¹Ø°Ø± Ø¥Ù†Ø´Ø§Ø¡ Ø§Ù„Ø¥Ø¬Ø§Ø¨Ø©.");
+    if (!response.ok) throw new Error(httpErrorMessage(response.status, payload, "تعذّر إنشاء الإجابة."));
 
     conversation.messages.push({
       role: "assistant",
@@ -1255,7 +1317,12 @@ async function submitQuestion(question) {
       citations: (payload.citations || []).map(repairConversationText),
     };
     await saveConversations();
-    speakArabicAnswer(payload.answer);
+    if (
+      activeConversationId === submissionConversationId
+      && conversationNavigationSequence === submissionNavigationSequence
+    ) {
+      speakArabicAnswer(payload.answer);
+    }
   } catch (error) {
     conversation.messages.push({
       role: "assistant error",
@@ -1403,8 +1470,8 @@ async function transcribeRecording(blob) {
 
   try {
     const response = await fetch("/transcribe", { method: "POST", body: formData });
-    const payload = await response.json();
-    if (!response.ok) throw new Error(payload.detail || "ØªØ¹Ø°Ø± ØªØ­ÙˆÙŠÙ„ Ø§Ù„ØµÙˆØª Ø¥Ù„Ù‰ Ù†Øµ.");
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(httpErrorMessage(response.status, payload, "تعذّر تحويل الصوت إلى نص."));
     const separator = recordingInput.value.trim() ? " " : "";
     recordingInput.value = `${recordingInput.value.trimEnd()}${separator}${payload.text}`;
   } catch (error) {
@@ -1633,6 +1700,7 @@ elements.historySearch?.addEventListener("input", renderHistory);
 elements.mobileMenu?.addEventListener("click", toggleChatSidebar);
 elements.chatSidebarClose?.addEventListener("click", closeOrCollapseChatSidebar);
 elements.chatSidebarBackdrop?.addEventListener("click", closeChatSidebarOnMobile);
+elements.evidencePanelToggle?.addEventListener("click", toggleEvidencePanel);
 window.addEventListener("resize", () => {
   if (!isOverlaySidebar()) {
     document.body.classList.remove("chat-sidebar-open");
@@ -1711,7 +1779,7 @@ async function exportConversation(format = "pdf") {
 
     if (!response.ok) {
       const payload = await response.json().catch(() => ({}));
-      throw new Error(payload.detail || "ÙØ´Ù„ ØªØµØ¯ÙŠØ± Ø§Ù„Ù…Ø­Ø§Ø¯Ø«Ø©.");
+      throw new Error(httpErrorMessage(response.status, payload, "فشل تصدير المحادثة."));
     }
 
     const blob = await response.blob();
@@ -1738,6 +1806,7 @@ async function exportConversation(format = "pdf") {
 }
 
 loadDecisionDraft();
+applyEvidencePanelState();
 render();
 repairTextTree();
 applyAssistantLanguage(assistantLanguage);

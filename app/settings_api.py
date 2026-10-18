@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import threading
+from copy import deepcopy
 
 import httpx
 import ollama
@@ -15,6 +16,7 @@ from .auth import COOKIE_NAME, admin_for_token, audit, authenticate, next_welcom
 from .build_index import main as build_index
 from .legal_parser_integration import rebuild_legal_parser_index
 from .ministry_phrases import ministry_names
+from .model_selection import MODEL_OPTIONS, hardware_profile
 from .settings_schema import SettingsValidationError, validate_settings
 from .runtime_settings import runtime_settings
 from .settings_store import (
@@ -29,6 +31,17 @@ from .user_management import (
 
 _rebuild_lock = threading.Lock()
 _rebuild_state = {"status": "idle", "detail": None, "legal_parser": None}
+
+
+def settings_response_payload(settings: dict | None = None) -> dict:
+    payload = deepcopy(settings) if settings is not None else get_settings()
+    profile = hardware_profile()
+    model = payload.setdefault("model", {})
+    if model.get("auto_select_model", True):
+        model["chat_model"] = profile["recommended_model"]
+    payload["hardware"] = profile
+    payload.setdefault("capabilities", {})["model_options"] = list(MODEL_OPTIONS)
+    return payload
 
 
 def error(detail: str, status: int, code: str = "error", fields=None) -> JSONResponse:
@@ -108,7 +121,7 @@ async def settings_get(request: Request) -> JSONResponse:
     admin = require_admin(request)
     if isinstance(admin, Response):
         return admin
-    return JSONResponse(await run_in_threadpool(get_settings))
+    return JSONResponse(await run_in_threadpool(settings_response_payload))
 
 
 async def settings_put(request: Request) -> JSONResponse:
@@ -117,7 +130,8 @@ async def settings_put(request: Request) -> JSONResponse:
         return admin
     try:
         payload = await json_body(request)
-        result = await run_in_threadpool(update_settings, payload)
+        updated = await run_in_threadpool(update_settings, payload)
+        result = await run_in_threadpool(settings_response_payload, updated)
         await run_in_threadpool(audit, "settings_updated", actor=admin, target_type="settings", details={"sections": list(payload)}, request=request)
         return JSONResponse(result)
     except SettingsValidationError as exc:
@@ -130,7 +144,8 @@ async def settings_reset(request: Request) -> JSONResponse:
     admin = require_admin(request, "manage_settings")
     if isinstance(admin, Response):
         return admin
-    result = await run_in_threadpool(reset_settings)
+    reset = await run_in_threadpool(reset_settings)
+    result = await run_in_threadpool(settings_response_payload, reset)
     await run_in_threadpool(audit, "settings_reset", actor=admin, target_type="settings", request=request)
     return JSONResponse(result)
 

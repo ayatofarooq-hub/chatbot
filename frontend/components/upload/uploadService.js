@@ -1,3 +1,5 @@
+import { httpErrorMessage } from "../../http-errors.js?v=20260923-http-errors-v1";
+
 export function uploadFile(file, onProgress) {
   const request = new XMLHttpRequest();
   const startedAt = performance.now();
@@ -18,9 +20,14 @@ export function uploadFile(file, onProgress) {
       });
     });
     request.addEventListener("load", () => {
-      const payload = JSON.parse(request.responseText || "{}");
+      let payload = {};
+      try {
+        payload = JSON.parse(request.responseText || "{}");
+      } catch {
+        payload = {};
+      }
       if (request.status >= 200 && request.status < 300) resolve(payload);
-      else reject(new Error(payload.detail || "فشل رفع الملف وفهرسته."));
+      else reject(new Error(httpErrorMessage(request.status, payload, "فشل رفع الملف وفهرسته.")));
     });
     request.addEventListener("error", () => reject(new Error("تعذر الاتصال بخادم الرفع.")));
     request.addEventListener("abort", () => reject(new Error("تم إلغاء رفع الملف.")));
@@ -34,15 +41,15 @@ export function uploadFile(file, onProgress) {
 
 export async function fetchUploadedFiles() {
   const response = await fetch("/api/uploads", { credentials: "same-origin" });
-  const payload = await response.json();
-  if (!response.ok) throw new Error(payload.detail || "تعذر تحميل الملفات المرفوعة.");
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(httpErrorMessage(response.status, payload, "تعذّر تحميل الملفات المرفوعة."));
   return payload.items || [];
 }
 
 export async function fetchUploadSettings() {
   const response = await fetch("/api/uploads/settings", { credentials: "same-origin" });
-  const payload = await response.json();
-  if (!response.ok) throw new Error(payload.detail || "تعذر تحميل إعدادات الرفع.");
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(httpErrorMessage(response.status, payload, "تعذّر تحميل إعدادات الرفع."));
   return payload;
 }
 
@@ -51,6 +58,6 @@ export async function removeUploadedFile(fileId) {
     method: "DELETE",
     credentials: "same-origin",
   });
-  const payload = await response.json();
-  if (!response.ok) throw new Error(payload.detail || "تعذر نقل الملف إلى المصادر.");
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(httpErrorMessage(response.status, payload, "تعذّر نقل الملف إلى المصادر."));
 }
