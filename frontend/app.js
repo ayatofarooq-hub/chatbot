@@ -458,7 +458,10 @@ const settingsModule = createSettingsModule({
   root: document.querySelector("#settings-root"),
   modalRoot: document.querySelector("#modal-root"),
   showToast,
-  onAuthenticated: refreshSession,
+  onAuthenticated: async () => {
+    await refreshSession();
+    await hydrateServerChatHistory({ preferServer: true });
+  },
 });
 
 const roleNames = {
@@ -688,28 +691,34 @@ function storedMessageCount(items = conversations) {
   return items.reduce((total, conversation) => total + (conversation.messages?.length || 0), 0);
 }
 
-function persistChatHistoryToServer({ allowEmpty = false } = {}) {
-  if (!allowEmpty && !hasStoredMessages()) return;
+function persistChatHistoryToServer({ allowEmpty = false, useBeacon = false } = {}) {
+  if (!allowEmpty && !hasStoredMessages()) return Promise.resolve(false);
   const serialized = JSON.stringify(chatHistoryPayload());
-  try {
-    if (navigator.sendBeacon) {
-      const blob = new Blob([serialized], { type: "application/json" });
-      if (navigator.sendBeacon(chatHistoryEndpoint, blob)) return;
+  if (useBeacon) {
+    try {
+      if (navigator.sendBeacon) {
+        const blob = new Blob([serialized], { type: "application/json" });
+        if (navigator.sendBeacon(chatHistoryEndpoint, blob)) return Promise.resolve(true);
+      }
+    } catch {
+      // Fall back to fetch below.
     }
-  } catch {
-    // Fall back to fetch below.
   }
-  fetch(chatHistoryEndpoint, {
+  return fetch(chatHistoryEndpoint, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: serialized,
+    credentials: "same-origin",
     keepalive: true,
-  }).catch((error) => console.warn("Could not persist server chat history:", error));
+  }).catch((error) => {
+    console.warn("Could not persist server chat history:", error);
+    return false;
+  });
 }
 
 function saveConversations(options = {}) {
   writeLocalConversations();
-  persistChatHistoryToServer(options);
+  return persistChatHistoryToServer(options);
 }
 
 function loadActiveConversationId(items) {
@@ -1147,7 +1156,7 @@ function setPending(value) {
   }
 }
 
-async function hydrateServerChatHistory() {
+async function hydrateServerChatHistory({ preferServer = false } = {}) {
   try {
     const response = await fetch(chatHistoryEndpoint, { credentials: "same-origin" });
     if (!response.ok) return;
@@ -1156,7 +1165,11 @@ async function hydrateServerChatHistory() {
       ? payload.conversations.map(repairConversationText)
       : [];
     if (!hasStoredMessages(serverConversations)) return;
-    if (hasStoredMessages(conversations) && storedMessageCount(conversations) >= storedMessageCount(serverConversations)) return;
+    if (
+      !preferServer
+      && hasStoredMessages(conversations)
+      && storedMessageCount(conversations) >= storedMessageCount(serverConversations)
+    ) return;
 
     conversations = serverConversations.map((conversation) => ({
       ...conversation,
@@ -1187,7 +1200,7 @@ async function submitQuestion(question) {
   if (!conversation.messages.length) conversation.title = truncate(cleanQuestion, 40);
   conversation.timestamp = conversation.timestamp || conversation.createdAt || new Date().toISOString();
   conversation.messages.push({ role: "user", content: cleanQuestion, time: formatTime() });
-  saveConversations();
+  await saveConversations();
   render();
   setPending(true);
 
@@ -1215,6 +1228,8 @@ async function submitQuestion(question) {
         include_snippets: true,
         source_hint: sourceHint,
         response_language: assistantLanguage,
+        conversation_id: conversation.id,
+        conversation_title: conversation.title,
       }),
     });
     const payload = await response.json();
@@ -1239,7 +1254,7 @@ async function submitQuestion(question) {
       warnings: (payload.warnings || []).map(repairMojibake),
       citations: (payload.citations || []).map(repairConversationText),
     };
-    saveConversations();
+    await saveConversations();
     speakArabicAnswer(payload.answer);
   } catch (error) {
     conversation.messages.push({
@@ -1247,7 +1262,7 @@ async function submitQuestion(question) {
       content: error.message || "ØªØ¹Ø°Ø± Ø§Ù„Ø§ØªØµØ§Ù„ Ø¨Ø§Ù„Ø®Ø§Ø¯Ù….",
       time: formatTime(),
     });
-    saveConversations();
+    await saveConversations();
     showToast(error.message || "ØªØ¹Ø°Ø± Ø§Ù„Ø§ØªØµØ§Ù„ Ø¨Ø§Ù„Ø®Ø§Ø¯Ù….");
   } finally {
     document.querySelector("#loading-message")?.remove();
@@ -1602,6 +1617,7 @@ elements.reviewNav?.addEventListener("click", async () => {
 elements.settingsNav.addEventListener("click", () => showView("settings"));
 elements.logoutButton?.addEventListener("click", async () => {
   try {
+    await saveConversations({ allowEmpty: true });
     await fetch("/api/auth/logout", {
       method: "POST",
       credentials: "same-origin",
@@ -1728,8 +1744,8 @@ applyAssistantLanguage(assistantLanguage);
 initializeAiCharacter();
 bootstrapAuthentication();
 hydrateServerChatHistory();
-window.addEventListener("pagehide", saveConversations);
-window.addEventListener("beforeunload", saveConversations);
+window.addEventListener("pagehide", () => saveConversations({ useBeacon: true }));
+window.addEventListener("beforeunload", () => saveConversations({ useBeacon: true }));
 if (
   window.location.hash === "#chat"
   || new URLSearchParams(window.location.search).has("prompt")

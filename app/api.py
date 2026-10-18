@@ -1147,6 +1147,19 @@ async def ask(request: Request) -> JSONResponse:
             status_code=422,
         )
 
+    conversation_id = payload.get("conversation_id", "")
+    if conversation_id is not None and not isinstance(conversation_id, str):
+        return JSONResponse(
+            {"detail": "Field 'conversation_id' must be a string when provided."},
+            status_code=422,
+        )
+    conversation_title = payload.get("conversation_title", "")
+    if conversation_title is not None and not isinstance(conversation_title, str):
+        return JSONResponse(
+            {"detail": "Field 'conversation_title' must be a string when provided."},
+            status_code=422,
+        )
+
     try:
         response = await run_in_threadpool(
             answer_question,
@@ -1154,6 +1167,13 @@ async def ask(request: Request) -> JSONResponse:
             include_snippets,
             source_hint,
             response_language,
+        )
+        await run_in_threadpool(
+            persist_answer_exchange,
+            question.strip(),
+            response,
+            conversation_id or "",
+            conversation_title or "",
         )
         return JSONResponse(response)
     except NotFoundError:
@@ -1204,6 +1224,104 @@ def normalized_chat_history_payload(payload: object) -> dict:
     }
 
 
+def _message_time() -> str:
+    return datetime.now().strftime("%H:%M")
+
+
+def _conversation_title(question: str, supplied_title: str = "") -> str:
+    title = supplied_title.strip() or question.strip() or "محادثة قانونية جديدة"
+    return title[:40]
+
+
+def persist_answer_exchange(
+    question: str,
+    response: dict,
+    conversation_id: str = "",
+    conversation_title: str = "",
+) -> None:
+    """Persist one completed question/answer pair in server chat history."""
+
+    if not isinstance(response, dict):
+        return
+    answer = str(response.get("answer") or "").strip()
+    if not question.strip() or not answer:
+        return
+
+    history = normalized_chat_history_payload(read_json(CHAT_HISTORY_FILE, {}))
+    conversations = history["conversations"]
+    now = datetime.now().isoformat()
+    conversation_id = conversation_id.strip() or f"conversation-{datetime.now().strftime('%Y%m%d%H%M%S%f')}"
+    conversation = next(
+        (
+            item
+            for item in conversations
+            if isinstance(item, dict) and item.get("id") == conversation_id
+        ),
+        None,
+    )
+    if conversation is None:
+        conversation = {
+            "id": conversation_id,
+            "title": _conversation_title(question, conversation_title),
+            "timestamp": now,
+            "createdAt": now,
+            "messages": [],
+            "evidence": {"snippets": [], "warnings": [], "citations": [], "sources": []},
+        }
+        conversations.insert(0, conversation)
+
+    conversation.setdefault("id", conversation_id)
+    conversation["title"] = _conversation_title(
+        question,
+        str(conversation.get("title") or conversation_title),
+    )
+    conversation["timestamp"] = now
+    conversation.setdefault("createdAt", now)
+    messages = conversation.get("messages")
+    if not isinstance(messages, list):
+        messages = []
+        conversation["messages"] = messages
+
+    last_user_index = None
+    for index in range(len(messages) - 1, -1, -1):
+        message = messages[index]
+        if isinstance(message, dict) and message.get("role") == "user":
+            if str(message.get("content") or "").strip() == question.strip():
+                last_user_index = index
+            break
+
+    if last_user_index is None:
+        messages.append({"role": "user", "content": question.strip(), "time": _message_time()})
+        last_user_index = len(messages) - 1
+
+    has_answer_after_question = any(
+        isinstance(message, dict)
+        and str(message.get("role") or "").startswith("assistant")
+        for message in messages[last_user_index + 1 :]
+    )
+    if not has_answer_after_question:
+        messages.append(
+            {
+                "role": "assistant",
+                "content": answer,
+                "sources": response.get("sources") or [],
+                "warnings": response.get("warnings") or [],
+                "citations": response.get("citations") or [],
+                "time": _message_time(),
+            }
+        )
+
+    conversation["evidence"] = {
+        "snippets": response.get("snippets") or [],
+        "sources": response.get("sources") or [],
+        "warnings": response.get("warnings") or [],
+        "citations": response.get("citations") or [],
+    }
+    history["activeConversationId"] = conversation_id
+    history["updatedAt"] = now
+    write_json(CHAT_HISTORY_FILE, history)
+
+
 async def chat_history_get(_: Request) -> JSONResponse:
     """Return browser-independent chat history persisted on the server."""
 
@@ -1220,10 +1338,14 @@ async def chat_history_put(request: Request) -> JSONResponse:
     try:
         payload = await request.json()
     except ValueError:
-        return JSONResponse(
-            {"detail": "Request body must be valid JSON."},
-            status_code=400,
-        )
+        try:
+            body = (await request.body()).decode("utf-8")
+            payload = json.loads(body)
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            return JSONResponse(
+                {"detail": "Request body must be valid JSON."},
+                status_code=400,
+            )
 
     normalized = normalized_chat_history_payload(payload)
     await run_in_threadpool(write_json, CHAT_HISTORY_FILE, normalized)

@@ -83,6 +83,32 @@ class SearchIndexTests(unittest.TestCase):
         self.assertIn("\u0627\u0644\u0645\u0631\u0642\u0645 \u0628\u0627\u0644\u0639\u062f\u062f", expanded)
         self.assertIn("\u0627\u0644\u0645\u0624\u0631\u062e \u0641\u064a", expanded)
 
+    def test_question_tools_detect_count_percentage_and_contract_parties(self):
+        self.assertIn("count", detect_query_intents("كم عدد القرارات؟"))
+        self.assertIn("amount", detect_query_intents("إلى أي نسبة عُدلت النسبة؟"))
+        self.assertIn("amount", detect_query_intents("إلى أي نسبة عُدلت النسبة المثبتة؟"))
+        self.assertIn(
+            "comparison",
+            detect_query_intents("بين أي جهتين كان من المقرر إبرام العقد؟"),
+        )
+        self.assertIn(
+            "comparison",
+            detect_query_intents("بين أي جهتين كان من المقرر إبرام عقد؟"),
+        )
+        self.assertIn(
+            "comparison",
+            detect_query_intents("بين أي جهتين أُبرم العقد؟"),
+        )
+
+    def test_question_tool_expansion_adds_count_and_comparison_terms(self):
+        expanded = expand_question_for_retrieval(
+            "كم عدد القرارات وبين أي جهتين أُبرم العقد؟"
+        )
+
+        self.assertIn("اجمالي", expanded)
+        self.assertIn("جهتين", expanded)
+        self.assertIn("إبرام", expanded)
+
     def test_query_intent_score_rewards_answer_shape(self):
         question = "\u0645\u0627 \u0631\u0642\u0645 \u0648\u062a\u0627\u0631\u064a\u062e \u0627\u0644\u0643\u062a\u0627\u0628\u061f"
         matching = "\u0643\u062a\u0627\u0628 \u0648\u0632\u0627\u0631\u0629 \u0627\u0644\u0646\u0641\u0637 \u0627\u0644\u0645\u0631\u0642\u0645 \u0628\u0627\u0644\u0639\u062f\u062f (123/45) \u0627\u0644\u0645\u0624\u0631\u062e \u0641\u064a 30/10/2024"
@@ -206,6 +232,9 @@ class SearchIndexTests(unittest.TestCase):
             reranked["relevance_scores"][0][0],
             reranked["relevance_scores"][0][1],
         )
+
+    def test_count_question_is_aggregate_query(self):
+        self.assertTrue(needs_multiple_documents("كم عدد القرارات التي عدلت الاسعار؟"))
 
     def test_non_aggregate_query_can_return_multiple_chunks_from_same_document(self):
         question = "\u0643\u0645 \u0623\u0635\u0628\u062d \u0633\u0639\u0631 \u0632\u064a\u062a \u0627\u0644\u063a\u0627\u0632\u061f"

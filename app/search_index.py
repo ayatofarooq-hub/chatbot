@@ -116,6 +116,15 @@ QUERY_INTENT_TERMS = {
         "مبلغ",
         "بمبلغ",
         "مقداره",
+        "نسبة",
+        "النسبة",
+        "الى اي نسبة",
+        "إلى أي نسبة",
+        "عدلت النسبة",
+        "عُدلت النسبة",
+        "النسبة المثبتة",
+        "عدلت النسبة المثبتة",
+        "عُدلت النسبة المثبتة",
         "دينار",
         "دولار",
         "سعر",
@@ -159,15 +168,46 @@ QUERY_INTENT_TERMS = {
         "ماذا قرر",
         "الموافقة",
     ),
+    "count": (
+        "كم عدد",
+        "عدد",
+        "اعداد",
+        "أعداد",
+        "مجموع",
+        "اجمالي",
+        "إجمالي",
+    ),
+    "comparison": (
+        "بين اي",
+        "بين أي",
+        "بين اي جهتين",
+        "بين أي جهتين",
+        "بين أي جهتين أُبرم العقد",
+        "جهتين",
+        "بين",
+        "بين اي جهتين ابرم عقد",
+        "كان من المقرر إبرام",
+        "كان من المقرر ابرام",
+        "كان من المقرر إبرام عقد",
+        "كان من المقرر ابرام عقد",
+        "بين أي جهتين كان من المقرر إبرام عقد",
+        "أبرم",
+        "أُبرم",
+        "ابرم",
+        "إبرام",
+        "ابرام",
+    ),
 }
 
 QUERY_INTENT_EXPANSIONS = {
     "source_book": "كتاب المرقم بالعدد المؤرخ في بناء على استنادا الى استنادا إلى اعتمد عليه",
-    "amount": "مبلغ بمبلغ مقداره مقدار دينار دولار سعر كلفة تكلفة اصبح بدلا من",
+    "amount": "مبلغ بمبلغ مقداره مقدار نسبة النسبة النسبة المثبتة الى اي نسبة إلى أي نسبة عدلت عُدلت دينار دولار سعر كلفة تكلفة اصبح بدلا من",
     "date": "تاريخ المؤرخ في صدر صدور جلسة انعقاد تاريخ صدور القرار تاريخ انعقاد الجلسة",
     "decision_number": "رقم القرار رقم قرار مجلس الوزراء قرر مجلس الوزراء decision_number",
     "responsibility": "الجهة المسؤولة تتحمل تنفيذ تنفذ وزارة شركة لجنة الالتزامات الاجراءات",
     "summary": "مضمون محتوى ملخص خلاصة قرر مجلس الوزراء الموافقة اولا ثانيا",
+    "count": "كم عدد عدد اعداد أعداد مجموع اجمالي إجمالي كل جميع كافة القرارات الوثائق البنود المواد",
+    "comparison": "بين اي بين أي بين اي جهتين بين أي جهتين جهتين كان من المقرر إبرام عقد ابرام إبرام أبرم أُبرم عقد تعاقد اتفاق وزارة شركة جهة طرف",
 }
 
 
@@ -233,6 +273,15 @@ def detect_query_intents(question: str) -> set[str]:
             intents.add(intent)
     if re.search(r"\b(?:كم|كام|شلون|كيف).{0,30}(?:سعر|مبلغ|كلفة|تكلفة|دينار|دولار)\b", normalized):
         intents.add("amount")
+    if re.search(r"\b(?:الى|إلى)\s+اي\s+نسب(?:ة|ه)(?:\s+\S+){0,5}?\s*(?:عدلت|عُدلت|مثبت(?:ة|ه))?\b", normalized):
+        intents.add("amount")
+        intents.add("comparison")
+    if re.search(r"\bكم\s+عدد\b", normalized):
+        intents.add("count")
+    if re.search(r"\bبين\s+(?:اي|أي)(?:\s+جهتين)?\b", normalized):
+        intents.add("comparison")
+    if re.search(r"\b(?:كان\s+من\s+المقرر\s+)?(?:ابرام|إبرام|ابرمت|أبرمت|ابرم|أبرم|أُبرم)(?:\s+عقد)?\b", normalized):
+        intents.add("comparison")
     if re.search(r"\b(?:شنو|ما|ماهو|ما هو|اي|أي).{0,35}كتاب\b", normalized):
         intents.add("source_book")
     return intents
@@ -337,6 +386,10 @@ def query_intent_score(question: str, candidate_text: str, metadata: dict | None
             matched += 1
         elif intent == "decision_number" and str(metadata.get("decision_number") or "").strip():
             matched += 1
+        elif intent == "count" and re.search(r"\b(?:عدد|مجموع|اجمالي|إجمالي|كل|جميع|كافة)\b", haystack):
+            matched += 1
+        elif intent == "comparison" and re.search(r"\b(?:بين|جهتين|ابرام|إبرام|ابرم|أبرم|أُبرم|عقد|تعاقد|اتفاق|وزارة|شركة|جهة|طرف)\b", haystack):
+            matched += 1
     return matched / len(intents) if intents else 0.0
 
 
@@ -413,6 +466,7 @@ def needs_multiple_documents(question: str) -> bool:
 
     normalized = normalize_for_search(question)
     patterns = (
+        r"\bكم\s+عدد\s+ال?\w+",
         r"\b(?:ما|ماهي|ما هي|اذكر|اعرض|عدد)\s+ال?قرارات\b",
         r"\b(?:كل|جميع|كافة)\s+ال?قرارات\b",
         r"\bال?قرارات\s+التي\b",

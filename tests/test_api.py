@@ -13,7 +13,18 @@ from app.api import app
 
 class ApiTests(unittest.TestCase):
     def setUp(self):
+        self.temporary_directory = TemporaryDirectory()
+        self.chat_history_patcher = patch.object(
+            api_module,
+            "CHAT_HISTORY_FILE",
+            Path(self.temporary_directory.name) / "chat_history.json",
+        )
+        self.chat_history_patcher.start()
         self.client = TestClient(app)
+
+    def tearDown(self):
+        self.chat_history_patcher.stop()
+        self.temporary_directory.cleanup()
 
     def test_health(self):
         response = self.client.get("/health")
@@ -72,6 +83,27 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(load_response.status_code, 200)
         self.assertEqual(load_response.json()["activeConversationId"], "conversation-1")
         self.assertEqual(load_response.json()["conversations"][0]["messages"][0]["content"], "question")
+
+    def test_chat_history_accepts_raw_json_body(self):
+        payload = (
+            '{"activeConversationId":"conversation-raw",'
+            '"conversations":[{"id":"conversation-raw","title":"raw",'
+            '"messages":[{"role":"assistant","content":"answer"}]}]}'
+        )
+
+        with TemporaryDirectory() as temporary_directory:
+            history_file = Path(temporary_directory) / "chat_history.json"
+            with patch.object(api_module, "CHAT_HISTORY_FILE", history_file):
+                save_response = self.client.post(
+                    "/api/chat-history",
+                    content=payload,
+                    headers={"content-type": "text/plain;charset=UTF-8"},
+                )
+                load_response = self.client.get("/api/chat-history")
+
+        self.assertEqual(save_response.status_code, 200)
+        self.assertEqual(load_response.json()["activeConversationId"], "conversation-raw")
+        self.assertEqual(load_response.json()["conversations"][0]["messages"][0]["content"], "answer")
 
     def test_favicon_request_is_acknowledged(self):
         response = self.client.get("/favicon.ico")
@@ -166,6 +198,37 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["answer"], "إجابة")
         mock_answer_question.assert_called_once_with("سؤال", False, None, "ar")
+
+    @patch("app.auth.admin_for_token", return_value={"id": 1, "username": "admin"})
+    @patch("app.api.answer_question")
+    def test_ask_persists_question_and_answer_in_chat_history(self, mock_answer_question, _mock_admin):
+        mock_answer_question.return_value = {
+            "question": "saved question",
+            "answer": "saved answer",
+            "sources": [{"filename": "law.docx"}],
+            "warnings": [],
+            "citations": [],
+            "snippets": [],
+        }
+
+        response = self.client.post(
+            "/ask",
+            json={
+                "question": "saved question",
+                "conversation_id": "conversation-from-ask",
+                "conversation_title": "saved title",
+            },
+        )
+        history_response = self.client.get("/api/chat-history")
+
+        self.assertEqual(response.status_code, 200)
+        history = history_response.json()
+        self.assertEqual(history["activeConversationId"], "conversation-from-ask")
+        messages = history["conversations"][0]["messages"]
+        self.assertEqual(messages[0]["role"], "user")
+        self.assertEqual(messages[0]["content"], "saved question")
+        self.assertEqual(messages[1]["role"], "assistant")
+        self.assertEqual(messages[1]["content"], "saved answer")
 
     @patch("app.auth.admin_for_token", return_value={"id": 1, "username": "admin"})
     @patch("app.api.answer_question")
