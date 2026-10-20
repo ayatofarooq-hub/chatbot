@@ -1078,7 +1078,14 @@
       "admin_user_id": 1,
       "token_hash": "e7ee5db902ce5f4948c83de8889de6bcdd97ccdfbbb5776aa4078f3214174ff7",
       "expires_at": "2026-10-20T06:35:27.189081+00:00",
-      "welcome_phrase_index": 0
+      "welcome_phrase_index": 1
+    },
+    {
+      "id": "377cb0c2-7539-49d8-a0ec-984867784171",
+      "admin_user_id": 1,
+      "token_hash": "0dbe02c88383d499853a3d8503f7061bf2c6efb1ca984a6e327a302e3ea9525b",
+      "expires_at": "2026-10-20T07:40:07.318517+00:00",
+      "welcome_phrase_index": 2
     }
   ],
   "audit_log": [
@@ -3857,6 +3864,18 @@
       "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36",
       "details": {},
       "created_at": "2026-10-20T05:35:27.216049+00:00"
+    },
+    {
+      "id": 222,
+      "action": "login_success",
+      "actor_user_id": 1,
+      "actor_username": "ayat",
+      "target_type": null,
+      "target_id": null,
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36",
+      "details": {},
+      "created_at": "2026-10-20T06:40:07.374081+00:00"
     }
   ]
 }
