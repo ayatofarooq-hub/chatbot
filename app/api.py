@@ -43,6 +43,7 @@ try:
         synthesize_arabic, synthesize_kurmanji, voice_status,
     )
     from .model_selection import initialize_hardware_profile
+    from .source_documents import original_word_file, word_document_links, word_preview_html, WORD_MEDIA_TYPE
     from .uploaded_documents import (
         create_uploaded_document,
         delete_uploaded_document,
@@ -84,6 +85,7 @@ except ImportError:
         synthesize_arabic, synthesize_kurmanji, voice_status,
     )
     from model_selection import initialize_hardware_profile
+    from source_documents import original_word_file, word_document_links, word_preview_html, WORD_MEDIA_TYPE
     from uploaded_documents import (
         create_uploaded_document,
         delete_uploaded_document,
@@ -938,6 +940,30 @@ async def upload_download(request: Request) -> Response:
         return JSONResponse({"detail": str(error)}, status_code=404)
 
 
+async def source_word_document(request: Request) -> Response:
+    """Expose the original of a registered source to authenticated app users."""
+    if not authenticated_admin(request):
+        return JSONResponse({"detail": "Authentication required."}, status_code=401)
+    filename = request.path_params["filename"]
+    try:
+        path = await run_in_threadpool(original_word_file, filename, load_registry())
+    except LookupError:
+        return JSONResponse({"detail": "ملف Word الأصلي غير متوفر لهذا المصدر."}, status_code=404)
+    headers = {"Cache-Control": "no-store", "X-Content-Type-Options": "nosniff"}
+    action = request.path_params.get("action")
+    if action == "download":
+        return FileResponse(path, filename=filename, media_type=WORD_MEDIA_TYPE, headers=headers)
+    if action == "preview":
+        try:
+            html = await run_in_threadpool(word_preview_html, path, filename)
+        except (ValueError, OSError, KeyError):
+            return JSONResponse({"detail": "تعذرت معاينة الملف. يمكنك تحميل النسخة الأصلية."}, status_code=422)
+        return Response(html, media_type="text/html", headers=headers)
+    if action:
+        return JSONResponse({"detail": "Not found."}, status_code=404)
+    return JSONResponse(word_document_links(filename), headers=headers)
+
+
 MAX_AUDIO_BYTES = 10 * 1024 * 1024
 ALLOWED_AUDIO_TYPES = {
     "audio/mp4",
@@ -1598,6 +1624,8 @@ app = Starlette(
         Route("/api/uploads", uploads_post, methods=["POST"]),
         Route("/api/uploads/{upload_id:str}", upload_delete, methods=["DELETE"]),
         Route("/api/uploads/{upload_id:str}/download", upload_download, methods=["GET"]),
+        Route("/api/source-documents/{filename:str}", source_word_document, methods=["GET"]),
+        Route("/api/source-documents/{filename:str}/{action:str}", source_word_document, methods=["GET"]),
         Route("/api/auth/login", login, methods=["POST"]),
         Route("/api/auth/logout", logout, methods=["POST"]),
         Route("/api/auth/session", session, methods=["GET"]),

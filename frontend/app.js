@@ -1104,6 +1104,65 @@ function filterVisibleWarnings(warnings = []) {
   });
 }
 
+const originalWordLookups = new Map();
+
+function originalWordInfo(filename) {
+  if (!originalWordLookups.has(filename)) {
+    const request = fetch(`/api/source-documents/${encodeURIComponent(filename)}`, { credentials: "same-origin" })
+      .then((response) => response.ok ? response.json() : null)
+      .catch(() => null);
+    originalWordLookups.set(filename, request);
+    request.then((info) => { if (!info) originalWordLookups.delete(filename); });
+  }
+  return originalWordLookups.get(filename);
+}
+
+function showOriginalWord(info) {
+  const dialog = makeElement("dialog", "original-word-dialog");
+  const header = makeElement("div", "original-word-header");
+  const title = makeElement("strong", "", info.filename);
+  title.id = `word-title-${crypto.randomUUID()}`;
+  dialog.setAttribute("aria-labelledby", title.id);
+  const close = makeElement("button", "original-word-close", "إغلاق");
+  close.type = "button";
+  close.addEventListener("click", () => dialog.close());
+  header.append(title, close);
+  const preview = makeElement("iframe", "original-word-preview");
+  preview.title = `معاينة ${info.filename}`;
+  preview.setAttribute("sandbox", "");
+  preview.src = info.preview_url;
+  const note = makeElement("p", "original-word-note", "معاينة نصية للوثيقة. لتحميل الملف بتنسيقه الكامل، اختر تحميل Word.");
+  const download = makeElement("a", "original-word-action", "تحميل Word");
+  download.href = info.download_url;
+  download.download = info.filename;
+  dialog.append(header, note, download, preview);
+  dialog.addEventListener("close", () => dialog.remove(), { once: true });
+  document.body.append(dialog);
+  dialog.showModal();
+}
+
+async function appendOriginalWordActions(card, source) {
+  const filename = String(source.filename || source.document_name || source.source_file || "");
+  if (!/\.docx$/i.test(filename)) return;
+  const info = await originalWordInfo(filename);
+  // A rerender may have replaced this card while the lookup was in flight.
+  if (!card.isConnected) return;
+  if (!info) {
+    card.append(makeElement("small", "original-word-unavailable", "ملف Word الأصلي غير متوفر."));
+    return;
+  }
+  card.append(makeElement("div", "original-word-name", info.filename));
+  const actions = makeElement("div", "original-word-actions");
+  const open = makeElement("button", "original-word-action", "فتح الوثيقة");
+  open.type = "button";
+  open.addEventListener("click", () => showOriginalWord(info));
+  const download = makeElement("a", "original-word-action", "تحميل Word");
+  download.href = info.download_url;
+  download.download = info.filename;
+  actions.append(open, download);
+  card.append(actions);
+}
+
 function renderEvidence() {
   const evidence = activeConversation()?.evidence ?? {
     snippets: [],
@@ -1128,6 +1187,7 @@ function renderEvidence() {
         makeElement("small", "", repairMojibake(`مصدر النص: ${source.chunk_id || ""}`)),
       );
       elements.sourceList.append(card);
+      appendOriginalWordActions(card, source);
     });
   } else if (!evidence.snippets.length) {
     elements.sourceList.append(makeElement("div", "empty-panel", "Ø³ØªØ¸Ù‡Ø± Ø§Ù„Ù…Ø±Ø§Ø¬Ø¹ Ø§Ù„Ù…Ø³ØªØ±Ø¬Ø¹Ø© Ù‡Ù†Ø§ Ø¨Ø¹Ø¯ Ø·Ø±Ø­ Ø§Ù„Ø³Ø¤Ø§Ù„."));
