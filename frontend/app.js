@@ -56,7 +56,7 @@ const elements = {
   historyList: document.querySelector("#history-list"),
   historySearch: document.querySelector("#history-search"),
   input: document.querySelector("#question-input"),
-  insightList: document.querySelector("#insight-list"),
+  legalReferenceList: document.querySelector("#legal-reference-list"),
   landingForm: document.querySelector("#landing-form"),
   landingInput: document.querySelector("#landing-input"),
   landingRecordingControls: document.querySelector("#landing-recording-controls"),
@@ -1204,13 +1204,31 @@ function renderEvidence() {
     });
   }
 
-  elements.insightList.replaceChildren();
-  const insights = [];
-  if (legalSources.length) insights.push(`تم عرض ${legalSources.length} مصادر قانونية مباشرة.`);
-  if (evidence.citations.length) insights.push(`ØªÙ… Ø§Ù„Ø¹Ø«ÙˆØ± Ø¹Ù„Ù‰ ${evidence.citations.length} Ø§Ø³ØªØ´Ù‡Ø§Ø¯Ø§Øª.`);
-  if (evidence.warnings.length) insights.push(`ØªÙˆØ¬Ø¯ ${evidence.warnings.length} Ù…Ù„Ø§Ø­Ø¸Ø§Øª ØªØ­ØªØ§Ø¬ Ø¥Ù„Ù‰ Ù…Ø±Ø§Ø¬Ø¹Ø©.`);
-  if (!insights.length) insights.push("Ø³ØªØ¸Ù‡Ø± Ù†ØªØ§Ø¦Ø¬ Ø§Ù„ØªØ­Ù‚Ù‚ ÙˆØ§Ù„Ø§Ø³ØªØ´Ù‡Ø§Ø¯Ø§Øª Ù‡Ù†Ø§ Ø¨Ø¹Ø¯ Ø¥Ù†Ø´Ø§Ø¡ Ø§Ù„Ø¥Ø¬Ø§Ø¨Ø©.");
-  insights.forEach((insight) => elements.insightList.append(makeElement("li", "", insight)));
+  elements.legalReferenceList.replaceChildren();
+  const citations = Array.isArray(evidence.citations) ? evidence.citations : [];
+  const references = citations.length ? citations : legalSources;
+  const displayedReferences = new Set();
+  references.forEach((reference) => {
+    const label = reference.legal_reference || reference.law_name || reference.law
+      || reference.filename || reference.document_name || reference.source_file;
+    if (!label) return;
+    const parts = [label];
+    if (!reference.legal_reference) {
+      if (reference.law_number) parts.push(`رقم القانون: ${reference.law_number}`);
+      if (reference.article_number || reference.article) parts.push(`المادة: ${reference.article_number || reference.article}`);
+      if (reference.law_year || reference.year) parts.push(`السنة: ${reference.law_year || reference.year}`);
+    }
+    if (reference.source_file && reference.source_file !== label) parts.push(`المصدر: ${reference.source_file}`);
+    if (reference.page_number) parts.push(`الصفحة: ${reference.page_number}`);
+    const text = repairMojibake(parts.join(" · "));
+    if (!displayedReferences.has(text)) {
+      displayedReferences.add(text);
+      elements.legalReferenceList.append(makeElement("li", "", text));
+    }
+  });
+  if (!displayedReferences.size) {
+    elements.legalReferenceList.append(makeElement("li", "", "ستظهر المصادر القانونية المستند إليها في الإجابة هنا."));
+  }
 }
 
 function normalizeWhitespace(value = "") {

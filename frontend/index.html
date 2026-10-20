@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#145a38">
   <title>المساعد القانوني العراقي</title>
   <script src="/assets/theme-schedule.js?v=20260907-scheduled-theme-v1"></script>
-  <link rel="stylesheet" href="/assets/styles.css?v=20260928-evidence-panel-v2-word-sources-v1">
+  <link rel="stylesheet" href="/assets/styles.css?v=20260928-evidence-panel-v2-word-sources-v1-legal-references-v1">
 </head>
 <body class="auth-gate-pending">
   <div class="app-shell">
@@ -303,19 +303,12 @@
             <div class="source-list" id="source-list">
               <div class="empty-panel">ستظهر المراجع المسترجعة هنا بعد طرح السؤال.</div>
             </div>
-            <div class="section-label">التحليل السياقي المرتبط</div>
-            <section class="insight-card" id="insight-card">
-              <div class="insight-title"><span aria-hidden="true">✓</span> رؤى التحقق الآلي</div>
-              <ul id="insight-list">
-                <li>ستظهر نتائج التحقق والاستشهادات هنا بعد إنشاء الإجابة.</li>
+            <section class="legal-reference-card" aria-labelledby="legal-reference-title">
+              <h2 class="legal-reference-title" id="legal-reference-title">المصادر القانونية</h2>
+              <ul id="legal-reference-list">
+                <li>ستظهر المصادر القانونية المستند إليها في الإجابة هنا.</li>
               </ul>
             </section>
-            <div class="section-label">أدوات إضافية</div>
-            <button class="upload-card" type="button" disabled>
-              <span aria-hidden="true">⇩</span>
-              <strong>تحميل الوثائق</strong>
-              <small>تتم إدارة الوثائق حالياً عبر API</small>
-            </button>
           </div>
         </aside>
       </div>
@@ -376,7 +369,7 @@
 
   <div class="toast" id="toast" role="alert"></div>
   <div id="modal-root"></div>
-  <script type="module" src="/assets/app.js?v=20260928-evidence-panel-v2-merged-history-v3-word-sources-v1"></script>
+  <script type="module" src="/assets/app.js?v=20260928-evidence-panel-v2-merged-history-v3-word-sources-v1-legal-references-v1"></script>
   <script type="module" src="/assets/effendi-flipbook.js?v=mujib-kurmanji-v16"></script>
 </body>
 </html>

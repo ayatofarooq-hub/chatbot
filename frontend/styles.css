@@ -1952,7 +1952,7 @@ body.authenticated .profile i {
 }
 
 .source-card,
-.insight-card,
+.legal-reference-card,
 .decision-card,
 .decision-analysis,
 .file-card {
@@ -2046,60 +2046,34 @@ body.authenticated .profile i {
 [data-theme="dark"] .original-word-action,
 [data-theme="dark"] .original-word-close { background: var(--night-card, #1c2b25); color: var(--night-text, #f2f4ef); }
 
-.insight-card {
+.legal-reference-card {
   margin: 0 18px;
   padding: 17px;
   background: #eff8f3;
   border-color: #dceee3;
 }
 
-.insight-title {
-  margin-bottom: 10px;
+.legal-reference-title {
+  margin: 0 0 10px;
   font-size: 12px;
   font-weight: var(--font-weight-bold);
 }
 
-.insight-title span {
-  color: var(--green);
-}
-
-.insight-card ul {
+.legal-reference-card ul {
   margin: 0;
   padding-right: 18px;
 }
 
-.insight-card li {
+.legal-reference-card li {
   margin-bottom: 6px;
   color: #536158;
   font-size: 11px;
   line-height: 1.7;
+  overflow-wrap: anywhere;
 }
 
-.upload-card {
-  width: calc(100% - 36px);
-  min-height: 105px;
-  display: grid;
-  place-items: center;
-  align-content: center;
-  gap: 5px;
-  margin: 0 18px;
-  color: var(--muted);
-  background: #fff;
-  border: 1px dashed #d9dfdb;
-  border-radius: 11px;
-}
-
-.upload-card span {
-  font-size: 20px;
-}
-
-.upload-card strong {
-  color: var(--ink);
-  font-size: 12px;
-}
-
-.upload-card small {
-  font-size: 9px;
+[data-theme="dark"] .legal-reference-card li {
+  color: var(--night-text-muted, #b5c3b9);
 }
 
 .toast {
@@ -5010,8 +4984,7 @@ body.authenticated .profile i {
 [data-theme="dark"] .review-list,
 [data-theme="dark"] .review-detail,
 [data-theme="dark"] .settings-card,
-[data-theme="dark"] .source-card,
-[data-theme="dark"] .upload-card {
+[data-theme="dark"] .source-card {
   color: var(--night-text);
   background: var(--night-card);
   border-color: var(--night-border);
@@ -5061,14 +5034,14 @@ body.authenticated .profile i {
 }
 
 [data-theme="dark"] .message-sources strong,
-[data-theme="dark"] .insight-title span,
+[data-theme="dark"] .legal-reference-title,
 [data-theme="dark"] .decision-card-header h2,
 [data-theme="dark"] .analysis-section h3 {
   color: #69b58f;
 }
 
 [data-theme="dark"] .message-sources li,
-[data-theme="dark"] .insight-card,
+[data-theme="dark"] .legal-reference-card,
 [data-theme="dark"] .review-item,
 [data-theme="dark"] .model-select-field,
 [data-theme="dark"] .model-auto-choice {
